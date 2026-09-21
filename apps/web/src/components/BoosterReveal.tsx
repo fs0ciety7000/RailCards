@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import Image from "next/image";
-import { Button, RarityBadge, staggerContainer, fadeInUp } from "@railcards/ui";
+import { Button, staggerContainer, fadeInUp } from "@railcards/ui";
 import { CardFrame } from "@/components/CardTile";
 import type { BoosterPull } from "@/lib/types";
 
@@ -91,9 +90,14 @@ export function BoosterReveal({
                     transition={{ duration: reduceMotion ? 0 : 0.5, ease: "easeOut" }}
                     className="relative z-10"
                   >
-                    <CardFrame rarity={pull.cardDefinition.rarity} className="relative aspect-[3/4] w-full">
-                      <Image src={pull.cardDefinition.imageUrl} alt="" fill sizes="220px" className="object-cover" unoptimized />
-                    </CardFrame>
+                    <CardFrame
+                      card={{
+                        name: pull.cardDefinition.name,
+                        rarity: pull.cardDefinition.rarity,
+                        imageUrl: pull.cardDefinition.imageUrl,
+                      }}
+                      className="relative aspect-[3/4] w-full"
+                    />
                   </motion.div>
                 ) : (
                   <motion.div
@@ -111,16 +115,7 @@ export function BoosterReveal({
                   </motion.div>
                 )}
               </AnimatePresence>
-              <div className="relative z-10 mt-2 min-h-10">
-                {isRevealed ? (
-                  <>
-                    <p className="font-display truncate text-sm font-semibold text-white">{pull.cardDefinition.name}</p>
-                    <RarityBadge label={pull.cardDefinition.rarity.label} colorHex={pull.cardDefinition.rarity.colorHex} size="sm" />
-                  </>
-                ) : (
-                  <p className="text-xs text-white/40">Toucher pour révéler</p>
-                )}
-              </div>
+              {!isRevealed && <p className="relative z-10 mt-2 text-center text-xs text-white/40">Toucher pour révéler</p>}
             </motion.button>
           );
         })}
