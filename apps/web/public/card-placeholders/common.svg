@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Commune">
+  <defs>
+    <linearGradient id="bg-common" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4b596c"/>
+      <stop offset="55%" stop-color="#0B1A33"/>
+      <stop offset="100%" stop-color="#081224"/>
+    </linearGradient>
+    <radialGradient id="glow-common" cx="50%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#bdc5cc" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#bdc5cc" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#bg-common)"/>
+  <rect width="400" height="300" fill="url(#glow-common)"/>
+  
+  <g opacity="0.9">
+    <!-- rails receding to vanishing point -->
+    <path d="M -20 340 L 180 250 L 220 250 L 420 340 Z" fill="#9AA5B1" opacity="0.10"/>
+    <line x1="40" y1="330" x2="196" y2="256" stroke="#9AA5B1" stroke-width="2" opacity="0.35"/>
+    <line x1="360" y1="330" x2="204" y2="256" stroke="#9AA5B1" stroke-width="2" opacity="0.35"/>
+    <!-- sleepers -->
+    <rect x="95" y="330" width="210" height="4" fill="#9AA5B1" opacity="0.18" /><rect x="112" y="315.2" width="176" height="4" fill="#9AA5B1" opacity="0.15999999999999998" /><rect x="129" y="300.4" width="142" height="4" fill="#9AA5B1" opacity="0.13999999999999999" /><rect x="146" y="285.6" width="108" height="4" fill="#9AA5B1" opacity="0.12" /><rect x="163" y="270.8" width="74" height="4" fill="#9AA5B1" opacity="0.09999999999999998" /><rect x="180" y="256" width="40" height="4" fill="#9AA5B1" opacity="0.07999999999999999" />
+    <!-- locomotive silhouette -->
+    <g transform="translate(90,150)">
+      <rect x="0" y="30" width="150" height="56" rx="10" fill="#9AA5B1" opacity="0.9"/>
+      <rect x="18" y="0" width="70" height="34" rx="8" fill="#9AA5B1" opacity="0.9"/>
+      <circle cx="30" cy="94" r="14" fill="#0B1A33" stroke="#9AA5B1" stroke-width="4"/>
+      <circle cx="120" cy="94" r="14" fill="#0B1A33" stroke="#9AA5B1" stroke-width="4"/>
+      <rect x="150" y="46" width="34" height="16" rx="4" fill="#9AA5B1" opacity="0.7"/>
+      <rect x="-14" y="52" width="16" height="30" rx="3" fill="#9AA5B1" opacity="0.7"/>
+      <rect x="30" y="8" width="14" height="18" rx="2" fill="#0B1A33" opacity="0.6"/>
+      <rect x="52" y="8" width="14" height="18" rx="2" fill="#0B1A33" opacity="0.6"/>
+    </g>
+  </g>
+  <g transform="translate(239 198)" opacity="0.53">
+      <path d="M0 -2.219838820301783 L0.6215548696844994 -0.6215548696844994 L2.219838820301783 0 L0.6215548696844994 0.6215548696844994 L0 2.219838820301783 L-0.6215548696844994 0.6215548696844994 L-2.219838820301783 0 L-0.6215548696844994 -0.6215548696844994 Z" fill="#bdc5cc"/>
+    </g><g transform="translate(363 7)" opacity="0.71">
+      <path d="M0 -4.290277777777778 L1.2012777777777779 -1.2012777777777779 L4.290277777777778 0 L1.2012777777777779 1.2012777777777779 L0 4.290277777777778 L-1.2012777777777779 1.2012777777777779 L-4.290277777777778 0 L-1.2012777777777779 -1.2012777777777779 Z" fill="#bdc5cc"/>
+    </g><g transform="translate(129 167)" opacity="0.52">
+      <path d="M0 -3.578823731138546 L1.002070644718793 -1.002070644718793 L3.578823731138546 0 L1.002070644718793 1.002070644718793 L0 3.578823731138546 L-1.002070644718793 1.002070644718793 L-3.578823731138546 0 L-1.002070644718793 -1.002070644718793 Z" fill="#bdc5cc"/>
+    </g><g transform="translate(304 141)" opacity="0.66">
+      <path d="M0 -4.332390260631001 L1.2130692729766805 -1.2130692729766805 L4.332390260631001 0 L1.2130692729766805 1.2130692729766805 L0 4.332390260631001 L-1.2130692729766805 1.2130692729766805 L-4.332390260631001 0 L-1.2130692729766805 -1.2130692729766805 Z" fill="#bdc5cc"/>
+    </g><g transform="translate(127 113)" opacity="0.52">
+      <path d="M0 -3.983076131687243 L1.1152613168724281 -1.1152613168724281 L3.983076131687243 0 L1.1152613168724281 1.1152613168724281 L0 3.983076131687243 L-1.1152613168724281 1.1152613168724281 L-3.983076131687243 0 L-1.1152613168724281 -1.1152613168724281 Z" fill="#bdc5cc"/>
+    </g><g transform="translate(67 258)" opacity="0.52">
+      <path d="M0 -2.037054183813443 L0.5703751714677641 -0.5703751714677641 L2.037054183813443 0 L0.5703751714677641 0.5703751714677641 L0 2.037054183813443 L-0.5703751714677641 0.5703751714677641 L-2.037054183813443 0 L-0.5703751714677641 -0.5703751714677641 Z" fill="#bdc5cc"/>
+    </g><g transform="translate(44 205)" opacity="0.70">
+      <path d="M0 -3.630126886145405 L1.0164355281207134 -1.0164355281207134 L3.630126886145405 0 L1.0164355281207134 1.0164355281207134 L0 3.630126886145405 L-1.0164355281207134 1.0164355281207134 L-3.630126886145405 0 L-1.0164355281207134 -1.0164355281207134 Z" fill="#bdc5cc"/>
+    </g>
+  <rect x="0" y="0" width="400" height="300" fill="none" stroke="#9AA5B1" stroke-opacity="0.5" stroke-width="3"/>
+</svg>

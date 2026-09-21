@@ -16,7 +16,7 @@ Ce dépôt contient un **MVP réellement fonctionnel** : inscription sur invitat
 | Base de données | PostgreSQL 16 + Prisma ORM | Transactions ACID, contraintes fortes, migrations versionnées |
 | Cache / files | Redis 7 + BullMQ | Tâches différées (voir `apps/worker`) |
 | Auth | JWT (access, 15 min) + session opaque en cookie httpOnly (refresh, 30 j) + bcrypt | Pas de dépendance externe payante, rotation de refresh token, révocation en base |
-| Tests | Jest (`apps/api`, idiomatique NestJS) + Vitest (`packages/*`) + Playwright (E2E, à venir) | Voir [Tests](#tests) |
+| Tests | Jest (`apps/api`, idiomatique NestJS) + Vitest (`packages/*`) + Playwright (E2E) | Voir [Tests](#tests) |
 | CI | GitHub Actions | Lint, typecheck, build, tests unitaires, tests d'intégration contre un vrai PostgreSQL |
 
 ### Pourquoi pas Firebase ?
@@ -86,6 +86,7 @@ pnpm db:studio               # Prisma Studio (explorateur de données)
 
 pnpm test                    # tests unitaires (tous les packages)
 pnpm --filter @railcards/api test:integration   # tests d'intégration contre PostgreSQL réel
+pnpm --filter @railcards/web test:e2e           # E2E Playwright (nécessite l'API lancée + le front construit)
 ```
 
 ## Structure du monorepo
@@ -117,7 +118,7 @@ Voir aussi [docs/architecture/testing.md](docs/architecture/testing.md) pour le 
 
 - **Unitaires** (Vitest pour `packages/game-domain`, Jest pour `apps/api`) : logique pure (tirage pondéré de boosters, courbe d'XP, parsing de durée, hachage de token).
 - **Intégration** (`apps/api/test/*.e2e-spec.ts`, Jest + Supertest, **exécutés contre un vrai PostgreSQL**, pas des mocks) : inscription/connexion, accès privé sans invitation, bonus de bienvenue unique, ouverture de booster idempotente, insuffisance de solde, création/acceptation d'échange, échec d'échange si carte plus possédée, achat de marché, **deux achats concurrents de la même annonce** (le test lance les deux requêtes en parallèle et vérifie qu'une seule réussit), permissions admin. 23 tests, tous verts au moment de la rédaction.
-- **E2E navigateur** (Playwright) : voir `apps/web` — parcours principal inscription → booster de bienvenue → album → marché/échange.
+- **E2E navigateur** (Playwright, `apps/web/e2e/golden-path.spec.ts`) : parcours principal complet, en navigateur réel et contre l'API réelle — inscription (sur invitation) → onboarding/bonus de bienvenue → ouverture de booster → cartes visibles dans la collection → mise en vente sur le marché. Exécuté à la fois en viewport desktop et mobile. `pnpm --filter @railcards/web test:e2e`.
 
 ## Documentation
 
@@ -135,4 +136,4 @@ Voir aussi [docs/architecture/testing.md](docs/architecture/testing.md) pour le 
 
 ## Statut du MVP
 
-Voir [docs/launch-checklist.md](docs/launch-checklist.md) pour le détail phase par phase. En résumé : un joueur peut s'inscrire (sur invitation), recevoir son bonus de bienvenue, ouvrir des boosters, voir sa collection/album, échanger des cartes, acheter/vendre sur le marché, accomplir des missions — le tout vérifié par des tests d'intégration contre une vraie base PostgreSQL, y compris les cas de concurrence (double achat, double dépense).
+Voir [docs/launch-checklist.md](docs/launch-checklist.md) pour le détail phase par phase. En résumé : un joueur peut s'inscrire (sur invitation), recevoir son bonus de bienvenue, ouvrir des boosters, voir sa collection/album, échanger des cartes, acheter/vendre sur le marché, accomplir des missions — via une vraie interface web responsive (desktop + mobile) — le tout vérifié par des tests d'intégration contre une vraie base PostgreSQL (y compris les cas de concurrence : double achat, double dépense) et par un test end-to-end en navigateur réel qui parcourt le chemin complet inscription → booster → collection → marché.

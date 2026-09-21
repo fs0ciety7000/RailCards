@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* Tailwind v4 auto-detects template sources from the nearest project root;
+   packages/ui lives outside apps/web so it is added explicitly here. */
+@source "../../../../packages/ui/src";
+
+/* RailCards is a single cohesive "night railway" theme (not a light/dark
+   toggle) — we force Tailwind's `dark:` variant on unconditionally so the
+   shared @railcards/ui primitives (which support both) always render their
+   dark styling inside this app. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Bleu nuit / bleu ferroviaire — dominant dark tone */
+  --color-rc-night: #0b1a33;
+  --color-rc-night-light: #12274a;
+  --color-rc-night-lighter: #1c3660;
+  --color-rc-night-dark: #061021;
+
+  /* Jaune signalétique — accent / CTA, used sparingly */
+  --color-rc-accent: #ffc72c;
+  --color-rc-accent-light: #ffd763;
+  --color-rc-accent-dark: #e0a800;
+
+  /* Surfaces */
+  --color-rc-surface: #f4f6fa;
+  --color-rc-surface-dark: #182c50;
+
+  --color-rc-danger: #e0473b;
+  --color-rc-success: #3fb27f;
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --animate-shimmer: shimmer 2.4s linear infinite;
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-rc-night);
+  color: #f4f6fa;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background-color: var(--color-rc-accent);
+  color: var(--color-rc-night);
+}
+
+/* Visible focus ring everywhere, keyboard or mouse-triggered elements alike. */
+:focus-visible {
+  outline: 2px solid var(--color-rc-accent);
+  outline-offset: 2px;
+}
+
+.bg-rail-lines {
+  background-image:
+    linear-gradient(180deg, rgba(255, 199, 44, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 199, 44, 0.03) 1px, transparent 1px);
+  background-size: 100% 28px, 28px 100%;
+}

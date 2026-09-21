@@ -1,0 +1,49 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@railcards/ui";
+import { RequireAdmin } from "@/components/RequireAuth";
+import { AppShell } from "@/components/AppShell";
+
+const ADMIN_TABS = [
+  { href: "/admin", label: "Vue d'ensemble" },
+  { href: "/admin/cards", label: "Cartes" },
+  { href: "/admin/series", label: "Séries" },
+  { href: "/admin/boosters", label: "Boosters" },
+  { href: "/admin/invitations", label: "Invitations" },
+  { href: "/admin/users", label: "Utilisateurs" },
+  { href: "/admin/reports", label: "Signalements" },
+  { href: "/admin/ledger", label: "Registres" },
+];
+
+export function AdminShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  return (
+    <RequireAdmin>
+      <AppShell>
+        <div className="mb-5 -mx-4 overflow-x-auto px-4">
+          <nav aria-label="Navigation administration" className="flex gap-1 whitespace-nowrap">
+            {ADMIN_TABS.map((tab) => {
+              const active = pathname === tab.href;
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "rounded-lg px-3 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent",
+                    active ? "bg-rc-accent text-rc-night" : "text-white/60 hover:bg-white/10 hover:text-white",
+                  )}
+                >
+                  {tab.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+        {children}
+      </AppShell>
+    </RequireAdmin>
+  );
+}

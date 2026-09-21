@@ -23,7 +23,13 @@ Liste honnête de ce qui n'est pas (encore) fait, pour éviter toute ambiguïté
 
 ## Frontend
 
-Voir le rapport livré avec `apps/web` pour le détail exact de ce qui a été construit vs. simplifié dans l'interface (généré séparément par l'équipe frontend de ce projet — consultez le dernier message de session ou l'historique de commit pour le détail à jour).
+- **Échange « demander des cartes précises »** : la création d'une proposition d'échange permet de choisir ses propres cartes à offrir (+ un montant optionnel de CR dans chaque sens), mais pas de parcourir la collection exacte du destinataire pour lui demander des cartes précises — l'API `/users/:username` ne renvoie que des statistiques agrégées (niveau, ancienneté, nombre de cartes uniques), pas la liste détaillée de ses exemplaires. L'écran l'indique explicitement plutôt que de proposer un sélecteur vide ou trompeur.
+- **Signalement depuis un profil public** : pas de bouton « signaler » sur l'écran de profil joueur, car `POST /reports` a besoin de l'`userId` de la cible et le profil public n'expose que le `username` — plutôt que de câbler un faux bouton, il a été omis (règle : aucun bouton qui ne fait rien).
+- **Sélecteurs admin** : les formulaires d'administration (carte, booster, série) utilisent des `<select>` HTML natifs sur les identifiants plutôt que des combobox avec recherche — fonctionnel pour un catalogue de la taille actuelle (53 cartes), à améliorer si le catalogue grossit significativement.
+- **Sélection de cartes pour vente/échange** : récupère jusqu'à 100 cartes disponibles en une seule requête plutôt qu'un sélecteur paginé — largement suffisant pour ce MVP, à revisiter pour une collection de plusieurs centaines de cartes.
+- **Contre-proposition d'échange** : pas d'écran dédié, cohérent avec l'absence de l'endpoint API correspondant (voir plus haut).
+
+Le reste des 15 écrans demandés est implémenté et branché sur l'API réelle (pas de données simulées), avec états de chargement/vide/erreur, dialogues de confirmation avant toute action irréversible, et raretés toujours affichées avec couleur **et** texte. Vérifié par un parcours de bout en bout en navigateur réel (voir [architecture/testing.md](../architecture/testing.md)).
 
 ## Ce qui est en revanche solide
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "./cn";
@@ -34,7 +34,18 @@ const toneClasses: Record<ToastTone, string> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [mounted, setMounted] = useState(false);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  // Portals are only safe to render after the client has mounted: rendering
+  // conditionally on `typeof document` during the render pass itself would
+  // make the server and first client render disagree (SSR never has
+  // `document`, but the client's *initial* render already does), which
+  // trips a hydration mismatch. Gating on a post-mount effect instead keeps
+  // both passes identical (nothing) until hydration has settled.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const dismiss = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -58,7 +69,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {typeof document !== "undefined" &&
+      {mounted &&
         createPortal(
           <div
             className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-3 sm:bottom-3 sm:top-auto sm:items-end sm:pr-4"

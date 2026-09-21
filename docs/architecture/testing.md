@@ -1,6 +1,6 @@
 # Tests — couverture des scénarios requis
 
-Statut au moment de la rédaction : **23/23 tests d'intégration verts**, **15/15 tests unitaires verts** (7 `packages/game-domain` + 8 `apps/api`). Tous les tests d'intégration tournent contre un **vrai PostgreSQL** local (pas de mock de base de données) — voir `apps/api/test/*.e2e-spec.ts`.
+Statut au moment de la rédaction : **23/23 tests d'intégration verts**, **15/15 tests unitaires verts** (7 `packages/game-domain` + 8 `apps/api`), **2/2 tests E2E Playwright verts** (desktop + mobile). Tous les tests d'intégration tournent contre un **vrai PostgreSQL** local (pas de mock de base de données) — voir `apps/api/test/*.e2e-spec.ts`.
 
 | # | Scénario requis | Où c'est testé | Statut |
 |---|---|---|---|
@@ -19,7 +19,7 @@ Statut au moment de la rédaction : **23/23 tests d'intégration verts**, **15/1
 | 13 | Absence de double transfert | `market.e2e-spec.ts` (même test que 12 : exactement un des deux acheteurs possède la carte à la fin) | ✅ |
 | 14 | Absence de solde négatif | `wallet.e2e-spec.ts` + garanti par la contrainte SQL `CHECK (balance >= 0)` | ✅ |
 | 15 | Contrôle des permissions admin | `admin.e2e-spec.ts` | ✅ |
-| 16 | Affichage responsive des parcours principaux | Playwright, `apps/web` (voir le rapport du frontend) | Voir le statut du frontend |
+| 16 | Affichage responsive des parcours principaux | `apps/web/e2e/golden-path.spec.ts` (Playwright, projets `desktop-chromium` 1280×900 et `mobile-chromium`) | ✅ |
 
 ## Exécuter les tests
 
@@ -31,9 +31,15 @@ pnpm test
 pnpm --filter @railcards/database prisma:migrate:deploy   # une fois
 DATABASE_URL=... pnpm --filter @railcards/database prisma:seed  # une fois, cible la base de test
 pnpm --filter @railcards/api test:integration
+
+# E2E navigateur — nécessite l'API lancée (localhost:4000) + le front construit
+pnpm --filter @railcards/web build
+pnpm --filter @railcards/web test:e2e
 ```
 
 En local, `apps/api/.env.test` pointe vers une base séparée (`railcards_test`) pour ne jamais polluer les données de développement. En CI, chaque run utilise un conteneur PostgreSQL/Redis éphémère (voir `.github/workflows/ci.yml`).
+
+Le test E2E (`apps/web/e2e/golden-path.spec.ts`) couvre le parcours obligatoire de bout en bout, en navigateur réel, contre l'API et une vraie base : mint d'un code d'invitation (via l'API, avec le compte admin seedé) → inscription → écran d'onboarding (bonus de bienvenue visible) → ouverture d'un booster découverte → les cartes apparaissent dans la collection → mise en vente d'une carte sur le marché. `apps/web/playwright.config.ts` lance l'app sur le port 3000 (doit correspondre à `WEB_BASE_URL` côté API pour que CORS autorise les requêtes) et résout dynamiquement le binaire Chromium pré-installé de l'environnement d'exécution plutôt que d'en télécharger un.
 
 ## Pourquoi Jest pour l'API et Vitest pour les packages
 

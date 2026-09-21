@@ -4,6 +4,8 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
+import reactHooks from "eslint-plugin-react-hooks";
+import globals from "globals";
 
 export default tseslint.config(
   {
@@ -25,5 +27,26 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "warn",
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
+  },
+  {
+    files: ["apps/web/**/*.{ts,tsx}", "packages/ui/**/*.{ts,tsx}"],
+    plugins: { "react-hooks": reactHooks },
+    rules: {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
+  {
+    // Node-executed CJS config/setup scripts (jest configs, test bootstrap).
+    files: ["**/*.cjs", "**/jest.*.js", "apps/api/test/utils/*.js"],
+    languageOptions: { globals: globals.node, sourceType: "commonjs" },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
+    // CLI scripts are expected to print to stdout.
+    files: ["prisma/seed.ts", "prisma/seed-data/**/*.ts"],
+    rules: { "no-console": "off" },
   },
 );

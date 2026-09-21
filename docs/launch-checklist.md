@@ -15,7 +15,7 @@ Ce document suit littéralement les critères de fin définis dans le brief prod
 - [x] Un joueur peut mettre une carte en vente et un autre l'acheter (testé, y compris achat concurrent)
 - [x] Les opérations économiques sont atomiques et testées (23 tests d'intégration contre PostgreSQL réel)
 - [x] L'administration est protégée (garde de rôle testé, aucune route de self-promotion)
-- [ ] Les parcours principaux sont utilisables sur smartphone — **à confirmer une fois le frontend revu** (voir la note de session la plus récente pour le statut exact au moment de la livraison)
+- [x] Les parcours principaux sont utilisables sur smartphone — vérifié en navigateur réel (Playwright, viewport mobile 390×844 et desktop 1280×900) sur le parcours complet inscription → booster → collection → marché, voir `apps/web/e2e/golden-path.spec.ts`
 - [x] Les tests pertinents ont été réellement exécutés (pas de mock de base de données sur les tests d'intégration)
 - [x] Les limitations restantes sont documentées ([known-limitations.md](product/known-limitations.md))
 
@@ -41,9 +41,9 @@ Ce document suit littéralement les critères de fin définis dans le brief prod
 | 3 | Wallet, boosters (tirage serveur idempotent), missions | ✅ |
 | 4 | Échanges, marché, transferts atomiques, notifications | ✅ |
 | 5 | Administration (catalogue, boosters, joueurs, audit, signalements) | ✅ |
-| 6 | Tests d'intégration/concurrence contre PostgreSQL, CI | ✅ (backend) |
-| 7 | Préparation bêta privée (ce document, guides, checklist) | ✅ (backend) |
-| — | Frontend Next.js (15 écrans) | Voir le rapport de session le plus récent pour le détail |
+| 6 | Tests d'intégration/concurrence contre PostgreSQL, tests unitaires, E2E Playwright, CI | ✅ |
+| 7 | Préparation bêta privée (ce document, guides, checklist) | ✅ |
+| — | Frontend Next.js (15 écrans, design system `packages/ui`) | ✅ — voir [known-limitations.md](product/known-limitations.md) pour le détail des simplifications assumées |
 
 ## Ce qui reste explicitement hors scope de ce MVP (décision produit assumée)
 
