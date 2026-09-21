@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  DATABASE_URL: postgresql://railcards:railcards_ci_password@localhost:5432/railcards?schema=public
+  REDIS_URL: redis://localhost:6379
+  JWT_ACCESS_SECRET: ci-access-secret-not-for-production-use-only
+  JWT_REFRESH_SECRET: ci-refresh-secret-not-for-production-use-only
+  COOKIE_SECRET: ci-cookie-secret-not-for-production-use-only
+  NODE_ENV: test
+  INVITE_ONLY_MODE: "true"
+
+jobs:
+  lint-typecheck-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build packages and apps
+        run: pnpm build
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @railcards/database prisma:generate
+
+      - name: Run unit tests
+        run: pnpm test
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: railcards
+          POSTGRES_PASSWORD: railcards_ci_password
+          POSTGRES_DB: railcards
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U railcards -d railcards"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @railcards/database prisma:generate
+
+      - name: Run migrations
+        run: pnpm db:migrate:deploy
+
+      - name: Seed catalog fixtures (rarities, series, cards, boosters, missions, demo/admin accounts)
+        run: pnpm db:seed
+
+      - name: Build API
+        run: pnpm --filter @railcards/api build
+
+      - name: Run integration tests against real PostgreSQL (auth, boosters, trades, market concurrency, admin permissions)
+        run: pnpm --filter @railcards/api test:integration

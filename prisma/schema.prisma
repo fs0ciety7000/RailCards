@@ -1,0 +1,663 @@
+// RailCards — Prisma schema
+// Design decisions are documented in docs/architecture/data-model.md
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Identity
+// ─────────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+model User {
+  id                String     @id @default(uuid())
+  email             String     @unique
+  emailVerifiedAt   DateTime?
+  username          String     @unique
+  passwordHash      String
+  displayName       String
+  avatarUrl         String?
+  role              UserRole   @default(USER)
+  status            UserStatus @default(ACTIVE)
+  lastLoginAt       DateTime?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  sessions              Session[]
+  invitationsCreated    Invitation[]        @relation("InvitationCreatedBy")
+  invitationUsed        Invitation?         @relation("InvitationUsedBy")
+  cardInstances         CardInstance[]
+  wallet                Wallet?
+  boosterOpenings       BoosterOpening[]
+  tradesInitiated       Trade[]             @relation("TradeInitiator")
+  tradesReceived        Trade[]             @relation("TradeRecipient")
+  marketListings        MarketListing[]
+  marketPurchases       MarketTransaction[] @relation("MarketBuyer")
+  marketSales           MarketTransaction[] @relation("MarketSeller")
+  userMissions          UserMission[]
+  userAchievements      UserAchievement[]
+  notifications         Notification[]
+  reportsFiled          Report[]            @relation("ReportReporter")
+  reportsAgainst        Report[]            @relation("ReportTarget")
+  auditLogs             AuditLog[]
+  profile               UserProfile?
+  dailyRewardClaims     DailyRewardClaim[]
+  passwordResetTokens   PasswordResetToken[]
+
+  @@index([status])
+}
+
+model UserProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio               String?
+  xp                Int      @default(0)
+  level             Int      @default(1)
+  dailyRewardStreak Int      @default(0)
+  lastDailyRewardAt DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Session {
+  id               String    @id @default(uuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ipAddress        String?
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Invitation {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  createdByUserId String?
+  createdBy       User?     @relation("InvitationCreatedBy", fields: [createdByUserId], references: [id])
+  email           String?
+  maxUses         Int       @default(1)
+  useCount        Int       @default(0)
+  expiresAt       DateTime?
+  usedByUserId    String?   @unique
+  usedBy          User?     @relation("InvitationUsedBy", fields: [usedByUserId], references: [id])
+  usedAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([code])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Catalog
+// ─────────────────────────────────────────────────────────────────────────
+
+enum CardCategory {
+  ROLLING_STOCK
+  STATION_PLACE
+  PROFESSION
+  DAILY_LIFE_HUMOR
+  SPECIAL_EDITION
+}
+
+enum CardStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Rarity {
+  id           String   @id @default(uuid())
+  code         String   @unique // COMMON, UNCOMMON, RARE, EPIC, LEGENDARY, MYTHIC
+  label        String
+  order        Int      @unique // 1 = most common
+  colorHex     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  cardDefinitions  CardDefinition[]
+  boosterPoolEntry BoosterPoolEntry[]
+  cardPulls        BoosterPull[]
+}
+
+model CardSeries {
+  id          String       @id @default(uuid())
+  slug        String       @unique
+  name        String
+  description String?
+  category    CardCategory
+  isActive    Boolean      @default(true)
+  releaseAt   DateTime?
+  coverImageUrl String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  cards            CardDefinition[]
+  boosterPoolEntries BoosterPoolEntry[]
+}
+
+model CardDefinition {
+  id                  String       @id @default(uuid())
+  slug                String       @unique
+  seriesId            String
+  series              CardSeries   @relation(fields: [seriesId], references: [id])
+  name                String
+  description         String
+  flavorText          String?
+  category            CardCategory
+  rarityId            String
+  rarity              Rarity       @relation(fields: [rarityId], references: [id])
+  imageUrl            String
+  status              CardStatus   @default(DRAFT)
+  combatStatsEnabled  Boolean      @default(false)
+  combatStats         Json?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  instances        CardInstance[]
+  poolEntries      BoosterPoolEntry[]
+  pulls            BoosterPull[]
+
+  @@index([seriesId])
+  @@index([rarityId])
+  @@index([status])
+  @@index([category])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Collection
+// ─────────────────────────────────────────────────────────────────────────
+
+enum CardInstanceState {
+  AVAILABLE
+  RESERVED_TRADE
+  RESERVED_MARKET
+  ARCHIVED
+}
+
+enum AcquisitionSource {
+  BOOSTER
+  TRADE
+  MARKET
+  ADMIN_GRANT
+  MISSION_REWARD
+  ACHIEVEMENT_REWARD
+}
+
+model CardInstance {
+  id               String            @id @default(uuid())
+  cardDefinitionId String
+  cardDefinition   CardDefinition    @relation(fields: [cardDefinitionId], references: [id])
+  ownerId          String
+  owner            User              @relation(fields: [ownerId], references: [id])
+  serialNumber     Int
+  state            CardInstanceState @default(AVAILABLE)
+  acquiredVia      AcquisitionSource
+  acquiredAt       DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  boosterPull      BoosterPull?
+  tradeItems       TradeItem[]
+  marketListings   MarketListing[]
+
+  @@index([ownerId])
+  @@index([cardDefinitionId])
+  @@index([state])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Booster Engine
+// ─────────────────────────────────────────────────────────────────────────
+
+enum BoosterCategory {
+  DISCOVERY
+  CLASSIC
+  THEMED
+}
+
+model BoosterDefinition {
+  id          String          @id @default(uuid())
+  slug        String          @unique
+  name        String
+  description String
+  category    BoosterCategory
+  priceCr     Int
+  cardCount   Int
+  imageUrl    String
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  pools    BoosterPool[]
+  openings BoosterOpening[]
+}
+
+model BoosterPool {
+  id                  String    @id @default(uuid())
+  boosterDefinitionId String
+  boosterDefinition   BoosterDefinition @relation(fields: [boosterDefinitionId], references: [id])
+  rulesVersion        Int
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+
+  entries  BoosterPoolEntry[]
+  openings BoosterOpening[]
+
+  @@unique([boosterDefinitionId, rulesVersion])
+}
+
+model BoosterPoolEntry {
+  id            String      @id @default(uuid())
+  boosterPoolId String
+  boosterPool   BoosterPool @relation(fields: [boosterPoolId], references: [id], onDelete: Cascade)
+  rarityId      String
+  rarity        Rarity      @relation(fields: [rarityId], references: [id])
+  seriesId      String?
+  series        CardSeries? @relation(fields: [seriesId], references: [id])
+  cardDefinitionId String?
+  cardDefinition CardDefinition? @relation(fields: [cardDefinitionId], references: [id])
+  weight        Int
+
+  @@index([boosterPoolId])
+}
+
+model BoosterOpening {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  boosterDefinitionId String
+  boosterDefinition   BoosterDefinition @relation(fields: [boosterDefinitionId], references: [id])
+  boosterPoolId       String
+  boosterPool         BoosterPool @relation(fields: [boosterPoolId], references: [id])
+  idempotencyKey      String   @unique
+  pricePaidCr         Int
+  walletTransactionId String?  @unique
+  walletTransaction   WalletTransaction? @relation(fields: [walletTransactionId], references: [id])
+  openedAt            DateTime @default(now())
+
+  pulls BoosterPull[]
+
+  @@index([userId])
+}
+
+model BoosterPull {
+  id               String         @id @default(uuid())
+  boosterOpeningId String
+  boosterOpening   BoosterOpening @relation(fields: [boosterOpeningId], references: [id], onDelete: Cascade)
+  cardInstanceId   String         @unique
+  cardInstance     CardInstance   @relation(fields: [cardInstanceId], references: [id])
+  cardDefinitionId String
+  cardDefinition   CardDefinition @relation(fields: [cardDefinitionId], references: [id])
+  rarityId         String
+  rarity           Rarity         @relation(fields: [rarityId], references: [id])
+  position         Int
+
+  @@index([boosterOpeningId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Economy
+// ─────────────────────────────────────────────────────────────────────────
+
+enum WalletTransactionType {
+  WELCOME_BONUS
+  BOOSTER_PURCHASE
+  DAILY_REWARD
+  MISSION_REWARD
+  ACHIEVEMENT_REWARD
+  SERIES_COMPLETION_REWARD
+  MARKET_SALE
+  MARKET_PURCHASE
+  MARKET_FEE
+  TRADE_CR_TRANSFER
+  ADMIN_ADJUSTMENT
+  COMPENSATION
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions WalletTransaction[]
+}
+// NOTE: a CHECK (balance >= 0) constraint is added via raw SQL in the
+// initial migration (Prisma's schema DSL has no declarative CHECK support).
+// Application code is the primary guard; the DB constraint is defense in depth.
+
+model WalletTransaction {
+  id             String                @id @default(uuid())
+  walletId       String
+  wallet         Wallet                @relation(fields: [walletId], references: [id])
+  amount         Int
+  balanceAfter   Int
+  type           WalletTransactionType
+  referenceType  String?
+  referenceId    String?
+  idempotencyKey String?               @unique
+  metadata       Json?
+  createdAt      DateTime              @default(now())
+
+  boosterOpening BoosterOpening?
+
+  @@index([walletId])
+  @@index([referenceType, referenceId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Trading
+// ─────────────────────────────────────────────────────────────────────────
+
+enum TradeStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  EXPIRED
+  COUNTERED
+}
+
+enum TradeSide {
+  INITIATOR
+  RECIPIENT
+}
+
+model Trade {
+  id            String      @id @default(uuid())
+  initiatorId   String
+  initiator     User        @relation("TradeInitiator", fields: [initiatorId], references: [id])
+  recipientId   String
+  recipient     User        @relation("TradeRecipient", fields: [recipientId], references: [id])
+  status        TradeStatus @default(PENDING)
+  initiatorCr   Int         @default(0)
+  recipientCr   Int         @default(0)
+  parentTradeId String?     @unique
+  parentTrade   Trade?      @relation("TradeCounter", fields: [parentTradeId], references: [id])
+  counterTrade  Trade?      @relation("TradeCounter")
+  message       String?
+  expiresAt     DateTime
+  respondedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  items TradeItem[]
+
+  @@index([initiatorId])
+  @@index([recipientId])
+  @@index([status])
+}
+
+model TradeItem {
+  id             String       @id @default(uuid())
+  tradeId        String
+  trade          Trade        @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  cardInstanceId String
+  cardInstance   CardInstance @relation(fields: [cardInstanceId], references: [id])
+  side           TradeSide
+
+  @@index([tradeId])
+  @@index([cardInstanceId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Marketplace
+// ─────────────────────────────────────────────────────────────────────────
+
+enum MarketListingStatus {
+  ACTIVE
+  SOLD
+  CANCELLED
+}
+
+model MarketListing {
+  id             String              @id @default(uuid())
+  sellerId       String
+  seller         User                @relation(fields: [sellerId], references: [id])
+  cardInstanceId String
+  cardInstance   CardInstance        @relation(fields: [cardInstanceId], references: [id])
+  priceCr        Int
+  feeBps         Int
+  status         MarketListingStatus @default(ACTIVE)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  soldAt         DateTime?
+  cancelledAt    DateTime?
+
+  transaction MarketTransaction?
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([cardInstanceId])
+}
+
+model MarketTransaction {
+  id          String        @id @default(uuid())
+  listingId   String        @unique
+  listing     MarketListing @relation(fields: [listingId], references: [id])
+  buyerId     String
+  buyer       User          @relation("MarketBuyer", fields: [buyerId], references: [id])
+  sellerId    String
+  seller      User          @relation("MarketSeller", fields: [sellerId], references: [id])
+  priceCr     Int
+  feeCr       Int
+  createdAt   DateTime      @default(now())
+
+  @@index([buyerId])
+  @@index([sellerId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Progression
+// ─────────────────────────────────────────────────────────────────────────
+
+enum MissionGoalType {
+  OPEN_BOOSTER
+  COLLECT_UNIQUE_CARDS
+  COMPLETE_TRADE
+  SELL_ON_MARKET
+  BUY_ON_MARKET
+  LOGIN
+  COMPLETE_SERIES
+}
+
+enum MissionResetPeriod {
+  NONE
+  DAILY
+}
+
+model Mission {
+  id           String              @id @default(uuid())
+  code         String              @unique
+  title        String
+  description  String
+  goalType     MissionGoalType
+  goalCount    Int
+  rewardCr     Int                 @default(0)
+  rewardXp     Int                 @default(0)
+  resetPeriod  MissionResetPeriod  @default(NONE)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  userMissions UserMission[]
+}
+
+model UserMission {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  missionId   String
+  mission     Mission   @relation(fields: [missionId], references: [id])
+  periodKey   String    @default("PERMANENT")
+  progress    Int       @default(0)
+  completedAt DateTime?
+  claimedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, missionId, periodKey])
+}
+
+model Achievement {
+  id          String          @id @default(uuid())
+  code        String          @unique
+  title       String
+  description String
+  goalType    MissionGoalType
+  goalCount   Int
+  rewardCr    Int             @default(0)
+  rewardXp    Int             @default(0)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String       @id @default(uuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  achievementId String
+  achievement   Achievement  @relation(fields: [achievementId], references: [id])
+  progress      Int          @default(0)
+  completedAt   DateTime?
+  claimedAt     DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([userId, achievementId])
+}
+
+model DailyRewardClaim {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  claimDate    DateTime @db.Date
+  streakCount  Int
+  rewardCr     Int
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, claimDate])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Live Ops
+// ─────────────────────────────────────────────────────────────────────────
+
+model Event {
+  id            String   @id @default(uuid())
+  slug          String   @unique
+  title         String
+  description   String
+  bannerImageUrl String?
+  startsAt      DateTime
+  endsAt        DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Social / Moderation / Audit
+// ─────────────────────────────────────────────────────────────────────────
+
+enum NotificationType {
+  TRADE_RECEIVED
+  TRADE_ACCEPTED
+  TRADE_REJECTED
+  TRADE_CANCELLED
+  TRADE_COUNTERED
+  TRADE_EXPIRED
+  MARKET_SOLD
+  MISSION_COMPLETED
+  ACHIEVEMENT_UNLOCKED
+  SYSTEM
+}
+
+model Notification {
+  id        String            @id @default(uuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id])
+  type      NotificationType
+  payload   Json
+  readAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  @@index([userId, readAt])
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id             String       @id @default(uuid())
+  reporterId     String
+  reporter       User         @relation("ReportReporter", fields: [reporterId], references: [id])
+  targetUserId   String
+  targetUser     User         @relation("ReportTarget", fields: [targetUserId], references: [id])
+  reason         String
+  details        String?
+  status         ReportStatus @default(OPEN)
+  resolvedByUserId String?
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([status])
+  @@index([targetUserId])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String?
+  actor        User?    @relation(fields: [actorUserId], references: [id])
+  action       String
+  targetType   String
+  targetId     String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetType, targetId])
+  @@index([action])
+}

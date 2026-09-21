@@ -1,0 +1,33 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  '@nestjs/core': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@scarf/scarf': false
+  esbuild: true
+  msgpackr-extract: true
+  prisma: true
+
+minimumReleaseAgeExclude:
+  - '@nestjs/common@12.0.4'
+  - '@nestjs/core@12.0.4'
+  - '@nestjs/platform-express@12.0.4'
+  - '@nestjs/platform-socket.io@12.0.4'
+  - '@nestjs/testing@12.0.4'
+  - '@nestjs/websockets@12.0.4'
+  - '@typescript-eslint/eslint-plugin@8.70.1'
+  - '@typescript-eslint/parser@8.70.1'
+  - '@typescript-eslint/project-service@8.70.1'
+  - '@typescript-eslint/scope-manager@8.70.1'
+  - '@typescript-eslint/tsconfig-utils@8.70.1'
+  - '@typescript-eslint/type-utils@8.70.1'
+  - '@typescript-eslint/types@8.70.1'
+  - '@typescript-eslint/typescript-estree@8.70.1'
+  - '@typescript-eslint/utils@8.70.1'
+  - '@typescript-eslint/visitor-keys@8.70.1'
+  - typescript-eslint@8.70.1
+  - '@tanstack/query-core@5.103.2'
+  - '@tanstack/react-query@5.103.2'

@@ -1,0 +1,154 @@
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import type { MissionGoalType, Prisma } from "@railcards/database";
+import { PrismaService } from "../prisma/prisma.service";
+import { WalletService } from "../economy/wallet.service";
+
+type Tx = Prisma.TransactionClient;
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+@Injectable()
+export class MissionsService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly wallet: WalletService,
+  ) {}
+
+  /**
+   * Advances progress on every active mission/achievement matching
+   * `goalType`. Called from within the transaction of the action that
+   * caused the progress (booster opened, trade completed, ...), so
+   * progress tracking is atomic with the action itself.
+   */
+  async recordProgress(tx: Tx, userId: string, goalType: MissionGoalType, incrementBy = 1): Promise<void> {
+    const missions = await tx.mission.findMany({ where: { goalType, isActive: true } });
+    for (const mission of missions) {
+      const periodKey = mission.resetPeriod === "DAILY" ? todayKey() : "PERMANENT";
+      const existing = await tx.userMission.findUnique({
+        where: { userId_missionId_periodKey: { userId, missionId: mission.id, periodKey } },
+      });
+      const newProgress = Math.min((existing?.progress ?? 0) + incrementBy, mission.goalCount);
+      const nowCompleted = !existing?.completedAt && newProgress >= mission.goalCount;
+      await tx.userMission.upsert({
+        where: { userId_missionId_periodKey: { userId, missionId: mission.id, periodKey } },
+        update: { progress: newProgress, completedAt: nowCompleted ? new Date() : existing?.completedAt },
+        create: {
+          userId,
+          missionId: mission.id,
+          periodKey,
+          progress: newProgress,
+          completedAt: nowCompleted ? new Date() : null,
+        },
+      });
+    }
+
+    const achievements = await tx.achievement.findMany({ where: { goalType, isActive: true } });
+    for (const achievement of achievements) {
+      const existing = await tx.userAchievement.findUnique({
+        where: { userId_achievementId: { userId, achievementId: achievement.id } },
+      });
+      const newProgress = Math.min((existing?.progress ?? 0) + incrementBy, achievement.goalCount);
+      const nowCompleted = !existing?.completedAt && newProgress >= achievement.goalCount;
+      await tx.userAchievement.upsert({
+        where: { userId_achievementId: { userId, achievementId: achievement.id } },
+        update: { progress: newProgress, completedAt: nowCompleted ? new Date() : existing?.completedAt },
+        create: {
+          userId,
+          achievementId: achievement.id,
+          progress: newProgress,
+          completedAt: nowCompleted ? new Date() : null,
+        },
+      });
+    }
+  }
+
+  async listMissions(userId: string) {
+    const missions = await this.prisma.mission.findMany({ where: { isActive: true } });
+    const periodKeys = [...new Set(missions.map((m) => (m.resetPeriod === "DAILY" ? todayKey() : "PERMANENT")))];
+    const userMissions = await this.prisma.userMission.findMany({
+      where: { userId, missionId: { in: missions.map((m) => m.id) }, periodKey: { in: periodKeys } },
+    });
+    const byMissionId = new Map(userMissions.map((um) => [um.missionId, um]));
+
+    return missions.map((mission) => {
+      const periodKey = mission.resetPeriod === "DAILY" ? todayKey() : "PERMANENT";
+      const um = byMissionId.get(mission.id);
+      return {
+        mission,
+        userMissionId: um?.id ?? null,
+        progress: um?.progress ?? 0,
+        completedAt: um?.completedAt ?? null,
+        claimedAt: um?.claimedAt ?? null,
+        periodKey,
+      };
+    });
+  }
+
+  async listAchievements(userId: string) {
+    const achievements = await this.prisma.achievement.findMany({ where: { isActive: true } });
+    const userAchievements = await this.prisma.userAchievement.findMany({ where: { userId } });
+    const byId = new Map(userAchievements.map((ua) => [ua.achievementId, ua]));
+    return achievements.map((achievement) => {
+      const ua = byId.get(achievement.id);
+      return {
+        achievement,
+        progress: ua?.progress ?? 0,
+        completedAt: ua?.completedAt ?? null,
+        claimedAt: ua?.claimedAt ?? null,
+      };
+    });
+  }
+
+  async claimMission(userId: string, userMissionId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const um = await tx.userMission.findUnique({ where: { id: userMissionId }, include: { mission: true } });
+      if (!um || um.userId !== userId) throw new NotFoundException("Mission progress not found");
+      if (!um.completedAt) throw new BadRequestException("Mission is not completed yet");
+      if (um.claimedAt) throw new BadRequestException("Mission reward already claimed");
+
+      if (um.mission.rewardCr > 0) {
+        await this.wallet.credit(tx, {
+          userId,
+          amount: um.mission.rewardCr,
+          type: "MISSION_REWARD",
+          referenceType: "UserMission",
+          referenceId: um.id,
+          idempotencyKey: `mission-claim-${um.id}`,
+        });
+      }
+      if (um.mission.rewardXp > 0) {
+        await tx.userProfile.update({ where: { userId }, data: { xp: { increment: um.mission.rewardXp } } });
+      }
+      return tx.userMission.update({ where: { id: um.id }, data: { claimedAt: new Date() } });
+    });
+  }
+
+  async claimAchievement(userId: string, achievementId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const ua = await tx.userAchievement.findUnique({
+        where: { userId_achievementId: { userId, achievementId } },
+        include: { achievement: true },
+      });
+      if (!ua) throw new NotFoundException("Achievement progress not found");
+      if (!ua.completedAt) throw new BadRequestException("Achievement is not completed yet");
+      if (ua.claimedAt) throw new BadRequestException("Achievement reward already claimed");
+
+      if (ua.achievement.rewardCr > 0) {
+        await this.wallet.credit(tx, {
+          userId,
+          amount: ua.achievement.rewardCr,
+          type: "ACHIEVEMENT_REWARD",
+          referenceType: "UserAchievement",
+          referenceId: ua.id,
+          idempotencyKey: `achievement-claim-${ua.id}`,
+        });
+      }
+      if (ua.achievement.rewardXp > 0) {
+        await tx.userProfile.update({ where: { userId }, data: { xp: { increment: ua.achievement.rewardXp } } });
+      }
+      return tx.userAchievement.update({ where: { id: ua.id }, data: { claimedAt: new Date() } });
+    });
+  }
+}
