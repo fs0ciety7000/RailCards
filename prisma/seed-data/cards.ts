@@ -2,10 +2,10 @@
  * Fictional RailCards catalog seed data.
  *
  * All names, characters and anecdotes below are original and fictional.
- * No real logos, liveries, employee likenesses or protected assets are
- * referenced. Card art uses elegant placeholder illustrations
- * (see /public/card-placeholders) until real artwork is commissioned —
- * see docs/product/known-limitations.md.
+ * Card art defaults to elegant placeholder illustrations (see
+ * /public/card-placeholders) unless a card sets `imageUrl` to real,
+ * product-owner-supplied artwork (see /public/card-art) — see
+ * docs/product/known-limitations.md for which cards currently do.
  */
 
 export type SeedRarityCode = "COMMON" | "UNCOMMON" | "RARE" | "EPIC" | "LEGENDARY" | "MYTHIC";
@@ -25,6 +25,8 @@ export interface SeedCard {
   status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   combatStatsEnabled?: boolean;
   combatStats?: { power: number; reliability: number; charm: number };
+  /** Overrides the rarity-tier placeholder with real per-card art, e.g. "/card-art/slug.jpg". */
+  imageUrl?: string;
 }
 
 export interface SeedSeries {
@@ -49,7 +51,7 @@ export const SEED_SERIES: SeedSeries[] = [
       { slug: "am96-navette-grise", name: "AM96 — La Navette Grise", description: "Discrète, efficace, un peu froide en hiver. Le pilier du trafic régional.", rarity: "COMMON" },
       { slug: "wagon-frein-veteran-rouille", name: "Wagon-frein — Le Vétéran Rouillé", description: "Personne ne sait exactement depuis quand il roule. Lui non plus.", rarity: "COMMON" },
       { slug: "draisine-entretien-cafard-des-voies", name: "Draisine d'Entretien — Le Cafard des Voies", description: "Elle sort la nuit, répare ce qui doit l'être, et disparaît avant le premier train.", rarity: "COMMON" },
-      { slug: "desiro-ml-etoile-filante", name: "Desiro ML — L'Étoile Filante", description: "Rapide, silencieuse, et fière de sa clim qui marche (la plupart du temps).", rarity: "UNCOMMON" },
+      { slug: "desiro-ml-etoile-filante", name: "Desiro ML — L'Étoile Filante", description: "Rapide, silencieuse, et fière de sa clim qui marche (la plupart du temps).", rarity: "UNCOMMON", imageUrl: "/card-art/desiro-ml-etoile-filante.jpg" },
       { slug: "hle18-bourrasque-electrique", name: "HLE 18 — La Bourrasque Électrique", description: "Une locomotive puissante capable de tracter les trains les plus lourds à travers les Ardennes.", rarity: "UNCOMMON" },
       { slug: "tgv-thalys-pba-fleche-rouge", name: "PBA — La Flèche Rouge", description: "Elle relie les capitales en un clin d'œil et ne connaît que la vitesse de croisière.", rarity: "RARE" },
       { slug: "autorail-41-fantome-des-ardennes", name: "Autorail 41 — Le Fantôme des Ardennes", description: "Retiré du service depuis longtemps, on jure encore l'apercevoir certains brouillards d'automne.", rarity: "RARE" },
