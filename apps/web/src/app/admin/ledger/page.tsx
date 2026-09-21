@@ -122,12 +122,12 @@ function LedgerContent() {
 
 function Table({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-rc-night-light">
+    <div className="overflow-x-auto rounded-2xl border border-rc-border bg-rc-night-light shadow-rc-sm">
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead>
-          <tr className="border-b border-white/10 text-xs uppercase text-white/40">
+          <tr className="border-b border-rc-border-strong text-xs font-semibold uppercase tracking-wide text-white/40">
             {headers.map((h) => (
-              <th key={h} className="px-4 py-2">
+              <th key={h} className="px-4 py-2.5">
                 {h}
               </th>
             ))}
@@ -135,9 +135,9 @@ function Table({ headers, rows }: { headers: string[]; rows: React.ReactNode[][]
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-white/5">
+            <tr key={i} className="border-b border-rc-border transition-colors odd:bg-white/[0.015] last:border-b-0 hover:bg-white/[0.035]">
               {row.map((cell, j) => (
-                <td key={j} className="px-4 py-2 text-white/80">
+                <td key={j} className="px-4 py-2.5 text-white/80">
                   {cell}
                 </td>
               ))}

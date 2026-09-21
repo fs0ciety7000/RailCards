@@ -108,7 +108,7 @@ export function VisuallyHidden({ children }: { children: ReactNode }) {
 
 export function CrAmount({ value, className }: { value: number; className?: string }) {
   return (
-    <span className={cn("font-semibold tabular-nums", className)}>
+    <span className={cn("font-display font-semibold tabular-nums", className)}>
       {value.toLocaleString("fr-BE")} <span className="text-[0.8em] font-medium opacity-70">CR</span>
     </span>
   );

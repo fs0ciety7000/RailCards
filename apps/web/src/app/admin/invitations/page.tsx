@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Mail, Ticket } from "lucide-react";
 import { createInvitationSchema, type CreateInvitationInput } from "@railcards/contracts";
 import { Badge, Button, Card, CardBody, FieldGroup, Input, Label, Skeleton, useToast } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
@@ -57,14 +58,15 @@ function CreateInvitationForm() {
             <Input id="expiresInDays" type="number" min={1} {...register("expiresInDays")} />
           </FieldGroup>
           <div className="sm:col-span-3">
-            <Button type="submit" loading={isSubmitting || createMutation.isPending}>
+            <Button type="submit" icon={<Mail className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
               Générer le code
             </Button>
           </div>
         </form>
         {lastCode && (
-          <p className="mt-3 rounded-lg bg-rc-accent/10 p-3 text-sm text-rc-accent">
-            Dernier code généré : <span className="font-mono font-bold">{lastCode}</span>
+          <p className="mt-3 flex items-center gap-2 rounded-lg border border-rc-accent/25 bg-rc-accent/10 p-3 text-sm text-rc-accent">
+            <Ticket className="h-4 w-4 shrink-0" aria-hidden="true" />
+            Dernier code généré : <span className="font-mono font-bold tracking-wide">{lastCode}</span>
           </p>
         )}
       </CardBody>
@@ -86,8 +88,8 @@ function InvitationsList() {
         <h2 className="mb-3 font-semibold text-white">Invitations ({invitationsQuery.data?.total ?? 0})</h2>
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-xs uppercase text-white/40">
-              <th className="py-2">Code</th>
+            <tr className="border-b border-rc-border-strong text-xs font-semibold uppercase tracking-wide text-white/40">
+              <th className="py-2.5">Code</th>
               <th>Email</th>
               <th>Utilisations</th>
               <th>Expire</th>
@@ -96,8 +98,8 @@ function InvitationsList() {
           </thead>
           <tbody>
             {invitationsQuery.data?.items.map((inv) => (
-              <tr key={inv.id} className="border-b border-white/5">
-                <td className="py-2 font-mono text-white">{inv.code}</td>
+              <tr key={inv.id} className="border-b border-rc-border transition-colors odd:bg-white/[0.015] hover:bg-white/[0.035]">
+                <td className="py-2.5 font-mono tracking-wide text-white">{inv.code}</td>
                 <td className="text-white/60">{inv.email ?? "—"}</td>
                 <td className="text-white/60">
                   {inv.useCount} / {inv.maxUses}

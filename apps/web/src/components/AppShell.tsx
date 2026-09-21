@@ -72,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link
             href="/home"
-            className="flex items-center gap-2 text-lg font-bold tracking-tight text-white sm:hidden"
+            className="font-display flex items-center gap-2 text-lg font-bold tracking-tight text-white sm:hidden"
           >
             <span
               aria-hidden="true"
@@ -202,7 +202,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Desktop: labeled sidebar with a sliding active-pill indicator */}
       <aside className="hidden sm:fixed sm:inset-y-0 sm:left-0 sm:top-0 sm:z-20 sm:flex sm:w-60 sm:flex-col sm:border-r sm:border-rc-border sm:bg-rc-night-dark/70 sm:py-4">
-        <Link href="/home" className="flex items-center gap-2 px-5 pb-5 text-lg font-bold tracking-tight text-white">
+        <Link href="/home" className="font-display flex items-center gap-2 px-5 pb-5 text-lg font-bold tracking-tight text-white">
           <span
             aria-hidden="true"
             className="flex h-8 w-8 items-center justify-center rounded-lg bg-rc-accent text-rc-night shadow-rc-glow"

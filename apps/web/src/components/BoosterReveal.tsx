@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import { Button, RarityBadge, staggerContainer, fadeInUp } from "@railcards/ui";
+import { CardFrame } from "@/components/CardTile";
 import type { BoosterPull } from "@/lib/types";
 
 export function BoosterReveal({
@@ -63,54 +64,57 @@ export function BoosterReveal({
                 if (!isRevealed) revealNext();
               }}
               disabled={isRevealed}
-              className="group rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent disabled:cursor-default"
+              className="group relative rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent disabled:cursor-default"
               aria-label={isRevealed ? `${pull.cardDefinition.name}, ${pull.cardDefinition.rarity.label}` : "Révéler la carte"}
             >
-              <div
-                className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border shadow-rc-md"
-                style={{ borderColor: isRevealed ? `${pull.cardDefinition.rarity.colorHex}88` : "rgba(255,255,255,0.15)" }}
-              >
-                <AnimatePresence mode="wait" initial={false}>
-                  {isRevealed ? (
-                    <motion.div
-                      key="face"
-                      initial={reduceMotion ? false : { rotateY: 90, opacity: 0, scale: 0.85 }}
-                      animate={{ rotateY: 0, opacity: 1, scale: 1 }}
-                      transition={{ duration: reduceMotion ? 0 : 0.45, ease: "easeOut" }}
-                      className="absolute inset-0"
-                    >
+              {isRevealed && !reduceMotion && pull.cardDefinition.rarity.order >= 4 && (
+                <motion.div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-6 z-0 rounded-full"
+                  initial={{ opacity: 0.9, scale: 0.4 }}
+                  animate={{ opacity: 0, scale: 1.5 }}
+                  transition={{ duration: 0.9, ease: "easeOut" }}
+                  style={{
+                    background:
+                      pull.cardDefinition.rarity.order >= 6
+                        ? "radial-gradient(circle, rgba(255,215,102,0.55), rgba(77,234,240,0.35) 45%, transparent 72%)"
+                        : `radial-gradient(circle, ${pull.cardDefinition.rarity.colorHex}77, transparent 70%)`,
+                  }}
+                />
+              )}
+              <AnimatePresence mode="wait" initial={false}>
+                {isRevealed ? (
+                  <motion.div
+                    key="face"
+                    initial={reduceMotion ? false : { rotateY: 90, opacity: 0, scale: 0.85 }}
+                    animate={{ rotateY: 0, opacity: 1, scale: 1 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.5, ease: "easeOut" }}
+                    className="relative z-10"
+                  >
+                    <CardFrame rarity={pull.cardDefinition.rarity} className="relative aspect-[3/4] w-full">
                       <Image src={pull.cardDefinition.imageUrl} alt="" fill sizes="220px" className="object-cover" unoptimized />
-                      {!reduceMotion && (pull.cardDefinition.rarity.order >= 4) && (
-                        <motion.div
-                          className="pointer-events-none absolute inset-0"
-                          initial={{ opacity: 0.8 }}
-                          animate={{ opacity: 0 }}
-                          transition={{ duration: 0.8 }}
-                          style={{ background: `radial-gradient(circle, ${pull.cardDefinition.rarity.colorHex}66, transparent 70%)` }}
-                        />
-                      )}
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="back"
-                      exit={{ opacity: 0 }}
-                      whileHover={{ scale: 1.03 }}
-                      className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-rc-night-lighter to-rc-night-dark"
+                    </CardFrame>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="back"
+                    exit={{ opacity: 0 }}
+                    whileHover={{ scale: 1.03 }}
+                    className="relative z-10 flex aspect-[3/4] w-full items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-rc-night-lighter to-rc-night-dark shadow-rc-md"
+                  >
+                    <span
+                      className="font-display rounded-xl border border-white/10 px-3 py-1.5 text-xl font-bold tracking-tight text-rc-accent/70"
+                      aria-hidden="true"
                     >
-                      <span
-                        className="rounded-xl border border-white/10 px-3 py-1.5 text-xl font-bold tracking-tight text-rc-accent/70"
-                        aria-hidden="true"
-                      >
-                        RC
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <div className="mt-2 min-h-10">
+                      RC
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <div className="relative z-10 mt-2 min-h-10">
                 {isRevealed ? (
                   <>
-                    <p className="truncate text-sm font-semibold text-white">{pull.cardDefinition.name}</p>
+                    <p className="font-display truncate text-sm font-semibold text-white">{pull.cardDefinition.name}</p>
                     <RarityBadge label={pull.cardDefinition.rarity.label} colorHex={pull.cardDefinition.rarity.colorHex} size="sm" />
                   </>
                 ) : (

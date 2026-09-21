@@ -71,21 +71,24 @@ function BoostersContent() {
 
   if (opening) {
     return (
-      <div>
-        <PageHeader
-          title={openedBooster?.name ?? "Booster ouvert"}
-          description={`Ouvert le ${new Date(opening.openedAt).toLocaleString("fr-BE")}`}
-        />
-        <BoosterReveal pulls={opening.pulls} reduceMotion={reduceMotion} onReduceMotionChange={setReduceMotion} />
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row">
-          <Button onClick={() => { setOpening(null); setOpenedBooster(null); }} fullWidth>
-            Ouvrir un autre booster
-          </Button>
-          <Link href="/collection" className="flex-1">
-            <Button variant="secondary" fullWidth>
-              Voir ma collection
+      <div className="relative">
+        <div className="bg-aurora" />
+        <div className="relative z-10">
+          <PageHeader
+            title={openedBooster?.name ?? "Booster ouvert"}
+            description={`Ouvert le ${new Date(opening.openedAt).toLocaleString("fr-BE")}`}
+          />
+          <BoosterReveal pulls={opening.pulls} reduceMotion={reduceMotion} onReduceMotionChange={setReduceMotion} />
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+            <Button onClick={() => { setOpening(null); setOpenedBooster(null); }} fullWidth>
+              Ouvrir un autre booster
             </Button>
-          </Link>
+            <Link href="/collection" className="flex-1">
+              <Button variant="secondary" fullWidth>
+                Voir ma collection
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -114,7 +117,7 @@ function BoostersContent() {
                   <Image src={b.imageUrl} alt="" fill sizes="360px" className="object-cover" unoptimized />
                 </div>
                 <CardBody>
-                  <p className="font-semibold tracking-tight text-white">{b.name}</p>
+                  <p className="font-display font-semibold tracking-tight text-white">{b.name}</p>
                   <p className="mt-1 text-sm text-white/60">{b.description}</p>
                   <p className="mt-1.5 text-xs text-white/40">{b.cardCount} carte(s) par booster</p>
                   <div className="mt-3.5 flex items-center justify-between">

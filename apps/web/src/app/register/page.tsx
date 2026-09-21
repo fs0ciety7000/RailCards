@@ -65,7 +65,7 @@ export default function RegisterPage() {
           >
             <TrainFront className="h-6 w-6" strokeWidth={2.25} />
           </span>
-          <p className="text-2xl font-bold tracking-tight text-white">RailCards</p>
+          <p className="font-display text-2xl font-bold tracking-tight text-white">RailCards</p>
           <p className="mt-1 text-sm text-white/55">Rejoignez le réseau, une carte à la fois</p>
         </div>
         <Card>

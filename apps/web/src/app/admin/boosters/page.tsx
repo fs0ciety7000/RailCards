@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Gift, PlusCircle, Settings2 } from "lucide-react";
 import {
   createBoosterDefinitionSchema,
   publishPoolVersionSchema,
@@ -101,7 +102,7 @@ function CreateBoosterForm() {
             <FieldError>{errors.description?.message}</FieldError>
           </FieldGroup>
           <div className="sm:col-span-2">
-            <Button type="submit" loading={isSubmitting || createMutation.isPending}>
+            <Button type="submit" icon={<PlusCircle className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
               Créer le booster
             </Button>
           </div>
@@ -198,15 +199,25 @@ function BoostersList() {
         <Card key={b.id}>
           <CardBody>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-semibold text-white">{b.name}</p>
-                <p className="text-xs text-white/50">{b.slug} · {b.cardCount} cartes</p>
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rc-accent/12 text-rc-accent" aria-hidden="true">
+                  <Gift className="h-[18px] w-[18px]" strokeWidth={2} />
+                </span>
+                <div>
+                  <p className="font-display font-semibold text-white">{b.name}</p>
+                  <p className="text-xs text-white/50">{b.slug} · {b.cardCount} cartes</p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Badge tone="accent">
                   <CrAmount value={b.priceCr} />
                 </Badge>
-                <Button size="sm" variant="outline" onClick={() => setEditingPoolFor(editingPoolFor === b.id ? null : b.id)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  icon={<Settings2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                  onClick={() => setEditingPoolFor(editingPoolFor === b.id ? null : b.id)}
+                >
                   {editingPoolFor === b.id ? "Fermer" : "Gérer le pool"}
                 </Button>
               </div>

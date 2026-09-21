@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
@@ -12,7 +11,7 @@ import { AppShell } from "@/components/AppShell";
 import { collectionApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { ACQUISITION_LABELS, formatDateTime } from "@/lib/format";
-import { stateLabel } from "@/components/CardTile";
+import { CardArt, stateLabel } from "@/components/CardTile";
 
 function CardDetailContent() {
   const params = useParams<{ instanceId: string }>();
@@ -68,9 +67,7 @@ function CardDetailContent() {
         Retour
       </button>
 
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-rc-border shadow-rc-md">
-        <Image src={card.imageUrl} alt="" fill sizes="512px" className="object-cover" unoptimized priority />
-      </div>
+      <CardArt card={card} className="relative aspect-[3/4] w-full max-w-sm mx-auto" priority />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <RarityBadge label={card.rarity.label} colorHex={card.rarity.colorHex} />
@@ -81,7 +78,7 @@ function CardDetailContent() {
         )}
       </div>
 
-      <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">{card.name}</h1>
+      <h1 className="font-display mt-3 text-2xl font-bold tracking-tight text-white">{card.name}</h1>
       <p className="mt-2 text-sm text-white/70">{card.description}</p>
       {card.flavorText && <p className="mt-2 text-sm italic text-white/50">&laquo; {card.flavorText} &raquo;</p>}
 

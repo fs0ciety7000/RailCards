@@ -61,7 +61,7 @@ export default function LoginPage() {
           >
             <TrainFront className="h-6 w-6" strokeWidth={2.25} />
           </span>
-          <p className="text-2xl font-bold tracking-tight text-white">RailCards</p>
+          <p className="font-display text-2xl font-bold tracking-tight text-white">RailCards</p>
           <p className="mt-1 text-sm text-white/55">L&apos;univers ferroviaire belge à collectionner</p>
         </div>
         <Card>

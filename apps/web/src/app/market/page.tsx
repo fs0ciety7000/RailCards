@@ -95,12 +95,9 @@ function MarketContent() {
                   href={`/market/${listing.id}`}
                   className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent"
                 >
-                  <CardArt
-                    card={listing.cardInstance.cardDefinition}
-                    className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-rc-border shadow-rc-sm transition-shadow duration-200 group-hover:border-rc-accent/40 group-hover:shadow-rc-md"
-                  />
+                  <CardArt card={listing.cardInstance.cardDefinition} className="relative aspect-[3/4] w-full" />
                   <div className="mt-2.5 space-y-1">
-                    <p className="truncate text-sm font-semibold text-white">{listing.cardInstance.cardDefinition.name}</p>
+                    <p className="font-display truncate text-sm font-semibold text-white">{listing.cardInstance.cardDefinition.name}</p>
                     <RarityBadge
                       label={listing.cardInstance.cardDefinition.rarity.label}
                       colorHex={listing.cardInstance.cardDefinition.rarity.colorHex}

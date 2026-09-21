@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, Flag, XCircle } from "lucide-react";
 import { Badge, Button, Card, CardBody, EmptyState, Select, Skeleton, useToast } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -57,7 +58,10 @@ function AdminReportsContent() {
             <Card key={r.id}>
               <CardBody>
                 <div className="mb-1 flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-white">{r.reason}</p>
+                  <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <Flag className="h-3.5 w-3.5 shrink-0 text-white/35" aria-hidden="true" />
+                    {r.reason}
+                  </p>
                   <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>{r.status}</Badge>
                 </div>
                 {r.details && <p className="mb-2 text-sm text-white/60">{r.details}</p>}
@@ -66,6 +70,7 @@ function AdminReportsContent() {
                   <div className="mt-3 flex gap-2">
                     <Button
                       size="sm"
+                      icon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
                       loading={resolveMutation.isPending}
                       onClick={() => resolveMutation.mutate({ id: r.id, resolution: "RESOLVED" })}
                     >
@@ -74,6 +79,7 @@ function AdminReportsContent() {
                     <Button
                       size="sm"
                       variant="outline"
+                      icon={<XCircle className="h-3.5 w-3.5" aria-hidden="true" />}
                       loading={resolveMutation.isPending}
                       onClick={() => resolveMutation.mutate({ id: r.id, resolution: "DISMISSED" })}
                     >

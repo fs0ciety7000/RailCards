@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { PlusCircle, Power } from "lucide-react";
 import { createSeriesSchema, type CreateSeriesInput } from "@railcards/contracts";
 import { Badge, Button, Card, CardBody, FieldError, FieldGroup, Input, Label, Select, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
@@ -65,7 +66,7 @@ function CreateSeriesForm() {
             <Textarea id="description" {...register("description")} />
           </FieldGroup>
           <div className="sm:col-span-2">
-            <Button type="submit" loading={isSubmitting || createMutation.isPending}>
+            <Button type="submit" icon={<PlusCircle className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
               Créer la série
             </Button>
           </div>
@@ -97,8 +98,8 @@ function SeriesList() {
         <h2 className="mb-3 font-semibold text-white">Toutes les séries</h2>
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-xs uppercase text-white/40">
-              <th className="py-2">Nom</th>
+            <tr className="border-b border-rc-border-strong text-xs font-semibold uppercase tracking-wide text-white/40">
+              <th className="py-2.5">Nom</th>
               <th>Catégorie</th>
               <th>Cartes</th>
               <th>Statut</th>
@@ -107,17 +108,18 @@ function SeriesList() {
           </thead>
           <tbody>
             {seriesQuery.data?.map((s) => (
-              <tr key={s.id} className="border-b border-white/5">
-                <td className="py-2 font-medium text-white">{s.name}</td>
+              <tr key={s.id} className="border-b border-rc-border transition-colors odd:bg-white/[0.015] hover:bg-white/[0.035]">
+                <td className="py-2.5 font-display font-medium text-white">{s.name}</td>
                 <td className="text-white/60">{CARD_CATEGORY_LABELS[s.category] ?? s.category}</td>
                 <td className="text-white/60">{s._count?.cards ?? 0}</td>
                 <td>
                   <Badge tone={s.isActive ? "success" : "neutral"}>{s.isActive ? "Active" : "Inactive"}</Badge>
                 </td>
-                <td className="py-2 text-right">
+                <td className="py-2.5 text-right">
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
+                    icon={<Power className="h-3.5 w-3.5" aria-hidden="true" />}
                     loading={toggleActiveMutation.isPending}
                     onClick={() => toggleActiveMutation.mutate({ id: s.id, isActive: !s.isActive })}
                   >

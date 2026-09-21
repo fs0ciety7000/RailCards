@@ -48,7 +48,9 @@ function HomeContent() {
   const activeMissions = (missionsQuery.data ?? []).filter((m) => !m.claimedAt).slice(0, 3);
 
   return (
-    <div>
+    <div className="relative">
+      <div className="bg-aurora" />
+      <div className="relative z-10">
       <PageHeader
         title={`Bonjour, ${meQuery.data?.displayName ?? "voyageur"}`}
         description="Voici un aperçu de votre réseau RailCards."
@@ -180,6 +182,7 @@ function HomeContent() {
           </Card>
         </StaggerItem>
       </Stagger>
+      </div>
     </div>
   );
 }

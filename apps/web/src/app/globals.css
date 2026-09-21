@@ -38,11 +38,26 @@
   --color-rc-border: rgba(255, 255, 255, 0.08);
   --color-rc-border-strong: rgba(255, 255, 255, 0.16);
 
-  /* One grotesque sans for everything — headings included. Loaded via
-     next/font (self-hosted Geist) in layout.tsx, which sets
-     --font-geist-sans on <html>. */
+  /* Body copy: one grotesque sans everywhere. Loaded via next/font
+     (self-hosted Geist) in layout.tsx, which sets --font-geist-sans on
+     <html>. */
   --font-sans:
     var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Display: a geometric, slightly technical grotesk (Space Grotesk, via
+     next/font/google in layout.tsx → --font-space-grotesk) reserved for
+     page titles, the wordmark, CR amounts / stat numbers and card names —
+     the handful of places that should read "premium sci-fi rail ticket"
+     rather than plain UI chrome. Everything else stays on --font-sans. */
+  --font-display: var(--font-space-grotesk), var(--font-sans);
+
+  /* Holographic / foil accent layer — reserved for high-rarity card frames,
+     sheens and the booster-open moment. Sits on top of the navy+yellow
+     brand base, never replaces it. */
+  --color-holo-cyan: #4deaf0;
+  --color-holo-violet: #b47cf0;
+  --color-holo-magenta: #f5599b;
+  --color-holo-gold: #ffd766;
 
   /* Soft, colored elevation shadows (a flat navy-on-navy UI has none of
      these) — each step reads as "further off the page" than the last. */
@@ -53,6 +68,10 @@
   --shadow-rc-glow: 0 0 0 1px rgba(255, 199, 44, 0.16), 0 8px 24px -6px rgba(255, 199, 44, 0.28);
 
   --animate-shimmer: shimmer 1.8s ease-in-out infinite;
+  --animate-holo-spin: holo-spin 5s linear infinite;
+  --animate-pulse-glow: pulse-glow 2.6s ease-in-out infinite;
+  --animate-aurora: aurora-drift 22s ease-in-out infinite;
+  --animate-sparkle: sparkle-twinkle 2.2s ease-in-out infinite;
 
   @keyframes shimmer {
     0% {
@@ -60,6 +79,44 @@
     }
     100% {
       transform: translateX(100%);
+    }
+  }
+
+  @keyframes holo-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes aurora-drift {
+    0%,
+    100% {
+      transform: translate(-4%, -2%) scale(1);
+    }
+    50% {
+      transform: translate(4%, 3%) scale(1.08);
+    }
+  }
+
+  @keyframes sparkle-twinkle {
+    0%,
+    100% {
+      opacity: 0.15;
+      transform: scale(0.85);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15);
     }
   }
 }
@@ -142,4 +199,41 @@ body > div {
 
 .text-balance {
   text-wrap: balance;
+}
+
+/* Ambient hero backdrop: two very low-key drifting gradient blobs, brand
+   navy/yellow plus a hint of the holo accent. Used behind "moment" screens
+   (home hero, booster-open) — decorative only, never under text with low
+   contrast, and the reduced-motion kill switch above freezes the drift. */
+.bg-aurora {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-aurora::before,
+.bg-aurora::after {
+  content: "";
+  position: absolute;
+  width: 60%;
+  height: 60%;
+  border-radius: 9999px;
+  filter: blur(90px);
+  opacity: 0.5;
+  animation: var(--animate-aurora);
+}
+
+.bg-aurora::before {
+  top: -10%;
+  left: -5%;
+  background: radial-gradient(circle, rgba(255, 199, 44, 0.22), transparent 70%);
+}
+
+.bg-aurora::after {
+  bottom: -15%;
+  right: -10%;
+  background: radial-gradient(circle, rgba(77, 234, 240, 0.14), rgba(180, 124, 240, 0.1) 55%, transparent 75%);
+  animation-delay: -11s;
 }
