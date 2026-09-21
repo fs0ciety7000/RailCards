@@ -68,8 +68,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-rc-night bg-rail-lines text-white">
-      <header className="sticky top-0 z-30 border-b border-rc-border bg-rc-night/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:pl-[calc(15rem+1rem)]">
+      <header className="sticky top-0 z-30 border-b border-rc-border bg-rc-night/85 backdrop-blur-md sm:ml-60">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
           <Link
             href="/home"
             className="flex items-center gap-2 text-lg font-bold tracking-tight text-white sm:hidden"
@@ -128,7 +128,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label="Menu secondaire"
             className="border-t border-rc-border bg-rc-night-light px-4 py-3"
           >
-            <ul className="mx-auto flex max-w-6xl flex-col gap-1 sm:flex-row sm:flex-wrap sm:pl-[15rem]">
+            <ul className="mx-auto flex max-w-6xl flex-col gap-1 sm:flex-row sm:flex-wrap">
               {SECONDARY_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link

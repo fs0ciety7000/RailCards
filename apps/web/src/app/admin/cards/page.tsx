@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Archive, CheckCircle2, PlusCircle } from "lucide-react";
 import { createCardSchema, type CreateCardInput } from "@railcards/contracts";
 import {
   Badge,
@@ -118,7 +119,11 @@ function CreateCardForm() {
             <Input id="flavorText" {...register("flavorText")} />
           </FieldGroup>
           <div className="sm:col-span-2">
-            <Button type="submit" loading={isSubmitting || createMutation.isPending}>
+            <Button
+              type="submit"
+              icon={<PlusCircle className="h-4 w-4" aria-hidden="true" />}
+              loading={isSubmitting || createMutation.isPending}
+            >
               Créer la carte
             </Button>
           </div>
@@ -161,8 +166,8 @@ function CardsList() {
         <h2 className="mb-3 font-semibold text-white">Toutes les cartes ({cardsQuery.data?.total ?? 0})</h2>
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 text-xs uppercase text-white/40">
-              <th className="py-2">Nom</th>
+            <tr className="border-b border-rc-border-strong text-xs font-semibold uppercase tracking-wide text-white/40">
+              <th className="py-2.5">Nom</th>
               <th>Série</th>
               <th>Rareté</th>
               <th>Statut</th>
@@ -171,8 +176,8 @@ function CardsList() {
           </thead>
           <tbody>
             {cardsQuery.data?.items.map((card) => (
-              <tr key={card.id} className="border-b border-white/5">
-                <td className="py-2 font-medium text-white">{card.name}</td>
+              <tr key={card.id} className="border-b border-rc-border transition-colors odd:bg-white/[0.015] hover:bg-white/[0.035]">
+                <td className="py-2.5 font-medium text-white">{card.name}</td>
                 <td className="text-white/60">{card.series?.name}</td>
                 <td>
                   <RarityBadge label={card.rarity.label} colorHex={card.rarity.colorHex} size="sm" />
@@ -182,15 +187,28 @@ function CardsList() {
                     {card.status}
                   </Badge>
                 </td>
-                <td className="py-2 text-right">
-                  <div className="flex justify-end gap-2">
+                <td className="py-2.5 text-right">
+                  <div className="flex justify-end gap-1.5">
                     {card.status !== "PUBLISHED" && (
-                      <Button size="sm" variant="outline" loading={publishMutation.isPending} onClick={() => publishMutation.mutate(card.id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                        loading={publishMutation.isPending}
+                        onClick={() => publishMutation.mutate(card.id)}
+                      >
                         Publier
                       </Button>
                     )}
                     {card.status !== "ARCHIVED" && (
-                      <Button size="sm" variant="danger" onClick={() => setArchiveTarget(card.id)}>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<Archive className="h-3.5 w-3.5" aria-hidden="true" />}
+                        onClick={() => setArchiveTarget(card.id)}
+                        className="hover:bg-rc-danger/10"
+                        style={{ color: "var(--color-rc-danger)" }}
+                      >
                         Archiver
                       </Button>
                     )}
