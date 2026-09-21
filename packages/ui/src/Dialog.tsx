@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "motion/react";
 import { cn } from "./cn";
 import { Button } from "./Button";
 
@@ -62,39 +63,51 @@ export function Dialog({ open, onClose, title, description, children, footer, cl
     };
   }, [open, onClose]);
 
-  if (!open || typeof document === "undefined") return null;
+  if (typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="presentation">
-      <div
-        className="absolute inset-0 bg-rc-night/70 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        ref={containerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="rc-dialog-title"
-        aria-describedby={description ? "rc-dialog-desc" : undefined}
-        tabIndex={-1}
-        className={cn(
-          "relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-white/10 bg-white p-5 shadow-xl sm:rounded-2xl dark:bg-rc-night-light",
-          className,
-        )}
-      >
-        <h2 id="rc-dialog-title" className="text-lg font-bold text-rc-night dark:text-white">
-          {title}
-        </h2>
-        {description && (
-          <p id="rc-dialog-desc" className="mt-1 text-sm text-rc-night/70 dark:text-white/70">
-            {description}
-          </p>
-        )}
-        {children && <div className="mt-4">{children}</div>}
-        {footer && <div className="mt-5 flex justify-end gap-2">{footer}</div>}
-      </div>
-    </div>,
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="presentation">
+          <motion.div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={onClose}
+            aria-hidden="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          />
+          <motion.div
+            ref={containerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rc-dialog-title"
+            aria-describedby={description ? "rc-dialog-desc" : undefined}
+            tabIndex={-1}
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className={cn(
+              "relative z-10 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-rc-border-strong bg-white p-5 shadow-rc-lg sm:rounded-2xl dark:bg-rc-night-lighter",
+              className,
+            )}
+          >
+            <h2 id="rc-dialog-title" className="text-lg font-bold tracking-tight text-rc-night dark:text-white">
+              {title}
+            </h2>
+            {description && (
+              <p id="rc-dialog-desc" className="mt-1 text-sm text-rc-night/70 dark:text-white/70">
+                {description}
+              </p>
+            )}
+            {children && <div className="mt-4">{children}</div>}
+            {footer && <div className="mt-5 flex justify-end gap-2">{footer}</div>}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>,
     document.body,
   );
 }

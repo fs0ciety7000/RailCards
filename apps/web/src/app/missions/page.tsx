@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trophy, ClipboardList } from "lucide-react";
 import { Badge, Button, Card, CardBody, CrAmount, EmptyState, ErrorState, ProgressBar, Skeleton, Tabs, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
+import { Stagger, StaggerItem } from "@/components/Stagger";
 import { missionsApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import type { AchievementProgress, MissionProgress } from "@/lib/types";
@@ -74,8 +76,9 @@ function AchievementRow({ progress }: { progress: AchievementProgress }) {
   return (
     <Card>
       <CardBody>
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <p className="font-semibold text-white">🏆 {progress.achievement.title}</p>
+        <div className="mb-1 flex items-center gap-2">
+          <Trophy className="h-4 w-4 shrink-0 text-rc-accent" aria-hidden="true" />
+          <p className="flex-1 font-semibold tracking-tight text-white">{progress.achievement.title}</p>
           {progress.claimedAt && <Badge tone="success">Réclamé</Badge>}
         </div>
         <p className="mb-3 text-sm text-white/60">{progress.achievement.description}</p>
@@ -125,26 +128,30 @@ function MissionsContent() {
         ) : missionsQuery.isError ? (
           <ErrorState description={getErrorMessage(missionsQuery.error)} />
         ) : missionsQuery.data!.length === 0 ? (
-          <EmptyState title="Aucune mission active" />
+          <EmptyState icon={<ClipboardList />} title="Aucune mission active" />
         ) : (
-          <div className="space-y-3">
+          <Stagger className="space-y-3">
             {missionsQuery.data!.map((m) => (
-              <MissionRow key={m.mission.id} progress={m} />
+              <StaggerItem key={m.mission.id}>
+                <MissionRow progress={m} />
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
         )
       ) : achievementsQuery.isLoading ? (
         <SkeletonList />
       ) : achievementsQuery.isError ? (
         <ErrorState description={getErrorMessage(achievementsQuery.error)} />
       ) : achievementsQuery.data!.length === 0 ? (
-        <EmptyState title="Aucun haut fait disponible" />
+        <EmptyState icon={<Trophy />} title="Aucun haut fait disponible" />
       ) : (
-        <div className="space-y-3">
+        <Stagger className="space-y-3">
           {achievementsQuery.data!.map((a) => (
-            <AchievementRow key={a.achievement.id} progress={a} />
+            <StaggerItem key={a.achievement.id}>
+              <AchievementRow progress={a} />
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
     </div>
   );

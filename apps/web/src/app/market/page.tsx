@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeftRight } from "lucide-react";
 import { Button, Card, CardBody, CrAmount, EmptyState, ErrorState, Input, RarityBadge, Select, SkeletonGrid } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { CardArt } from "@/components/CardTile";
+import { Stagger, StaggerItem } from "@/components/Stagger";
 import { catalogApi, marketApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 
@@ -83,32 +85,36 @@ function MarketContent() {
       ) : listingsQuery.isError ? (
         <ErrorState description={getErrorMessage(listingsQuery.error)} action={<Button onClick={() => listingsQuery.refetch()}>Réessayer</Button>} />
       ) : listingsQuery.data!.items.length === 0 ? (
-        <EmptyState icon="💱" title="Aucune annonce active" description="Revenez plus tard ou mettez une carte en vente." />
+        <EmptyState icon={<ArrowLeftRight />} title="Aucune annonce active" description="Revenez plus tard ou mettez une carte en vente." />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <Stagger className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {listingsQuery.data!.items.map((listing) => (
-              <Link
-                key={listing.id}
-                href={`/market/${listing.id}`}
-                className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent"
-              >
-                <CardArt card={listing.cardInstance.cardDefinition} />
-                <div className="mt-2 space-y-1">
-                  <p className="truncate text-sm font-semibold text-white">{listing.cardInstance.cardDefinition.name}</p>
-                  <RarityBadge
-                    label={listing.cardInstance.cardDefinition.rarity.label}
-                    colorHex={listing.cardInstance.cardDefinition.rarity.colorHex}
-                    size="sm"
+              <StaggerItem key={listing.id}>
+                <Link
+                  href={`/market/${listing.id}`}
+                  className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent"
+                >
+                  <CardArt
+                    card={listing.cardInstance.cardDefinition}
+                    className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-rc-border shadow-rc-sm transition-shadow duration-200 group-hover:border-rc-accent/40 group-hover:shadow-rc-md"
                   />
-                  <div className="flex items-center justify-between text-xs">
-                    <CrAmount value={listing.priceCr} className="text-rc-accent" />
-                    <span className="truncate text-white/40">@{listing.seller.username}</span>
+                  <div className="mt-2.5 space-y-1">
+                    <p className="truncate text-sm font-semibold text-white">{listing.cardInstance.cardDefinition.name}</p>
+                    <RarityBadge
+                      label={listing.cardInstance.cardDefinition.rarity.label}
+                      colorHex={listing.cardInstance.cardDefinition.rarity.colorHex}
+                      size="sm"
+                    />
+                    <div className="flex items-center justify-between text-xs">
+                      <CrAmount value={listing.priceCr} className="text-rc-accent" />
+                      <span className="truncate text-white/40">@{listing.seller.username}</span>
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
           <div className="mt-6 flex items-center justify-center gap-3">
             <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
               Précédent

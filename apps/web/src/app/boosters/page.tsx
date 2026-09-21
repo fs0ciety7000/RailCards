@@ -4,11 +4,13 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Gift } from "lucide-react";
 import { Button, Card, CardBody, CrAmount, EmptyState, ErrorState, Skeleton, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { BoosterReveal } from "@/components/BoosterReveal";
+import { Stagger, StaggerItem } from "@/components/Stagger";
 import { boostersApi } from "@/lib/api";
 import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
@@ -102,32 +104,34 @@ function BoostersContent() {
       ) : boostersQuery.isError ? (
         <ErrorState description={getErrorMessage(boostersQuery.error)} action={<Button onClick={() => boostersQuery.refetch()}>Réessayer</Button>} />
       ) : boostersQuery.data!.length === 0 ? (
-        <EmptyState title="Aucun booster disponible" description="Revenez plus tard." />
+        <EmptyState icon={<Gift />} title="Aucun booster disponible" description="Revenez plus tard." />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {boostersQuery.data!.map((b) => (
-            <Card key={b.id}>
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-t-2xl">
-                <Image src={b.imageUrl} alt="" fill sizes="360px" className="object-cover" unoptimized />
-              </div>
-              <CardBody>
-                <p className="font-semibold text-white">{b.name}</p>
-                <p className="mt-1 text-sm text-white/60">{b.description}</p>
-                <p className="mt-1 text-xs text-white/40">{b.cardCount} carte(s) par booster</p>
-                <div className="mt-3 flex items-center justify-between">
-                  <CrAmount value={b.priceCr} className="text-rc-accent" />
-                  <Button
-                    onClick={() => openMutation.mutate(b)}
-                    loading={openMutation.isPending && openMutation.variables?.id === b.id}
-                    disabled={openMutation.isPending}
-                  >
-                    Ouvrir
-                  </Button>
+            <StaggerItem key={b.id}>
+              <Card interactive className="h-full overflow-hidden">
+                <div className="relative aspect-[4/3] w-full overflow-hidden">
+                  <Image src={b.imageUrl} alt="" fill sizes="360px" className="object-cover" unoptimized />
                 </div>
-              </CardBody>
-            </Card>
+                <CardBody>
+                  <p className="font-semibold tracking-tight text-white">{b.name}</p>
+                  <p className="mt-1 text-sm text-white/60">{b.description}</p>
+                  <p className="mt-1.5 text-xs text-white/40">{b.cardCount} carte(s) par booster</p>
+                  <div className="mt-3.5 flex items-center justify-between">
+                    <CrAmount value={b.priceCr} className="text-rc-accent" />
+                    <Button
+                      onClick={() => openMutation.mutate(b)}
+                      loading={openMutation.isPending && openMutation.variables?.id === b.id}
+                      disabled={openMutation.isPending}
+                    >
+                      Ouvrir
+                    </Button>
+                  </div>
+                </CardBody>
+              </Card>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
     </div>
   );

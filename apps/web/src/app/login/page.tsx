@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { motion } from "motion/react";
+import { TrainFront } from "lucide-react";
 import { loginSchema, type LoginInput } from "@railcards/contracts";
 import { Button, Card, CardBody, FieldError, FieldGroup, Input, Label, useToast } from "@railcards/ui";
 import { authApi } from "@/lib/api";
@@ -46,14 +48,25 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-rc-night bg-rail-lines px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <p className="font-display text-3xl font-bold text-rc-accent">🚆 RailCards</p>
-          <p className="mt-1 text-sm text-white/60">L&apos;univers ferroviaire belge à collectionner</p>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-sm"
+      >
+        <div className="mb-6 flex flex-col items-center text-center">
+          <span
+            aria-hidden="true"
+            className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-rc-accent text-rc-night shadow-rc-glow"
+          >
+            <TrainFront className="h-6 w-6" strokeWidth={2.25} />
+          </span>
+          <p className="text-2xl font-bold tracking-tight text-white">RailCards</p>
+          <p className="mt-1 text-sm text-white/55">L&apos;univers ferroviaire belge à collectionner</p>
         </div>
         <Card>
           <CardBody>
-            <h1 className="mb-4 text-lg font-bold text-white">Connexion</h1>
+            <h1 className="mb-4 text-lg font-bold tracking-tight text-white">Connexion</h1>
             <form onSubmit={handleSubmit(onSubmit)} noValidate>
               <FieldGroup>
                 <Label htmlFor="email">Email</Label>
@@ -89,7 +102,7 @@ export default function LoginPage() {
             Inscrivez-vous
           </Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

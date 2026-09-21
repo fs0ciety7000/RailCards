@@ -90,7 +90,7 @@ function NewTradeForm() {
             ) : items.length === 0 ? (
               <p className="text-sm text-white/50">Aucune carte disponible dans votre collection.</p>
             ) : (
-              <div className="grid max-h-64 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-white/10 p-2 sm:grid-cols-3">
+              <div className="grid max-h-64 grid-cols-2 gap-2 overflow-y-auto rounded-lg border border-rc-border p-2 sm:grid-cols-3">
                 {items.map((instance) => {
                   const selected = offered.includes(instance.id);
                   return (
@@ -99,8 +99,8 @@ function NewTradeForm() {
                       key={instance.id}
                       onClick={() => toggleOffered(instance.id)}
                       aria-pressed={selected}
-                      className={`rounded-lg border p-2 text-left text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent ${
-                        selected ? "border-rc-accent bg-rc-accent/10" : "border-white/10 hover:border-white/30"
+                      className={`rounded-lg border p-2 text-left text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent ${
+                        selected ? "border-rc-accent bg-rc-accent/10" : "border-rc-border hover:border-white/25"
                       }`}
                     >
                       <p className="truncate font-medium text-white">{instance.cardDefinition.name}</p>

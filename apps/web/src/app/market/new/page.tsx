@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Folder } from "lucide-react";
 import { createListingSchema, type CreateListingInput } from "@railcards/contracts";
 import { Button, Card, CardBody, EmptyState, FieldError, FieldGroup, Input, Label, Select, Spinner, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -58,7 +59,7 @@ function NewListingForm() {
   if (items.length === 0) {
     return (
       <EmptyState
-        icon="🗂️"
+        icon={<Folder />}
         title="Aucune carte disponible"
         description="Toutes vos cartes sont déjà réservées, ou vous n'en possédez pas encore."
       />

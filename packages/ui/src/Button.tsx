@@ -2,12 +2,19 @@
 
 import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { motion } from "motion/react";
+import { Loader2 } from "lucide-react";
 import { cn } from "./cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
 export type ButtonSize = "sm" | "md" | "lg";
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+// motion.button's own event props (onDrag, onAnimationStart, …) collide in
+// type with the plain DOM ones from ButtonHTMLAttributes — omit them here
+// since this component doesn't expose drag/animation-lifecycle callbacks.
+type ConflictingHandlers = "onDrag" | "onDragStart" | "onDragEnd" | "onAnimationStart" | "onAnimationEnd";
+
+export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, ConflictingHandlers> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
@@ -17,14 +24,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-rc-accent text-rc-night hover:bg-rc-accent-light active:bg-rc-accent-dark shadow-sm disabled:bg-rc-accent/40",
+    "bg-rc-accent text-rc-night hover:bg-rc-accent-light active:bg-rc-accent-dark shadow-rc-sm disabled:bg-rc-accent/40 disabled:shadow-none",
   secondary:
-    "bg-rc-night-light text-white hover:bg-rc-night-lighter active:bg-rc-night border border-white/10 disabled:opacity-40",
+    "bg-rc-night-lighter text-white hover:bg-rc-surface-3 active:bg-rc-night-light border border-rc-border-strong shadow-rc-xs disabled:opacity-40",
   outline:
-    "bg-transparent text-rc-night dark:text-white border border-rc-night/20 dark:border-white/20 hover:bg-rc-night/5 dark:hover:bg-white/10 disabled:opacity-40",
+    "bg-transparent text-rc-night dark:text-white border border-rc-night/20 dark:border-rc-border-strong hover:bg-rc-night/5 dark:hover:bg-white/[0.06] disabled:opacity-40",
   ghost:
-    "bg-transparent text-rc-night dark:text-white hover:bg-rc-night/5 dark:hover:bg-white/10 disabled:opacity-40",
-  danger: "bg-rc-danger text-white hover:brightness-110 active:brightness-95 disabled:opacity-40",
+    "bg-transparent text-rc-night dark:text-white hover:bg-rc-night/5 dark:hover:bg-white/[0.06] disabled:opacity-40",
+  danger: "bg-rc-danger text-white hover:brightness-110 active:brightness-95 shadow-rc-sm disabled:opacity-40 disabled:shadow-none",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -37,11 +44,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   { className, variant = "primary", size = "md", loading, icon, fullWidth, disabled, children, ...props },
   ref,
 ) {
+  const isDisabled = disabled || loading;
   return (
-    <button
+    <motion.button
       ref={ref}
+      whileHover={isDisabled ? undefined : { scale: 1.015 }}
+      whileTap={isDisabled ? undefined : { scale: 0.97 }}
+      transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "inline-flex items-center justify-center font-semibold transition-colors duration-150",
+        "inline-flex items-center justify-center font-semibold tracking-tight transition-colors duration-150",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent focus-visible:ring-offset-2 focus-visible:ring-offset-rc-night",
         "disabled:cursor-not-allowed",
         variantClasses[variant],
@@ -49,19 +60,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         fullWidth && "w-full",
         className,
       )}
-      disabled={disabled || loading}
+      disabled={isDisabled}
       aria-busy={loading || undefined}
       {...props}
     >
-      {loading ? (
-        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-        </svg>
-      ) : (
-        icon
-      )}
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : icon}
       {children}
-    </button>
+    </motion.button>
   );
 });

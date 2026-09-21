@@ -4,6 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "motion/react";
+import { ArrowLeft } from "lucide-react";
 import { Badge, Button, Card, CardBody, ErrorState, RarityBadge, Skeleton } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -51,16 +53,22 @@ function CardDetailContent() {
   const canAct = instance.isOwnedByRequester && instance.state === "AVAILABLE";
 
   return (
-    <div className="mx-auto max-w-lg">
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+      className="mx-auto max-w-lg"
+    >
       <button
         type="button"
         onClick={() => router.back()}
-        className="mb-4 text-sm font-medium text-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent"
+        className="mb-4 flex items-center gap-1.5 text-sm font-medium text-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent"
       >
-        ← Retour
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        Retour
       </button>
 
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/10">
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-rc-border shadow-rc-md">
         <Image src={card.imageUrl} alt="" fill sizes="512px" className="object-cover" unoptimized priority />
       </div>
 
@@ -73,7 +81,7 @@ function CardDetailContent() {
         )}
       </div>
 
-      <h1 className="mt-3 font-display text-2xl font-bold text-white">{card.name}</h1>
+      <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">{card.name}</h1>
       <p className="mt-2 text-sm text-white/70">{card.description}</p>
       {card.flavorText && <p className="mt-2 text-sm italic text-white/50">&laquo; {card.flavorText} &raquo;</p>}
 
@@ -106,7 +114,7 @@ function CardDetailContent() {
           </Link>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "motion/react";
+import { CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { cn } from "./cn";
 
 export type ToastTone = "success" | "error" | "info";
@@ -27,9 +29,21 @@ export function useToast(): ToastContextValue {
 }
 
 const toneClasses: Record<ToastTone, string> = {
-  success: "border-emerald-400/40 bg-emerald-950 text-emerald-50",
-  error: "border-red-400/40 bg-red-950 text-red-50",
-  info: "border-sky-400/40 bg-rc-night-light text-white",
+  success: "border-emerald-400/30 bg-[#0b2318] text-emerald-50",
+  error: "border-red-400/30 bg-[#2a0f0f] text-red-50",
+  info: "border-sky-400/30 bg-rc-night-lighter text-white",
+};
+
+const toneIcons: Record<ToastTone, typeof CheckCircle2> = {
+  success: CheckCircle2,
+  error: XCircle,
+  info: Info,
+};
+
+const toneIconClasses: Record<ToastTone, string> = {
+  success: "text-emerald-400",
+  error: "text-red-400",
+  info: "text-sky-400",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -76,31 +90,42 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             aria-live="polite"
             aria-atomic="true"
           >
-            {toasts.map((t) => (
-              <div
-                key={t.id}
-                role="status"
-                className={cn(
-                  "pointer-events-auto w-full max-w-sm rounded-xl border px-4 py-3 shadow-lg",
-                  toneClasses[t.tone],
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold">{t.title}</p>
-                    {t.description && <p className="mt-0.5 text-xs opacity-90">{t.description}</p>}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => dismiss(t.id)}
-                    aria-label="Fermer la notification"
-                    className="rounded-full p-1 text-current/70 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            <AnimatePresence>
+              {toasts.map((t) => {
+                const Icon = toneIcons[t.tone];
+                return (
+                  <motion.div
+                    key={t.id}
+                    role="status"
+                    layout
+                    initial={{ opacity: 0, y: -16, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: 24, scale: 0.96, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                    className={cn(
+                      "pointer-events-auto w-full max-w-sm rounded-xl border px-4 py-3 shadow-rc-lg",
+                      toneClasses[t.tone],
+                    )}
                   >
-                    ×
-                  </button>
-                </div>
-              </div>
-            ))}
+                    <div className="flex items-start gap-2.5">
+                      <Icon className={cn("mt-0.5 h-[18px] w-[18px] shrink-0", toneIconClasses[t.tone])} aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold tracking-tight">{t.title}</p>
+                        {t.description && <p className="mt-0.5 text-xs opacity-90">{t.description}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => dismiss(t.id)}
+                        aria-label="Fermer la notification"
+                        className="shrink-0 rounded-full p-1 text-current/70 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                      >
+                        <X className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>,
           document.body,
         )}

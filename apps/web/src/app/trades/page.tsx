@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, Repeat } from "lucide-react";
 import {
   Badge,
   Button,
@@ -20,6 +21,7 @@ import {
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
+import { Stagger, StaggerItem } from "@/components/Stagger";
 import { tradesApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { TRADE_STATUS_LABELS, formatDateTime } from "@/lib/format";
@@ -170,7 +172,9 @@ function TradesContent() {
         description="Proposez et gérez vos échanges de cartes."
         actions={
           <Link href="/trades/new">
-            <Button size="sm">+ Nouvel échange</Button>
+            <Button size="sm" icon={<Plus className="h-4 w-4" aria-hidden="true" />}>
+              Nouvel échange
+            </Button>
           </Link>
         }
       />
@@ -196,7 +200,7 @@ function TradesContent() {
         <ErrorState description={getErrorMessage(tradesQuery.error)} action={<Button onClick={() => tradesQuery.refetch()}>Réessayer</Button>} />
       ) : tradesQuery.data!.length === 0 ? (
         <EmptyState
-          icon="🔄"
+          icon={<Repeat />}
           title={tab === "received" ? "Aucun échange reçu" : "Aucun échange envoyé"}
           description="Proposez un échange depuis une carte de votre collection."
           action={
@@ -206,11 +210,13 @@ function TradesContent() {
           }
         />
       ) : (
-        <div className="space-y-3">
+        <Stagger className="space-y-3">
           {tradesQuery.data!.map((trade) => (
-            <TradeCard key={trade.id} trade={trade} myUsername={meQuery.data?.username} />
+            <StaggerItem key={trade.id}>
+              <TradeCard trade={trade} myUsername={meQuery.data?.username} />
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
     </div>
   );

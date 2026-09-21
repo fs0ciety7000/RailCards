@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { BookOpen, Folder } from "lucide-react";
 import { Button, EmptyState, ErrorState, Select, SkeletonGrid } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { CardTile } from "@/components/CardTile";
+import { Stagger, StaggerItem } from "@/components/Stagger";
 import { catalogApi, collectionApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 
@@ -46,8 +48,8 @@ function CollectionContent() {
         }
         actions={
           <Link href="/collection/album">
-            <Button variant="outline" size="sm">
-              📖 Vue album
+            <Button variant="outline" size="sm" icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}>
+              Vue album
             </Button>
           </Link>
         }
@@ -109,7 +111,7 @@ function CollectionContent() {
         <ErrorState description={getErrorMessage(collectionQuery.error)} action={<Button onClick={() => collectionQuery.refetch()}>Réessayer</Button>} />
       ) : collectionQuery.data!.items.length === 0 ? (
         <EmptyState
-          icon="🗂️"
+          icon={<Folder />}
           title="Aucune carte pour l'instant"
           description="Ouvrez un booster pour commencer votre collection."
           action={
@@ -120,17 +122,18 @@ function CollectionContent() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <Stagger className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {collectionQuery.data!.items.map((instance) => (
-              <CardTile
-                key={instance.id}
-                instanceId={instance.id}
-                card={instance.cardDefinition}
-                state={instance.state}
-                href={`/collection/${instance.id}`}
-              />
+              <StaggerItem key={instance.id}>
+                <CardTile
+                  instanceId={instance.id}
+                  card={instance.cardDefinition}
+                  state={instance.state}
+                  href={`/collection/${instance.id}`}
+                />
+              </StaggerItem>
             ))}
-          </div>
+          </Stagger>
           <Pagination page={page} total={collectionQuery.data!.total} pageSize={PAGE_SIZE} onChange={setPage} />
         </>
       )}

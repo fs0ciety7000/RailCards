@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
-import { Button, RarityBadge } from "@railcards/ui";
+import { Button, RarityBadge, staggerContainer, fadeInUp } from "@railcards/ui";
 import type { BoosterPull } from "@/lib/types";
 
 export function BoosterReveal({
@@ -46,22 +46,28 @@ export function BoosterReveal({
         </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <motion.div
+        className="grid grid-cols-2 gap-4 sm:grid-cols-3"
+        initial="hidden"
+        animate="show"
+        variants={staggerContainer}
+      >
         {pulls.map((pull, i) => {
           const isRevealed = i < revealedCount;
           return (
-            <button
+            <motion.button
               key={pull.id}
+              variants={fadeInUp}
               type="button"
               onClick={() => {
                 if (!isRevealed) revealNext();
               }}
               disabled={isRevealed}
-              className="group rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent disabled:cursor-default"
+              className="group rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent disabled:cursor-default"
               aria-label={isRevealed ? `${pull.cardDefinition.name}, ${pull.cardDefinition.rarity.label}` : "Révéler la carte"}
             >
               <div
-                className="relative aspect-[3/4] w-full overflow-hidden rounded-xl border"
+                className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl border shadow-rc-md"
                 style={{ borderColor: isRevealed ? `${pull.cardDefinition.rarity.colorHex}88` : "rgba(255,255,255,0.15)" }}
               >
                 <AnimatePresence mode="wait" initial={false}>
@@ -88,9 +94,13 @@ export function BoosterReveal({
                     <motion.div
                       key="back"
                       exit={{ opacity: 0 }}
-                      className="absolute inset-0 flex items-center justify-center bg-rc-night-light"
+                      whileHover={{ scale: 1.03 }}
+                      className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-rc-night-lighter to-rc-night-dark"
                     >
-                      <span className="font-display text-2xl font-bold text-rc-accent/70" aria-hidden="true">
+                      <span
+                        className="rounded-xl border border-white/10 px-3 py-1.5 text-xl font-bold tracking-tight text-rc-accent/70"
+                        aria-hidden="true"
+                      >
                         RC
                       </span>
                     </motion.div>
@@ -107,10 +117,10 @@ export function BoosterReveal({
                   <p className="text-xs text-white/40">Toucher pour révéler</p>
                 )}
               </div>
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
 
       {!allRevealed && (
         <Button variant="outline" className="mt-4" onClick={revealAll}>

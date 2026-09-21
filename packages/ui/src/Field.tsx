@@ -11,9 +11,9 @@ import type {
 import { cn } from "./cn";
 
 const fieldBase =
-  "w-full rounded-lg border border-rc-night/15 bg-white px-3 py-2 text-sm text-rc-night placeholder:text-rc-night/40 " +
+  "w-full rounded-lg border border-rc-night/15 bg-white px-3 py-2.5 text-sm text-rc-night placeholder:text-rc-night/40 transition-colors duration-150 " +
   "focus:border-rc-accent focus:outline-none focus:ring-2 focus:ring-rc-accent/40 disabled:opacity-50 " +
-  "dark:border-white/15 dark:bg-rc-night dark:text-white dark:placeholder:text-white/40";
+  "dark:border-rc-border-strong dark:bg-rc-night-light dark:text-white dark:placeholder:text-white/35 dark:hover:border-white/25";
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }>(
   function Input({ className, invalid, ...props }, ref) {

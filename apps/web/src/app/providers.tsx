@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MotionConfig } from "motion/react";
 import { ToastProvider } from "@railcards/ui";
 import { tryRefresh } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
@@ -42,10 +43,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <SessionBootstrap />
-        {children}
-      </ToastProvider>
+      {/* reducedMotion="user" makes every `motion.*` element in the tree
+          automatically honor the OS-level prefers-reduced-motion setting,
+          on top of the explicit booster-reveal skip toggle. */}
+      <MotionConfig reducedMotion="user">
+        <ToastProvider>
+          <SessionBootstrap />
+          {children}
+        </ToastProvider>
+      </MotionConfig>
     </QueryClientProvider>
   );
 }
