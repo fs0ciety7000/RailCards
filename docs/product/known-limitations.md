@@ -6,7 +6,7 @@ Liste honnête de ce qui n'est pas (encore) fait, pour éviter toute ambiguïté
 
 - **Combats** : le modèle de données prévoit des statistiques de combat par carte (`combatStats`, `combatStatsEnabled`, éditables depuis Admin > Cartes), mais aucun système de combat, matchmaking ou tournoi n'existe. C'est un choix produit assumé (voir la mission), pas un oubli.
 - **Vérification d'email** : le champ `emailVerifiedAt` existe, mais aucun fournisseur SMTP n'est branché par défaut (voir `.env.example`, `SMTP_*`). En développement, aucun email n'est réellement envoyé.
-- **Réinitialisation de mot de passe** : le modèle (`PasswordResetToken`) est prêt, mais les endpoints `/auth/forgot-password` et `/auth/reset-password` ne sont pas implémentés côté API dans ce MVP (le schéma Zod `requestPasswordResetSchema`/`resetPasswordSchema` existe côté contrats pour un branchement futur rapide).
+- **Réinitialisation de mot de passe** : `/auth/forgot-password` et `/auth/reset-password` sont implémentés (pages `/forgot-password` et `/reset-password` côté web), mais comme aucun SMTP n'est branché par défaut, le lien de réinitialisation est journalisé par l'API (`AuthService`, niveau `log`) plutôt qu'envoyé par email — brancher un vrai fournisseur SMTP reste un changement localisé à `AuthService.requestPasswordReset`.
 - **Live Ops / Événements** : le modèle `Event` existe (séries/événements limités dans le temps), mais aucun endpoint ni écran ne l'exploite encore — prêt pour une itération post-MVP.
 - **Blocage entre joueurs** : le signalement (`Report`) est fonctionnel, mais il n'y a pas de fonctionnalité de blocage à proprement parler (empêcher un joueur de vous proposer des échanges, par exemple).
 
