@@ -313,6 +313,7 @@ export type NotificationType =
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"
   | "CREDITS_EARNED"
+  | "SERIES_COMPLETED"
   | "SYSTEM";
 
 export interface AppNotification {

@@ -61,6 +61,7 @@ model User {
   dailyRewardClaims     DailyRewardClaim[]
   passwordResetTokens   PasswordResetToken[]
   favoriteCards         FavoriteCard[]
+  seriesCompletions     UserSeriesCompletion[]
 
   @@index([status])
 }
@@ -169,6 +170,7 @@ model CardSeries {
 
   cards            CardDefinition[]
   boosterPoolEntries BoosterPoolEntry[]
+  completions      UserSeriesCompletion[]
 }
 
 model CardDefinition {
@@ -622,6 +624,21 @@ model DailyRewardClaim {
   @@unique([userId, claimDate])
 }
 
+// Recorded once the first time a player owns at least one copy of every
+// PUBLISHED card in a series — never removed afterward (completion is a
+// milestone, not a live status), and used both to render series progress
+// and to make the COMPLETE_SERIES mission/achievement trigger idempotent.
+model UserSeriesCompletion {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  seriesId    String
+  series      CardSeries @relation(fields: [seriesId], references: [id])
+  completedAt DateTime   @default(now())
+
+  @@unique([userId, seriesId])
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Live Ops
 // ─────────────────────────────────────────────────────────────────────────
@@ -655,6 +672,7 @@ enum NotificationType {
   ACHIEVEMENT_UNLOCKED
   LEVEL_UP
   CREDITS_EARNED
+  SERIES_COMPLETED
   SYSTEM
 }
 

@@ -68,6 +68,7 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
   LEVEL_UP: "Niveau supérieur",
   CREDITS_EARNED: "Crédits reçus",
+  SERIES_COMPLETED: "Série complétée",
   SYSTEM: "Notification système",
 };
 
@@ -89,6 +90,10 @@ export function notificationMessage(type: string, payload: Record<string, unknow
     case "CREDITS_EARNED":
       return typeof payload.amount === "number"
         ? `+${payload.amount} CR reçus${typeof payload.reason === "string" && payload.reason ? ` — ${payload.reason}` : ""}`
+        : NOTIFICATION_LABELS[type]!;
+    case "SERIES_COMPLETED":
+      return typeof payload.seriesName === "string"
+        ? `Série complétée : ${payload.seriesName} !`
         : NOTIFICATION_LABELS[type]!;
     case "SYSTEM":
       return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;

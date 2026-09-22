@@ -210,7 +210,10 @@ export class TradingService {
 
   async accept(recipientId: string, tradeId: string) {
     return this.prisma.$transaction(async (tx) => {
-      const trade = await tx.trade.findUnique({ where: { id: tradeId }, include: { items: true } });
+      const trade = await tx.trade.findUnique({
+        where: { id: tradeId },
+        include: { items: { include: { cardInstance: { select: { cardDefinitionId: true } } } } },
+      });
       if (!trade) throw new NotFoundException("Trade not found");
       if (trade.recipientId !== recipientId) throw new ForbiddenException("Only the recipient can accept this trade");
 
@@ -290,6 +293,17 @@ export class TradingService {
 
       await this.missions.recordProgress(tx, trade.initiatorId, "COMPLETE_TRADE", 1);
       await this.missions.recordProgress(tx, trade.recipientId, "COMPLETE_TRADE", 1);
+      // recipient receives what the initiator offered, and vice versa.
+      await this.missions.checkSeriesCompletion(
+        tx,
+        trade.recipientId,
+        initiatorItems.map((i) => i.cardInstance.cardDefinitionId),
+      );
+      await this.missions.checkSeriesCompletion(
+        tx,
+        trade.initiatorId,
+        recipientItems.map((i) => i.cardInstance.cardDefinitionId),
+      );
       await this.notifications.create(tx, trade.initiatorId, "TRADE_ACCEPTED", { tradeId: trade.id });
 
       return tx.trade.findUniqueOrThrow({ where: { id: trade.id }, include: { items: true } });

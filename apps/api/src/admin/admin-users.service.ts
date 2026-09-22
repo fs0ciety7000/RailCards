@@ -3,6 +3,7 @@ import type { Prisma } from "@railcards/database";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { MissionsService } from "../missions/missions.service";
 
 @Injectable()
 export class AdminUsersService {
@@ -10,6 +11,7 @@ export class AdminUsersService {
     private readonly prisma: PrismaService,
     private readonly wallet: WalletService,
     private readonly notifications: NotificationsService,
+    private readonly missions: MissionsService,
   ) {}
 
   async list(search: string | undefined, page: number, pageSize: number) {
@@ -148,6 +150,7 @@ export class AdminUsersService {
         });
         instanceIds.push(instance.id);
       }
+      await this.missions.checkSeriesCompletion(tx, targetUserId, [cardDefinitionId]);
       await this.notifications.create(tx, targetUserId, "SYSTEM", {
         message:
           quantity === 1
@@ -186,6 +189,7 @@ export class AdminUsersService {
       await tx.boosterOpening.deleteMany({ where: { userId: targetUserId } });
       await tx.userMission.deleteMany({ where: { userId: targetUserId } });
       await tx.userAchievement.deleteMany({ where: { userId: targetUserId } });
+      await tx.userSeriesCompletion.deleteMany({ where: { userId: targetUserId } });
       await tx.dailyRewardClaim.deleteMany({ where: { userId: targetUserId } });
       await tx.notification.deleteMany({ where: { userId: targetUserId } });
       await tx.report.deleteMany({ where: { OR: [{ reporterId: targetUserId }, { targetUserId }] } });

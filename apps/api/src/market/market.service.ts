@@ -112,7 +112,10 @@ export class MarketService {
 
   async buy(buyerId: string, listingId: string) {
     return this.prisma.$transaction(async (tx) => {
-      const listing = await tx.marketListing.findUnique({ where: { id: listingId } });
+      const listing = await tx.marketListing.findUnique({
+        where: { id: listingId },
+        include: { cardInstance: { select: { cardDefinitionId: true } } },
+      });
       if (!listing) throw new NotFoundException("Listing not found");
       if (listing.sellerId === buyerId) throw new BadRequestException("You cannot buy your own listing");
 
@@ -163,6 +166,7 @@ export class MarketService {
 
       await this.missions.recordProgress(tx, listing.sellerId, "SELL_ON_MARKET", 1);
       await this.missions.recordProgress(tx, buyerId, "BUY_ON_MARKET", 1);
+      await this.missions.checkSeriesCompletion(tx, buyerId, [listing.cardInstance.cardDefinitionId]);
       await this.notifications.create(tx, listing.sellerId, "MARKET_SOLD", { listingId: listing.id });
 
       return marketTx;

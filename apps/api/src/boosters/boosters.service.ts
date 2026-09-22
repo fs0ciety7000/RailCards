@@ -192,6 +192,7 @@ export class BoostersService {
     );
 
     let newUniqueCount = 0;
+    const newlyOwnedDefinitionIds: string[] = [];
     for (const [index, draw] of draws.entries()) {
       const priorCount = await tx.cardInstance.count({ where: { cardDefinitionId: draw.cardDefinitionId } });
       const cardInstance = await tx.cardInstance.create({
@@ -211,12 +212,16 @@ export class BoostersService {
           position: index,
         },
       });
-      if (!ownedDefinitionIdsBefore.has(draw.cardDefinitionId)) newUniqueCount += 1;
+      if (!ownedDefinitionIdsBefore.has(draw.cardDefinitionId)) {
+        newUniqueCount += 1;
+        newlyOwnedDefinitionIds.push(draw.cardDefinitionId);
+      }
     }
 
     await this.missions.recordProgress(tx, userId, "OPEN_BOOSTER", 1);
     if (newUniqueCount > 0) {
       await this.missions.recordProgress(tx, userId, "COLLECT_UNIQUE_CARDS", newUniqueCount);
+      await this.missions.checkSeriesCompletion(tx, userId, newlyOwnedDefinitionIds);
     }
   }
 

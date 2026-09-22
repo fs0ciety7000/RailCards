@@ -226,6 +226,8 @@ async function seedMissionsAndAchievements() {
     { code: "collect-50-unique", title: "Collectionneur confirmé", description: "Possède 50 cartes uniques différentes.", goalType: "COLLECT_UNIQUE_CARDS" as const, goalCount: 50, rewardCr: 250, rewardXp: 150 },
     { code: "complete-5-trades", title: "Négociateur", description: "Complète 5 échanges avec d'autres joueurs.", goalType: "COMPLETE_TRADE" as const, goalCount: 5, rewardCr: 100, rewardXp: 75 },
     { code: "sell-10-market", title: "Vendeur aguerri", description: "Vends 10 cartes sur le marché.", goalType: "SELL_ON_MARKET" as const, goalCount: 10, rewardCr: 150, rewardXp: 75 },
+    { code: "complete-1-series", title: "Album complet", description: "Complète ta première série.", goalType: "COMPLETE_SERIES" as const, goalCount: 1, rewardCr: 200, rewardXp: 100 },
+    { code: "complete-3-series", title: "Archiviste du réseau", description: "Complète 3 séries entières.", goalType: "COMPLETE_SERIES" as const, goalCount: 3, rewardCr: 500, rewardXp: 250 },
   ];
 
   for (const a of achievements) {

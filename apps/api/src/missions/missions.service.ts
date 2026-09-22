@@ -97,6 +97,46 @@ export class MissionsService {
     }
   }
 
+  /**
+   * Checks whether newly-acquired card definitions completed any series
+   * (owning at least one copy of every PUBLISHED card in it) — called from
+   * every place ownership of a card can change (booster, market, trade,
+   * admin grant). Idempotent via UserSeriesCompletion: a series is only
+   * ever counted once per player, however many times this fires for it.
+   */
+  async checkSeriesCompletion(tx: Tx, userId: string, cardDefinitionIds: string[]): Promise<void> {
+    const uniqueIds = [...new Set(cardDefinitionIds)];
+    if (uniqueIds.length === 0) return;
+
+    const defs = await tx.cardDefinition.findMany({
+      where: { id: { in: uniqueIds } },
+      select: { seriesId: true },
+    });
+    const seriesIds = [...new Set(defs.map((d) => d.seriesId))];
+
+    for (const seriesId of seriesIds) {
+      const already = await tx.userSeriesCompletion.findUnique({
+        where: { userId_seriesId: { userId, seriesId } },
+      });
+      if (already) continue;
+
+      const totalPublished = await tx.cardDefinition.count({ where: { seriesId, status: "PUBLISHED" } });
+      if (totalPublished === 0) continue;
+
+      const ownedDistinct = await tx.cardInstance.findMany({
+        where: { ownerId: userId, cardDefinition: { seriesId, status: "PUBLISHED" } },
+        distinct: ["cardDefinitionId"],
+        select: { cardDefinitionId: true },
+      });
+      if (ownedDistinct.length < totalPublished) continue;
+
+      const series = await tx.cardSeries.findUniqueOrThrow({ where: { id: seriesId } });
+      await tx.userSeriesCompletion.create({ data: { userId, seriesId } });
+      await this.recordProgress(tx, userId, "COMPLETE_SERIES", 1);
+      await this.notifications.create(tx, userId, "SERIES_COMPLETED", { seriesId, seriesName: series.name });
+    }
+  }
+
   async listMissions(userId: string) {
     const missions = await this.prisma.mission.findMany({ where: { isActive: true } });
     const periodKeys = [...new Set(missions.map((m) => (m.resetPeriod === "DAILY" ? todayKey() : "PERMANENT")))];
