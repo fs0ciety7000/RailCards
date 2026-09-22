@@ -19,6 +19,29 @@ export interface CreateTradeParams {
   expiresInHours?: number;
 }
 
+export interface CounterTradeParams {
+  counterUserId: string;
+  originalTradeId: string;
+  offeredCardInstanceIds: string[];
+  requestedCardInstanceIds: string[];
+  initiatorCr?: number;
+  recipientCr?: number;
+  message?: string;
+  expiresInHours?: number;
+}
+
+interface TradeRowParams {
+  initiatorId: string;
+  recipientId: string;
+  offeredCardInstanceIds: string[];
+  requestedCardInstanceIds: string[];
+  initiatorCr?: number;
+  recipientCr?: number;
+  message?: string;
+  expiresInHours?: number;
+  parentTradeId?: string;
+}
+
 @Injectable()
 export class TradingService {
   constructor(
@@ -27,6 +50,46 @@ export class TradingService {
     private readonly missions: MissionsService,
     private readonly notifications: NotificationsService,
   ) {}
+
+  /** Reserves the initiator's offered cards for a trade row about to be created. */
+  private async reserveOfferedItems(tx: Tx, ownerId: string, cardInstanceIds: string[]) {
+    if (cardInstanceIds.length === 0) return;
+    const result = await tx.cardInstance.updateMany({
+      where: { id: { in: cardInstanceIds }, ownerId, state: "AVAILABLE" },
+      data: { state: "RESERVED_TRADE" },
+    });
+    if (result.count !== cardInstanceIds.length) {
+      throw new ConflictException("One or more offered cards are not available to trade");
+    }
+  }
+
+  /** Shared by create() and counter(): reserves cards and inserts the Trade + TradeItem rows. */
+  private async createTradeRow(tx: Tx, params: TradeRowParams) {
+    await this.reserveOfferedItems(tx, params.initiatorId, params.offeredCardInstanceIds);
+
+    const expiresAt = new Date(
+      Date.now() + (params.expiresInHours ?? GAME_CONSTANTS.TRADE_DEFAULT_EXPIRY_HOURS) * 3_600_000,
+    );
+
+    return tx.trade.create({
+      data: {
+        initiatorId: params.initiatorId,
+        recipientId: params.recipientId,
+        initiatorCr: params.initiatorCr ?? 0,
+        recipientCr: params.recipientCr ?? 0,
+        message: params.message,
+        expiresAt,
+        parentTradeId: params.parentTradeId,
+        items: {
+          create: [
+            ...params.offeredCardInstanceIds.map((id) => ({ cardInstanceId: id, side: "INITIATOR" as const })),
+            ...params.requestedCardInstanceIds.map((id) => ({ cardInstanceId: id, side: "RECIPIENT" as const })),
+          ],
+        },
+      },
+      include: { items: { include: { cardInstance: { include: { cardDefinition: true } } } } },
+    });
+  }
 
   async create(params: CreateTradeParams) {
     if (params.offeredCardInstanceIds.length === 0 && params.requestedCardInstanceIds.length === 0) {
@@ -37,41 +100,66 @@ export class TradingService {
     if (!recipient) throw new NotFoundException("Recipient not found");
     if (recipient.id === params.initiatorId) throw new BadRequestException("You cannot trade with yourself");
 
-    const expiresAt = new Date(
-      Date.now() + (params.expiresInHours ?? GAME_CONSTANTS.TRADE_DEFAULT_EXPIRY_HOURS) * 3_600_000,
-    );
-
     return this.prisma.$transaction(async (tx) => {
-      if (params.offeredCardInstanceIds.length > 0) {
-        const reserveResult = await tx.cardInstance.updateMany({
-          where: { id: { in: params.offeredCardInstanceIds }, ownerId: params.initiatorId, state: "AVAILABLE" },
-          data: { state: "RESERVED_TRADE" },
-        });
-        if (reserveResult.count !== params.offeredCardInstanceIds.length) {
-          throw new ConflictException("One or more offered cards are not available to trade");
-        }
-      }
-
-      const trade = await tx.trade.create({
-        data: {
-          initiatorId: params.initiatorId,
-          recipientId: recipient.id,
-          initiatorCr: params.initiatorCr ?? 0,
-          recipientCr: params.recipientCr ?? 0,
-          message: params.message,
-          expiresAt,
-          items: {
-            create: [
-              ...params.offeredCardInstanceIds.map((id) => ({ cardInstanceId: id, side: "INITIATOR" as const })),
-              ...params.requestedCardInstanceIds.map((id) => ({ cardInstanceId: id, side: "RECIPIENT" as const })),
-            ],
-          },
-        },
-        include: { items: { include: { cardInstance: { include: { cardDefinition: true } } } } },
-      });
-
+      const trade = await this.createTradeRow(tx, { ...params, recipientId: recipient.id });
       await this.notifications.create(tx, recipient.id, "TRADE_RECEIVED", { tradeId: trade.id });
       return trade;
+    });
+  }
+
+  /**
+   * The recipient of a PENDING trade proposes different terms instead:
+   * the original trade is closed as COUNTERED (its initiator's items
+   * released, exactly like a rejection) and a brand new trade is opened
+   * in the opposite direction, linked back via parentTradeId. The
+   * original initiator gets a TRADE_COUNTERED notification and responds
+   * to the new trade exactly like any other proposal (accept/reject/
+   * counter again).
+   */
+  async counter(params: CounterTradeParams) {
+    if (params.offeredCardInstanceIds.length === 0 && params.requestedCardInstanceIds.length === 0) {
+      throw new BadRequestException("A trade must include at least one card");
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const original = await tx.trade.findUnique({ where: { id: params.originalTradeId } });
+      if (!original) throw new NotFoundException("Trade not found");
+      if (original.recipientId !== params.counterUserId) {
+        throw new ForbiddenException("Only the recipient can counter this trade");
+      }
+
+      if (original.status === "PENDING" && original.expiresAt < new Date()) {
+        await tx.trade.update({ where: { id: original.id }, data: { status: "EXPIRED" } });
+        await this.releaseInitiatorItems(tx, original.id);
+        throw new BadRequestException("This trade offer has expired");
+      }
+
+      const closed = await tx.trade.updateMany({
+        where: { id: original.id, status: "PENDING" },
+        data: { status: "COUNTERED", respondedAt: new Date() },
+      });
+      if (closed.count === 0) throw new ConflictException("This trade is no longer pending");
+
+      await this.releaseInitiatorItems(tx, original.id);
+
+      const counterTrade = await this.createTradeRow(tx, {
+        initiatorId: params.counterUserId,
+        recipientId: original.initiatorId,
+        offeredCardInstanceIds: params.offeredCardInstanceIds,
+        requestedCardInstanceIds: params.requestedCardInstanceIds,
+        initiatorCr: params.initiatorCr,
+        recipientCr: params.recipientCr,
+        message: params.message,
+        expiresInHours: params.expiresInHours,
+        parentTradeId: original.id,
+      });
+
+      await this.notifications.create(tx, original.initiatorId, "TRADE_COUNTERED", {
+        tradeId: counterTrade.id,
+        originalTradeId: original.id,
+      });
+
+      return counterTrade;
     });
   }
 

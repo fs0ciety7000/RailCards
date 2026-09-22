@@ -206,6 +206,17 @@ export const tradesApi = {
     message?: string;
     expiresInHours?: number;
   }) => request<T.Trade>("/trades", { method: "POST", body: input }),
+  counter: (
+    id: string,
+    input: {
+      offeredCardInstanceIds: string[];
+      requestedCardInstanceIds: string[];
+      initiatorCr?: number;
+      recipientCr?: number;
+      message?: string;
+      expiresInHours?: number;
+    },
+  ) => request<T.Trade>(`/trades/${id}/counter`, { method: "POST", body: input }),
   list: (direction: "sent" | "received" | "all" = "all", status?: string) =>
     request<T.Trade[]>(`/trades${qs({ direction, status })}`),
   getById: (id: string) => request<T.Trade>(`/trades/${id}`),
@@ -219,6 +230,8 @@ export const tradesApi = {
 export const usersApi = {
   me: () => request<T.Me>("/me"),
   publicProfile: (username: string) => request<T.PublicProfile>(`/users/${username}`),
+  collection: (username: string, params: { page?: number; pageSize?: number } = {}) =>
+    request<T.Paginated<T.CardInstance>>(`/users/${username}/collection${qs(params)}`),
 };
 
 // ── Missions & achievements ─────────────────────────────────────────────

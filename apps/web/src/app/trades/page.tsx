@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Repeat } from "lucide-react";
+import { Plus, Repeat, GitFork } from "lucide-react";
 import {
   Badge,
   Button,
@@ -103,6 +103,11 @@ function TradeCard({ trade, myUsername }: { trade: Trade; myUsername?: string })
                 <Button size="sm" onClick={() => setConfirm("accept")}>
                   Accepter
                 </Button>
+                <Link href={`/trades/new?counterOf=${trade.id}&recipientUsername=${counterparty.username}`}>
+                  <Button size="sm" variant="outline" icon={<GitFork className="h-3.5 w-3.5" aria-hidden="true" />}>
+                    Contre-proposer
+                  </Button>
+                </Link>
                 <Button size="sm" variant="danger" onClick={() => setConfirm("reject")}>
                   Refuser
                 </Button>

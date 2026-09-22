@@ -4,8 +4,7 @@ Liste honnête de ce qui n'est pas (encore) fait, pour éviter toute ambiguïté
 
 ## Fonctionnel
 
-- **Combats** : le modèle de données prévoit des statistiques de combat par carte (`combatStats`, `combatStatsEnabled`), mais aucun système de combat, matchmaking ou tournoi n'existe. C'est un choix produit assumé (voir la mission), pas un oubli.
-- **Contre-proposition d'échange** : le modèle (`Trade.parentTradeId`) et le statut `COUNTERED` existent dans le schéma pour supporter une contre-proposition, mais l'endpoint dédié (`POST /trades/:id/counter`) n'a pas été implémenté dans ce MVP — un joueur peut annuler une proposition reçue et en créer une nouvelle à la place, ce qui couvre le même besoin avec une étape manuelle en plus.
+- **Combats** : le modèle de données prévoit des statistiques de combat par carte (`combatStats`, `combatStatsEnabled`, éditables depuis Admin > Cartes), mais aucun système de combat, matchmaking ou tournoi n'existe. C'est un choix produit assumé (voir la mission), pas un oubli.
 - **Vérification d'email** : le champ `emailVerifiedAt` existe, mais aucun fournisseur SMTP n'est branché par défaut (voir `.env.example`, `SMTP_*`). En développement, aucun email n'est réellement envoyé.
 - **Réinitialisation de mot de passe** : le modèle (`PasswordResetToken`) est prêt, mais les endpoints `/auth/forgot-password` et `/auth/reset-password` ne sont pas implémentés côté API dans ce MVP (le schéma Zod `requestPasswordResetSchema`/`resetPasswordSchema` existe côté contrats pour un branchement futur rapide).
 - **Live Ops / Événements** : le modèle `Event` existe (séries/événements limités dans le temps), mais aucun endpoint ni écran ne l'exploite encore — prêt pour une itération post-MVP.
@@ -23,11 +22,9 @@ Liste honnête de ce qui n'est pas (encore) fait, pour éviter toute ambiguïté
 
 ## Frontend
 
-- **Échange « demander des cartes précises »** : la création d'une proposition d'échange permet de choisir ses propres cartes à offrir (+ un montant optionnel de CR dans chaque sens), mais pas de parcourir la collection exacte du destinataire pour lui demander des cartes précises — l'API `/users/:username` ne renvoie que des statistiques agrégées (niveau, ancienneté, nombre de cartes uniques), pas la liste détaillée de ses exemplaires. L'écran l'indique explicitement plutôt que de proposer un sélecteur vide ou trompeur.
 - **Signalement depuis un profil public** : pas de bouton « signaler » sur l'écran de profil joueur, car `POST /reports` a besoin de l'`userId` de la cible et le profil public n'expose que le `username` — plutôt que de câbler un faux bouton, il a été omis (règle : aucun bouton qui ne fait rien).
 - **Sélecteurs admin** : les formulaires d'administration (carte, booster, série) utilisent des `<select>` HTML natifs sur les identifiants plutôt que des combobox avec recherche — fonctionnel pour un catalogue de la taille actuelle (53 cartes), à améliorer si le catalogue grossit significativement.
-- **Sélection de cartes pour vente/échange** : récupère jusqu'à 100 cartes disponibles en une seule requête plutôt qu'un sélecteur paginé — largement suffisant pour ce MVP, à revisiter pour une collection de plusieurs centaines de cartes.
-- **Contre-proposition d'échange** : pas d'écran dédié, cohérent avec l'absence de l'endpoint API correspondant (voir plus haut).
+- **Sélection de cartes pour vente/échange** : récupère jusqu'à 100 cartes disponibles en une seule requête plutôt qu'un sélecteur paginé (côté proposeur et côté destinataire demandé) — largement suffisant pour ce MVP, à revisiter pour une collection de plusieurs centaines de cartes.
 
 Le reste des 15 écrans demandés est implémenté et branché sur l'API réelle (pas de données simulées), avec états de chargement/vide/erreur, dialogues de confirmation avant toute action irréversible, et raretés toujours affichées avec couleur **et** texte. Vérifié par un parcours de bout en bout en navigateur réel (voir [architecture/testing.md](../architecture/testing.md)).
 

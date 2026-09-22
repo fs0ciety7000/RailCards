@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { CollectionService } from "../collection/collection.service";
 import { gradeForLevel, levelForXp, xpToNextLevel } from "@railcards/game-domain";
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly collection: CollectionService,
+  ) {}
 
   async getMe(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
@@ -41,6 +45,19 @@ export class UsersService {
       uniqueCardCount: uniqueCardCount.length,
       totalSeriesCount: seriesCount,
     };
+  }
+
+  /**
+   * A player's own cards that another player could request in a trade —
+   * always AVAILABLE only (never reserved/archived ones), regardless of
+   * the requester.
+   */
+  async getPublicCollection(username: string, page: number, pageSize: number) {
+    const user = await this.prisma.user.findUnique({ where: { username: username.toLowerCase() } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const { items, total } = await this.collection.listInventory(user.id, { page, pageSize, state: "AVAILABLE" });
+    return { items, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };
   }
 
   private toDto(user: {

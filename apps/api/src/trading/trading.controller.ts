@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { TradingService } from "./trading.service";
-import { CreateTradeDto } from "./dto/create-trade.dto";
+import { CounterTradeDto, CreateTradeDto } from "./dto/create-trade.dto";
 
 @ApiTags("trading")
 @ApiBearerAuth()
@@ -37,6 +37,20 @@ export class TradingController {
   @Get(":id")
   async getById(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return this.trading.getById(user.id, id);
+  }
+
+  @Post(":id/counter")
+  async counter(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() dto: CounterTradeDto) {
+    return this.trading.counter({
+      counterUserId: user.id,
+      originalTradeId: id,
+      offeredCardInstanceIds: dto.offeredCardInstanceIds,
+      requestedCardInstanceIds: dto.requestedCardInstanceIds,
+      initiatorCr: dto.initiatorCr,
+      recipientCr: dto.recipientCr,
+      message: dto.message,
+      expiresInHours: dto.expiresInHours,
+    });
   }
 
   @Post(":id/accept")
