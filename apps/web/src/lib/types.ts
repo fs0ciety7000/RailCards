@@ -34,6 +34,9 @@ export interface PublicProfile {
   username: string;
   displayName: string;
   avatarUrl: string | null;
+  role: UserRole;
+  bio: string | null;
+  isPublic: boolean;
   level: number;
   grade: string;
   memberSince: string;

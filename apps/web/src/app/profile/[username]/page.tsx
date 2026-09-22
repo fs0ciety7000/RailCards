@@ -1,24 +1,117 @@
 "use client";
 
+import { useRef, useState } from "react";
+import type { ChangeEvent } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Flame } from "lucide-react";
-import { Badge, Card, CardBody, ErrorState, ProgressBar, Skeleton } from "@railcards/ui";
+import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Lock, Unlock } from "lucide-react";
+import { Badge, Button, Card, CardBody, ErrorState, ProgressBar, Skeleton, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
-import { usersApi } from "@/lib/api";
+import { ApiError, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
 
+const AVATAR_ACCEPTED_TYPES = "image/png,image/jpeg,image/webp,image/gif";
+
+function Avatar({
+  avatarUrl,
+  displayName,
+  isAdmin,
+  size = 80,
+}: {
+  avatarUrl: string | null;
+  displayName: string;
+  isAdmin: boolean;
+  size?: number;
+}) {
+  return (
+    <span
+      className={
+        "relative flex items-center justify-center overflow-hidden rounded-full " +
+        (isAdmin
+          ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 p-[3px] shadow-[0_0_20px_rgba(245,197,66,0.55)]"
+          : "")
+      }
+      style={{ width: size, height: size }}
+    >
+      <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-rc-accent text-3xl font-bold text-rc-night">
+        {avatarUrl ? (
+          <Image src={avatarUrl} alt="" fill sizes={`${size}px`} className="object-cover" unoptimized />
+        ) : (
+          displayName.slice(0, 1).toUpperCase()
+        )}
+      </span>
+      {isAdmin && (
+        <span
+          className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-amber-600 text-rc-night shadow ring-2 ring-rc-night"
+          title="Administrateur"
+        >
+          <Crown className="h-3.5 w-3.5" aria-hidden="true" />
+        </span>
+      )}
+    </span>
+  );
+}
+
+function AvatarUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) {
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const me = await usersApi.uploadAvatar(file);
+      onUploaded(me.avatarUrl ?? "");
+      toast.show({ tone: "success", title: "Avatar mis à jour" });
+    } catch (err) {
+      toast.show({ tone: "error", title: "Échec de l'upload", description: getErrorMessage(err) });
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        className="flex items-center gap-1.5 rounded-full border border-rc-border bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/70 transition-colors hover:bg-white/[0.08] disabled:opacity-50"
+      >
+        <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+        {uploading ? "Envoi…" : "Changer l'avatar"}
+      </button>
+      <input ref={fileInputRef} type="file" accept={AVATAR_ACCEPTED_TYPES} className="hidden" onChange={handleFile} />
+    </>
+  );
+}
+
 function ProfileContent() {
   const params = useParams<{ username: string }>();
+  const toast = useToast();
+  const queryClient = useQueryClient();
 
   const meQuery = useQuery({ queryKey: ["me"], queryFn: usersApi.me });
   const profileQuery = useQuery({
     queryKey: ["users", "profile", params.username],
     queryFn: () => usersApi.publicProfile(params.username),
+  });
+
+  const updateMeMutation = useMutation({
+    mutationFn: (input: { isPublic: boolean }) => usersApi.updateMe(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["users", "profile", params.username] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
   });
 
   if (profileQuery.isLoading) {
@@ -30,37 +123,66 @@ function ProfileContent() {
   }
 
   if (profileQuery.isError) {
-    return <ErrorState title="Profil introuvable" description={getErrorMessage(profileQuery.error)} />;
+    const isPrivate = profileQuery.error instanceof ApiError && profileQuery.error.statusCode === 403;
+    return (
+      <ErrorState
+        title={isPrivate ? "Profil privé" : "Profil introuvable"}
+        description={isPrivate ? "Ce joueur a choisi de masquer son profil." : getErrorMessage(profileQuery.error)}
+      />
+    );
   }
 
   const profile = profileQuery.data!;
   const isOwn = meQuery.data?.username === profile.username;
+  const isAdmin = profile.role === "ADMIN";
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-11rem)] w-full max-w-md flex-col justify-center">
       <PageHeader title={isOwn ? "Mon profil" : profile.displayName} />
       <Card>
         <CardBody className="flex flex-col items-center gap-3 py-10 text-center">
-          <motion.span
-            initial={{ scale: 0.85, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="flex h-20 w-20 items-center justify-center rounded-full bg-rc-accent text-3xl font-bold text-rc-night shadow-rc-glow"
-            aria-hidden="true"
-          >
-            {profile.displayName.slice(0, 1).toUpperCase()}
-          </motion.span>
+          <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
+            <Avatar avatarUrl={profile.avatarUrl} displayName={profile.displayName} isAdmin={isAdmin} />
+          </motion.div>
+          {isOwn && (
+            <AvatarUploadButton
+              onUploaded={() => {
+                void queryClient.invalidateQueries({ queryKey: ["me"] });
+                void queryClient.invalidateQueries({ queryKey: ["users", "profile", params.username] });
+              }}
+            />
+          )}
           <div>
             <p className="text-xl font-bold tracking-tight text-white">{profile.displayName}</p>
             <p className="text-sm text-white/50">@{profile.username}</p>
           </div>
-          <Badge tone="accent">{profile.grade}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge tone="accent">{profile.grade}</Badge>
+            {isAdmin && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-0.5 text-xs font-semibold tracking-tight text-amber-300">
+                <Crown className="h-3 w-3" aria-hidden="true" />
+                Administrateur
+              </span>
+            )}
+          </div>
           <div className="mt-2 grid w-full grid-cols-3 divide-x divide-rc-border rounded-xl border border-rc-border bg-white/[0.03]">
             <Stat label="Niveau" value={profile.level} />
             <Stat label="Cartes uniques" value={profile.uniqueCardCount} />
             <Stat label="Séries" value={profile.totalSeriesCount} />
           </div>
           <p className="mt-2 text-xs text-white/40">Membre depuis le {formatDate(profile.memberSince)}</p>
+          {isOwn && (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              icon={profile.isPublic ? <Unlock className="h-3.5 w-3.5" aria-hidden="true" /> : <Lock className="h-3.5 w-3.5" aria-hidden="true" />}
+              loading={updateMeMutation.isPending}
+              onClick={() => updateMeMutation.mutate({ isPublic: !profile.isPublic })}
+            >
+              {profile.isPublic ? "Profil public — visible par les autres joueurs" : "Profil masqué — visible par vous seul"}
+            </Button>
+          )}
         </CardBody>
       </Card>
 

@@ -69,6 +69,7 @@ model UserProfile {
   userId            String   @unique
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio               String?
+  isPublic          Boolean  @default(true)
   xp                Int      @default(0)
   level             Int      @default(1)
   dailyRewardStreak Int      @default(0)

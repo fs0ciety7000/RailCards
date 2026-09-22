@@ -253,6 +253,8 @@ export const tradesApi = {
 
 export const usersApi = {
   me: () => request<T.Me>("/me"),
+  updateMe: (input: unknown) => request<T.Me>("/me", { method: "PATCH", body: input }),
+  uploadAvatar: (file: File) => uploadFile<T.Me>("/me/avatar", file),
   publicProfile: (username: string) => request<T.PublicProfile>(`/users/${username}`),
   collection: (username: string, params: { page?: number; pageSize?: number } = {}) =>
     request<T.Paginated<T.CardInstance>>(`/users/${username}/collection${qs(params)}`),

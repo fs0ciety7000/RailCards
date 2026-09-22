@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CollectionService } from "../collection/collection.service";
 import { gradeForLevel, levelForXp, xpToNextLevel } from "@railcards/game-domain";
+import type { UpdateMeDto } from "./dto/update-me.dto";
 
 @Injectable()
 export class UsersService {
@@ -18,12 +19,40 @@ export class UsersService {
     return this.toDto(user);
   }
 
-  async getPublicProfile(username: string) {
+  async updateMe(userId: string, dto: UpdateMeDto) {
+    const { displayName, avatarUrl, bio, isPublic } = dto;
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(displayName !== undefined ? { displayName } : {}),
+        ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+        profile: {
+          update: {
+            ...(bio !== undefined ? { bio } : {}),
+            ...(isPublic !== undefined ? { isPublic } : {}),
+          },
+        },
+      },
+      include: { profile: true, wallet: true },
+    });
+    return this.toDto(user);
+  }
+
+  /**
+   * `viewerId` is who's asking: the profile owner and admins can always see
+   * a profile, even when its owner has hidden it from everyone else.
+   */
+  async getPublicProfile(username: string, viewer: { id: string; role: string }) {
     const user = await this.prisma.user.findUnique({
       where: { username: username.toLowerCase() },
       include: { profile: true },
     });
     if (!user) throw new NotFoundException("User not found");
+
+    const isOwnerOrAdmin = user.id === viewer.id || viewer.role === "ADMIN";
+    if (user.profile && !user.profile.isPublic && !isOwnerOrAdmin) {
+      throw new ForbiddenException("Ce profil est privé");
+    }
 
     const [uniqueCardCount, seriesCount] = await Promise.all([
       this.prisma.cardInstance.findMany({
@@ -39,6 +68,9 @@ export class UsersService {
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
+      role: user.role,
+      bio: user.profile?.bio ?? null,
+      isPublic: user.profile?.isPublic ?? true,
       level,
       grade: gradeForLevel(level),
       memberSince: user.createdAt,

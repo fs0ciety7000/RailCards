@@ -18,8 +18,8 @@ npm-debug.log*
 pnpm-debug.log*
 .vscode/*
 !.vscode/extensions.json
-storage/uploads/*
-!storage/uploads/.gitkeep
+**/storage/uploads/*
+!**/storage/uploads/.gitkeep
 test-results
 playwright-report
 blob-report
