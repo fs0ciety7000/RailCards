@@ -13,6 +13,7 @@ import { ReportsService } from "./reports.service";
 import { AuditLogService } from "./audit-log.service";
 import { PrismaService } from "../prisma/prisma.service";
 import {
+  AdjustWalletDto,
   CreateBoosterDefinitionDto,
   CreateCardDto,
   CreateInvitationDto,
@@ -159,6 +160,17 @@ export class AdminController {
     const user = await this.adminUsers.reactivate(id);
     await this.auditLog.record(admin.id, "user.reactivate", "User", id);
     return user;
+  }
+
+  @Post("users/:id/wallet-adjustment")
+  async adjustUserWallet(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: AdjustWalletDto) {
+    const result = await this.adminUsers.adjustWallet(id, dto.amount, dto.reason);
+    await this.auditLog.record(admin.id, "user.wallet_adjustment", "User", id, {
+      amount: dto.amount,
+      reason: dto.reason,
+      newBalance: result.balance,
+    });
+    return result;
   }
 
   // ── Reports ──────────────────────────────────────────────────────

@@ -288,6 +288,8 @@ export const adminApi = {
     request<{ items: T.AdminUserRow[]; total: number }>(`/admin/users${qs(params)}`),
   suspendUser: (id: string) => request<T.AdminUserRow>(`/admin/users/${id}/suspend`, { method: "POST" }),
   reactivateUser: (id: string) => request<T.AdminUserRow>(`/admin/users/${id}/reactivate`, { method: "POST" }),
+  adjustWallet: (id: string, input: { amount: number; reason?: string }) =>
+    request<{ balance: number }>(`/admin/users/${id}/wallet-adjustment`, { method: "POST", body: input }),
 
   listReports: (params: { status?: string; page?: number; pageSize?: number } = {}) =>
     request<{ items: T.Report[]; total: number }>(`/admin/reports${qs(params)}`),

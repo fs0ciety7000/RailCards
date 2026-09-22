@@ -11,6 +11,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  NotEquals,
   ValidateNested,
 } from "class-validator";
 import type { BoosterCategory, CardCategory } from "@railcards/database";
@@ -81,4 +82,11 @@ export class CreateInvitationDto {
 export class ResolveReportDto {
   @IsIn(["RESOLVED", "DISMISSED"])
   status!: "RESOLVED" | "DISMISSED";
+}
+
+export class AdjustWalletDto {
+  // Positive = credit, negative = debit. Debits are still guarded against
+  // taking a wallet below zero (see WalletService.debit).
+  @IsInt() @NotEquals(0) @Min(-1_000_000) @Max(1_000_000) amount!: number;
+  @IsOptional() @IsString() @MaxLength(280) reason?: string;
 }

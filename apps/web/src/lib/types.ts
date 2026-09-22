@@ -294,6 +294,7 @@ export interface AdminUserRow {
   status: UserStatus;
   createdAt: string;
   lastLoginAt: string | null;
+  balance: number;
 }
 
 export type ReportStatus = "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED";

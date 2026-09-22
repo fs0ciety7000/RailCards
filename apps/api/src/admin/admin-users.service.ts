@@ -1,9 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { WalletService } from "../economy/wallet.service";
 
 @Injectable()
 export class AdminUsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly wallet: WalletService,
+  ) {}
 
   async list(search: string | undefined, page: number, pageSize: number) {
     const where = search
@@ -21,6 +25,7 @@ export class AdminUsersService {
           status: true,
           createdAt: true,
           lastLoginAt: true,
+          wallet: { select: { balance: true } },
         },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * pageSize,
@@ -28,7 +33,10 @@ export class AdminUsersService {
       }),
       this.prisma.user.count({ where }),
     ]);
-    return { items, total };
+    return {
+      items: items.map(({ wallet, ...u }) => ({ ...u, balance: wallet?.balance ?? 0 })),
+      total,
+    };
   }
 
   async suspend(targetUserId: string, actingAdminId: string) {
@@ -50,5 +58,30 @@ export class AdminUsersService {
     const user = await this.prisma.user.findUnique({ where: { id: targetUserId } });
     if (!user) throw new NotFoundException("User not found");
     return this.prisma.user.update({ where: { id: targetUserId }, data: { status: "ACTIVE" } });
+  }
+
+  async adjustWallet(targetUserId: string, amount: number, reason: string | undefined) {
+    const user = await this.prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!user) throw new NotFoundException("User not found");
+
+    const entry = await this.prisma.$transaction((tx) =>
+      amount > 0
+        ? this.wallet.credit(tx, {
+            userId: targetUserId,
+            amount,
+            type: "ADMIN_ADJUSTMENT",
+            referenceType: "admin-wallet-adjustment",
+            metadata: reason ? { reason } : undefined,
+          })
+        : this.wallet.debit(tx, {
+            userId: targetUserId,
+            amount: -amount,
+            type: "ADMIN_ADJUSTMENT",
+            referenceType: "admin-wallet-adjustment",
+            metadata: reason ? { reason } : undefined,
+          }),
+    );
+
+    return { balance: entry.balanceAfter };
   }
 }

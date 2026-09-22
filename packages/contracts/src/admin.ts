@@ -84,3 +84,14 @@ export const resolveReportSchema = z.object({
   status: z.enum(["RESOLVED", "DISMISSED"]),
 });
 export type ResolveReportInput = z.infer<typeof resolveReportSchema>;
+
+export const adjustWalletSchema = z.object({
+  amount: z.coerce
+    .number()
+    .int()
+    .min(-1_000_000)
+    .max(1_000_000)
+    .refine((v) => v !== 0, "Le montant ne peut pas être nul"),
+  reason: z.string().max(280).optional().or(z.literal("")),
+});
+export type AdjustWalletInput = z.infer<typeof adjustWalletSchema>;

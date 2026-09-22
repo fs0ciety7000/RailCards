@@ -30,6 +30,12 @@ describe("Admin permission control (e2e, real Postgres)", () => {
       .set("Authorization", `Bearer ${userToken}`)
       .send({ maxUses: 1 })
       .expect(403);
+
+    await request(app.getHttpServer())
+      .post("/api/v1/admin/users/00000000-0000-0000-0000-000000000000/wallet-adjustment")
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ amount: 100 })
+      .expect(403);
   });
 
   it("denies unauthenticated access to admin endpoints", async () => {
@@ -62,6 +68,55 @@ describe("Admin permission control (e2e, real Postgres)", () => {
     await request(app.getHttpServer())
       .post(`/api/v1/admin/users/${me.body.id}/suspend`)
       .set("Authorization", `Bearer ${adminToken}`)
+      .expect(400);
+  });
+
+  it("lets an admin credit and debit a user's wallet, journaling each adjustment", async () => {
+    const registered = await registerUser(app, adminToken, "walletadj");
+
+    const before = await request(app.getHttpServer())
+      .get("/api/v1/wallet")
+      .set("Authorization", `Bearer ${registered.accessToken}`)
+      .expect(200);
+
+    const credit = await request(app.getHttpServer())
+      .post(`/api/v1/admin/users/${registered.user.id}/wallet-adjustment`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ amount: 250, reason: "test credit" })
+      .expect(201);
+    expect(credit.body.balance).toBe(before.body.balance + 250);
+
+    const debit = await request(app.getHttpServer())
+      .post(`/api/v1/admin/users/${registered.user.id}/wallet-adjustment`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ amount: -100 })
+      .expect(201);
+    expect(debit.body.balance).toBe(before.body.balance + 150);
+
+    const wallet = await request(app.getHttpServer())
+      .get("/api/v1/wallet")
+      .set("Authorization", `Bearer ${registered.accessToken}`)
+      .expect(200);
+    expect(wallet.body.balance).toBe(before.body.balance + 150);
+  });
+
+  it("rejects a zero-amount wallet adjustment and a debit that would go below zero", async () => {
+    const registered = await registerUser(app, adminToken, "walletguard");
+    const before = await request(app.getHttpServer())
+      .get("/api/v1/wallet")
+      .set("Authorization", `Bearer ${registered.accessToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/users/${registered.user.id}/wallet-adjustment`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ amount: 0 })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/users/${registered.user.id}/wallet-adjustment`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ amount: -(before.body.balance + 1000) })
       .expect(400);
   });
 });

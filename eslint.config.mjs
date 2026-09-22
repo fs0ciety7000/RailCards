@@ -38,7 +38,7 @@ export default tseslint.config(
   },
   {
     // Node-executed CJS config/setup scripts (jest configs, test bootstrap).
-    files: ["**/*.cjs", "**/jest.*.js", "apps/api/test/utils/*.js"],
+    files: ["**/*.cjs", "**/jest.*.js", "apps/api/test/utils/*.js", "scripts/**/*.js"],
     languageOptions: { globals: globals.node, sourceType: "commonjs" },
     rules: {
       "@typescript-eslint/no-require-imports": "off",
@@ -46,7 +46,7 @@ export default tseslint.config(
   },
   {
     // CLI scripts are expected to print to stdout.
-    files: ["prisma/seed.ts", "prisma/seed-data/**/*.ts"],
+    files: ["prisma/seed.ts", "prisma/seed-data/**/*.ts", "scripts/**/*.js"],
     rules: { "no-console": "off" },
   },
 );
