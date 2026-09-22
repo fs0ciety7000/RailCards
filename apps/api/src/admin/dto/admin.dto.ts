@@ -153,3 +153,13 @@ export class UpdateAchievementDto {
   @IsOptional() @IsInt() @Min(0) rewardXp?: number;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
+
+export class CreateGradeDto {
+  @IsInt() @Min(1) @Max(1000) minLevel!: number;
+  @IsString() @MinLength(1) @MaxLength(80) title!: string;
+}
+
+export class UpdateGradeDto {
+  @IsOptional() @IsInt() @Min(1) @Max(1000) minLevel?: number;
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(80) title?: string;
+}

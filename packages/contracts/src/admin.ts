@@ -158,3 +158,15 @@ export const updateAchievementSchema = z.object({
   isActive: z.boolean().optional(),
 });
 export type UpdateAchievementInput = z.infer<typeof updateAchievementSchema>;
+
+export const createGradeSchema = z.object({
+  minLevel: z.coerce.number().int().min(1).max(1000),
+  title: z.string().min(1).max(80),
+});
+export type CreateGradeInput = z.infer<typeof createGradeSchema>;
+
+export const updateGradeSchema = z.object({
+  minLevel: z.coerce.number().int().min(1).max(1000).optional(),
+  title: z.string().min(1).max(80).optional(),
+});
+export type UpdateGradeInput = z.infer<typeof updateGradeSchema>;

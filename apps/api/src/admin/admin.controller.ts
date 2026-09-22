@@ -10,6 +10,7 @@ import { CatalogService } from "../catalog/catalog.service";
 import { BoostersService } from "../boosters/boosters.service";
 import { StorageService } from "../storage/storage.service";
 import { MissionsService } from "../missions/missions.service";
+import { GradesService } from "../grades/grades.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -20,6 +21,7 @@ import {
   CreateAchievementDto,
   CreateBoosterDefinitionDto,
   CreateCardDto,
+  CreateGradeDto,
   CreateInvitationDto,
   CreateMissionDto,
   CreateSeriesDto,
@@ -27,6 +29,7 @@ import {
   ResolveReportDto,
   UpdateAchievementDto,
   UpdateCardDto,
+  UpdateGradeDto,
   UpdateMissionDto,
   UpdateSeriesDto,
 } from "./dto/admin.dto";
@@ -47,6 +50,7 @@ export class AdminController {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly missions: MissionsService,
+    private readonly grades: GradesService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -194,6 +198,33 @@ export class AdminController {
     const achievement = await this.missions.updateAchievement(id, dto);
     await this.auditLog.record(admin.id, "achievement.update", "Achievement", id, dto);
     return achievement;
+  }
+
+  // ── Grades (profile ranks) ────────────────────────────────────────
+  @Get("grades")
+  async listGrades() {
+    return this.grades.listAllForAdmin();
+  }
+
+  @Post("grades")
+  async createGrade(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateGradeDto) {
+    const grade = await this.grades.create(dto);
+    await this.auditLog.record(admin.id, "grade.create", "Grade", grade.id, dto);
+    return grade;
+  }
+
+  @Patch("grades/:id")
+  async updateGrade(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateGradeDto) {
+    const grade = await this.grades.update(id, dto);
+    await this.auditLog.record(admin.id, "grade.update", "Grade", id, dto);
+    return grade;
+  }
+
+  @Delete("grades/:id")
+  async deleteGrade(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+    await this.grades.delete(id);
+    await this.auditLog.record(admin.id, "grade.delete", "Grade", id);
+    return { deleted: true };
   }
 
   // ── Invitations ──────────────────────────────────────────────────

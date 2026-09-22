@@ -20,6 +20,7 @@ import { NotificationsModule } from "./notifications/notifications.module";
 import { SocialModule } from "./social/social.module";
 import { StorageModule } from "./storage/storage.module";
 import { LeaderboardModule } from "./leaderboard/leaderboard.module";
+import { GradesModule } from "./grades/grades.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -41,6 +42,7 @@ import { HealthController } from "./health.controller";
     SocialModule,
     StorageModule,
     LeaderboardModule,
+    GradesModule,
   ],
   controllers: [HealthController],
   providers: [

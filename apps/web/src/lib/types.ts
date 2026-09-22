@@ -274,6 +274,12 @@ export interface Achievement {
   isActive: boolean;
 }
 
+export interface Grade {
+  id: string;
+  minLevel: number;
+  title: string;
+}
+
 export interface AchievementProgress {
   achievement: Achievement;
   progress: number;

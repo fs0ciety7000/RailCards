@@ -1,7 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CollectionService } from "../collection/collection.service";
-import { gradeForLevel, levelForXp, xpToNextLevel } from "@railcards/game-domain";
+import { GradesService } from "../grades/grades.service";
+import { levelForXp, xpToNextLevel } from "@railcards/game-domain";
 import type { UpdateMeDto } from "./dto/update-me.dto";
 
 @Injectable()
@@ -9,6 +10,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly collection: CollectionService,
+    private readonly grades: GradesService,
   ) {}
 
   async getMe(userId: string) {
@@ -72,7 +74,7 @@ export class UsersService {
       bio: user.profile?.bio ?? null,
       isPublic: user.profile?.isPublic ?? true,
       level,
-      grade: gradeForLevel(level),
+      grade: this.grades.gradeForLevel(level),
       memberSince: user.createdAt,
       uniqueCardCount: uniqueCardCount.length,
       totalSeriesCount: seriesCount,
@@ -117,7 +119,7 @@ export class UsersService {
       createdAt: user.createdAt,
       xp,
       level: progress.level,
-      grade: gradeForLevel(progress.level),
+      grade: this.grades.gradeForLevel(progress.level),
       xpProgress: { xpIntoLevel: progress.xpIntoLevel, xpForNextLevel: progress.xpForNextLevel },
       dailyRewardStreak: user.profile?.dailyRewardStreak ?? 0,
       walletBalance: user.wallet?.balance ?? 0,

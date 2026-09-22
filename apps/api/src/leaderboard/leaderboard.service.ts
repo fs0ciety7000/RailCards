@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
-import { gradeForLevel, levelForXp } from "@railcards/game-domain";
+import { levelForXp } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
+import { GradesService } from "../grades/grades.service";
 
 interface LeaderboardRow {
   id: string;
@@ -15,7 +16,10 @@ interface LeaderboardRow {
 
 @Injectable()
 export class LeaderboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly grades: GradesService,
+  ) {}
 
   /**
    * Ranked by XP (then unique cards as a tiebreaker). Only players with a
@@ -73,7 +77,7 @@ export class LeaderboardService {
         role: row.role,
         xp: row.xp,
         level,
-        grade: gradeForLevel(level),
+        grade: this.grades.gradeForLevel(level),
         uniqueCardCount: row.uniqueCardCount,
         completeSeriesCount: row.completeSeriesCount,
       };

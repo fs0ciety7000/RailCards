@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { MissionGoalType, Prisma } from "@railcards/database";
-import { gradeForLevel, levelForXp } from "@railcards/game-domain";
+import { gradeForLevel as defaultGradeForLevel, levelForXp } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
+import { GradesService } from "../grades/grades.service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -12,8 +13,18 @@ export interface LevelUpInfo {
   newGrade: string;
 }
 
-/** Grants XP and reports whether it pushed the player into a new level. */
-export async function grantXp(tx: Tx, userId: string, amount: number): Promise<LevelUpInfo> {
+/**
+ * Grants XP and reports whether it pushed the player into a new level.
+ * `gradeForLevel` defaults to the hardcoded ladder (used by unit tests that
+ * call this directly); production call sites pass GradesService's
+ * DB-backed lookup instead.
+ */
+export async function grantXp(
+  tx: Tx,
+  userId: string,
+  amount: number,
+  gradeForLevel: (level: number) => string = defaultGradeForLevel,
+): Promise<LevelUpInfo> {
   const before = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
   const levelBefore = levelForXp(before.xp);
   const after = await tx.userProfile.update({ where: { userId }, data: { xp: { increment: amount } } });
@@ -33,6 +44,7 @@ export class MissionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly wallet: WalletService,
+    private readonly grades: GradesService,
   ) {}
 
   /**
@@ -138,7 +150,9 @@ export class MissionsService {
         });
       }
       const levelUp: LevelUpInfo =
-        um.mission.rewardXp > 0 ? await grantXp(tx, userId, um.mission.rewardXp) : { leveledUp: false, newLevel: 0, newGrade: "" };
+        um.mission.rewardXp > 0
+          ? await grantXp(tx, userId, um.mission.rewardXp, (l) => this.grades.gradeForLevel(l))
+          : { leveledUp: false, newLevel: 0, newGrade: "" };
 
       const userMission = await tx.userMission.update({ where: { id: um.id }, data: { claimedAt: new Date() } });
       return { ...userMission, ...levelUp };
@@ -167,7 +181,7 @@ export class MissionsService {
       }
       const levelUp: LevelUpInfo =
         ua.achievement.rewardXp > 0
-          ? await grantXp(tx, userId, ua.achievement.rewardXp)
+          ? await grantXp(tx, userId, ua.achievement.rewardXp, (l) => this.grades.gradeForLevel(l))
           : { leveledUp: false, newLevel: 0, newGrade: "" };
 
       const userAchievement = await tx.userAchievement.update({ where: { id: ua.id }, data: { claimedAt: new Date() } });

@@ -488,6 +488,21 @@ model MarketTransaction {
 // Progression
 // ─────────────────────────────────────────────────────────────────────────
 
+/**
+ * The profile-rank ladder a player climbs as they level up (e.g. "Apprenti
+ * aiguilleur" at level 1, "Chef de gare" at level 50). Admin-editable —
+ * GradesService keeps an in-memory cache of these, refreshed on every
+ * admin write, so `gradeForLevel` stays a synchronous lookup everywhere
+ * it's called instead of needing a DB round trip.
+ */
+model Grade {
+  id        String   @id @default(uuid())
+  minLevel  Int      @unique
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum MissionGoalType {
   OPEN_BOOSTER
   COLLECT_UNIQUE_CARDS

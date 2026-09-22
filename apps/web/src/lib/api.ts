@@ -346,6 +346,11 @@ export const adminApi = {
   updateAchievement: (id: string, input: unknown) =>
     request<T.Achievement>(`/admin/achievements/${id}`, { method: "PATCH", body: input }),
 
+  listGrades: () => request<T.Grade[]>("/admin/grades"),
+  createGrade: (input: unknown) => request<T.Grade>("/admin/grades", { method: "POST", body: input }),
+  updateGrade: (id: string, input: unknown) => request<T.Grade>(`/admin/grades/${id}`, { method: "PATCH", body: input }),
+  deleteGrade: (id: string) => request<{ deleted: boolean }>(`/admin/grades/${id}`, { method: "DELETE" }),
+
   listInvitations: (params: { page?: number; pageSize?: number } = {}) =>
     request<{ items: T.Invitation[]; total: number }>(`/admin/invitations${qs(params)}`),
   createInvitation: (input: unknown) => request<T.Invitation>("/admin/invitations", { method: "POST", body: input }),

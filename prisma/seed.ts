@@ -7,7 +7,7 @@
  */
 import { PrismaClient, type CardCategory } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { RARITY_DEFINITIONS, GAME_CONSTANTS } from "@railcards/game-domain";
+import { RARITY_DEFINITIONS, GAME_CONSTANTS, GRADES } from "@railcards/game-domain";
 import { SEED_SERIES, TOTAL_SEED_CARD_COUNT } from "./seed-data/cards";
 
 const prisma = new PrismaClient();
@@ -26,6 +26,19 @@ async function seedRarities() {
     byCode[r.code] = row.id;
   }
   return byCode;
+}
+
+// Seeds the initial rank ladder only if the table is still empty — once an
+// admin has edited it via Admin > Rangs, re-seeding must never stomp their
+// changes back to these defaults.
+async function seedGrades() {
+  const existing = await prisma.grade.count();
+  if (existing > 0) {
+    console.log(`Grade table already has ${existing} rank(s) — leaving admin edits untouched.`);
+    return;
+  }
+  await prisma.grade.createMany({ data: GRADES.map((g) => ({ minLevel: g.minLevel, title: g.title })) });
+  console.log(`Seeded ${GRADES.length} profile ranks.`);
 }
 
 function placeholderImageUrl(rarityCode: string) {
@@ -284,6 +297,7 @@ async function main() {
 
   await seedBoosters(rarityIdByCode, seriesIdBySlug);
   await seedMissionsAndAchievements();
+  await seedGrades();
   await seedUsers();
 
   console.log("Seed complete.");
