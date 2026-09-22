@@ -9,7 +9,10 @@ import { AppModule } from "./app.module";
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.use(helmet());
+  // Uploaded images (served from /uploads) are meant to be loaded by the
+  // web app on its own separate origin — helmet's default same-origin
+  // Cross-Origin-Resource-Policy would otherwise have browsers block them.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(cookieParser());
   app.enableCors({
     origin: process.env.WEB_BASE_URL ?? "http://localhost:3000",

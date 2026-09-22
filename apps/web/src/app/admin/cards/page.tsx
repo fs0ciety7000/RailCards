@@ -25,6 +25,7 @@ import {
 } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
+import { ImageUrlField } from "@/components/ImageUrlField";
 import { adminApi, catalogApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { CARD_CATEGORY_LABELS } from "@/lib/format";
@@ -54,8 +55,10 @@ function CreateCardForm() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<CreateCardInput>({ resolver: zodResolver(createCardSchema) });
+  } = useForm<CreateCardInput>({ resolver: zodResolver(createCardSchema), defaultValues: { imageUrl: "" } });
 
   const createMutation = useMutation({
     mutationFn: (values: CreateCardInput) => adminApi.createCard(values),
@@ -118,11 +121,7 @@ function CreateCardForm() {
             </Select>
             <FieldError>{errors.category?.message}</FieldError>
           </FieldGroup>
-          <FieldGroup>
-            <Label htmlFor="imageUrl">URL image</Label>
-            <Input id="imageUrl" placeholder="/card-placeholders/rare.svg" invalid={!!errors.imageUrl} {...register("imageUrl")} />
-            <FieldError>{errors.imageUrl?.message}</FieldError>
-          </FieldGroup>
+          <ImageUrlField id="imageUrl" label="URL image" value={watch("imageUrl") ?? ""} onChange={(url) => setValue("imageUrl", url, { shouldValidate: true })} error={errors.imageUrl?.message} />
           <FieldGroup className="sm:col-span-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" invalid={!!errors.description} {...register("description")} />
@@ -157,6 +156,7 @@ function EditCardDialog({ card, onClose }: { card: CardDefinition | null; onClos
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<UpdateCardInput>({ resolver: zodResolver(updateCardSchema) });
 
@@ -233,11 +233,15 @@ function EditCardDialog({ card, onClose }: { card: CardDefinition | null; onClos
             </Select>
             <FieldError>{errors.rarityId?.message}</FieldError>
           </FieldGroup>
-          <FieldGroup className="sm:col-span-2">
-            <Label htmlFor="edit-imageUrl">URL image</Label>
-            <Input id="edit-imageUrl" invalid={!!errors.imageUrl} {...register("imageUrl")} />
-            <FieldError>{errors.imageUrl?.message}</FieldError>
-          </FieldGroup>
+          <div className="sm:col-span-2">
+            <ImageUrlField
+              id="edit-imageUrl"
+              label="URL image"
+              value={watch("imageUrl") ?? ""}
+              onChange={(url) => setValue("imageUrl", url, { shouldValidate: true })}
+              error={errors.imageUrl?.message}
+            />
+          </div>
           <FieldGroup className="sm:col-span-2">
             <Label htmlFor="edit-description">Description</Label>
             <Textarea id="edit-description" invalid={!!errors.description} {...register("description")} />

@@ -28,6 +28,7 @@ import {
 } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
+import { ImageUrlField } from "@/components/ImageUrlField";
 import { adminApi, catalogApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import type { BoosterDefinition } from "@/lib/types";
@@ -41,8 +42,10 @@ function CreateBoosterForm() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<CreateBoosterDefinitionInput>({ resolver: zodResolver(createBoosterDefinitionSchema) });
+  } = useForm<CreateBoosterDefinitionInput>({ resolver: zodResolver(createBoosterDefinitionSchema), defaultValues: { imageUrl: "" } });
 
   const createMutation = useMutation({
     mutationFn: (values: CreateBoosterDefinitionInput) => adminApi.createBooster(values),
@@ -91,11 +94,7 @@ function CreateBoosterForm() {
             <Input id="cardCount" type="number" min={1} max={15} invalid={!!errors.cardCount} {...register("cardCount")} />
             <FieldError>{errors.cardCount?.message}</FieldError>
           </FieldGroup>
-          <FieldGroup>
-            <Label htmlFor="imageUrl">URL image</Label>
-            <Input id="imageUrl" placeholder="/booster-placeholders/classic.svg" invalid={!!errors.imageUrl} {...register("imageUrl")} />
-            <FieldError>{errors.imageUrl?.message}</FieldError>
-          </FieldGroup>
+          <ImageUrlField id="imageUrl" label="URL image" value={watch("imageUrl") ?? ""} onChange={(url) => setValue("imageUrl", url, { shouldValidate: true })} error={errors.imageUrl?.message} />
           <FieldGroup className="sm:col-span-2">
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" invalid={!!errors.description} {...register("description")} />

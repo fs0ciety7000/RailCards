@@ -18,6 +18,7 @@ import { MarketModule } from "./market/market.module";
 import { AdminModule } from "./admin/admin.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { SocialModule } from "./social/social.module";
+import { StorageModule } from "./storage/storage.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -37,6 +38,7 @@ import { HealthController } from "./health.controller";
     NotificationsModule,
     AdminModule,
     SocialModule,
+    StorageModule,
   ],
   controllers: [HealthController],
   providers: [

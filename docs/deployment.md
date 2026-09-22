@@ -84,6 +84,7 @@ Dans l'onglet *Environment Variables* de la ressource Coolify, définissez
 | `JWT_REFRESH_SECRET` | secret généré |
 | `COOKIE_SECRET` | secret généré |
 | `WEB_BASE_URL` | `https://railcards.fs0ciety.org` |
+| `API_BASE_URL` | `https://railcards-api.fs0ciety.org` (sans `/api/v1` — utilisée pour construire les URLs absolues des images uploadées) |
 | `NEXT_PUBLIC_API_BASE_URL` | `https://railcards-api.fs0ciety.org/api/v1` |
 | `NEXT_PUBLIC_WS_URL` | `https://railcards-api.fs0ciety.org` |
 | `INVITE_ONLY_MODE` | `true` (garde le jeu fermé tant que non annoncé) |
@@ -169,6 +170,13 @@ cas). Chaque redéploiement reconstruit les 3 images, puis le conteneur
   Coolify (ou un Postgres externe) reste possible sans changer le code
   applicatif : il suffit de pointer `DATABASE_URL`/`REDIS_URL` ailleurs et
   de retirer les services `postgres`/`redis` du compose.
+- **Images uploadées (cartes/boosters) sur disque local** (`railcards_uploads_data`,
+  monté sur `/app/storage` du conteneur `api`) plutôt que sur un stockage
+  S3-compatible — cohérent avec le reste de cette configuration à instance
+  unique. Ça ne fonctionnerait pas tel quel avec plusieurs réplicas de `api`
+  (chacun verrait un disque différent) ; passer à S3 (déjà prévu dans
+  `apps/api/src/storage/storage.service.ts`, juste pas branché) serait
+  nécessaire avant de scaler horizontalement l'API.
 
 ## Alternative : plateformes managées (Vercel + Railway/Render/Fly.io)
 

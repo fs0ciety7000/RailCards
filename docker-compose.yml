@@ -31,6 +31,9 @@ services:
     environment:
       NODE_ENV: production
       API_PORT: "4000"
+      # The API's own PUBLIC base URL (no path suffix) — used to build
+      # absolute links back to itself, e.g. uploaded image URLs.
+      API_BASE_URL: ${API_BASE_URL}
       DATABASE_URL: postgresql://${POSTGRES_USER:-railcards}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-railcards}?schema=public
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
@@ -57,6 +60,11 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-RailCards <no-reply@railcards.example>}
       SENTRY_DSN: ${SENTRY_DSN:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    volumes:
+      # Uploaded card/booster images (local-disk storage — see
+      # apps/api/src/storage). Without this, every redeploy would wipe
+      # them, since the container's own filesystem is ephemeral.
+      - railcards_uploads_data:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,3 +125,4 @@ services:
 volumes:
   railcards_postgres_data:
   railcards_redis_data:
+  railcards_uploads_data:

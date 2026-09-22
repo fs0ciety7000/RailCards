@@ -72,6 +72,34 @@ export async function tryRefresh(): Promise<boolean> {
   return refreshPromise;
 }
 
+async function withAuthRetry(doFetch: () => Promise<Response>, path: string, skipAuthRetry?: boolean): Promise<Response> {
+  let res = await doFetch();
+  if (res.status === 401 && !skipAuthRetry && path !== "/auth/refresh") {
+    const restored = await tryRefresh();
+    if (restored) {
+      res = await doFetch();
+    } else {
+      useAuthStore.getState().clearSession();
+    }
+  }
+  return res;
+}
+
+async function parseResponse<TResp>(res: Response): Promise<TResp> {
+  if (!res.ok) {
+    let bodyJson: unknown = null;
+    try {
+      bodyJson = await res.json();
+    } catch {
+      // no JSON body
+    }
+    const { message, messages, error } = extractMessage(bodyJson);
+    throw new ApiError(res.status, message, messages, error);
+  }
+  if (res.status === 204) return undefined as TResp;
+  return (await res.json()) as TResp;
+}
+
 async function request<TResp>(path: string, options: RequestOptions = {}): Promise<TResp> {
   const { method = "GET", body, headers = {}, skipAuthRetry } = options;
   const token = useAuthStore.getState().accessToken;
@@ -88,30 +116,26 @@ async function request<TResp>(path: string, options: RequestOptions = {}): Promi
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
 
-  let res = await doFetch();
+  const res = await withAuthRetry(doFetch, path, skipAuthRetry);
+  return parseResponse<TResp>(res);
+}
 
-  if (res.status === 401 && !skipAuthRetry && path !== "/auth/refresh") {
-    const restored = await tryRefresh();
-    if (restored) {
-      res = await doFetch();
-    } else {
-      useAuthStore.getState().clearSession();
-    }
-  }
+/** Multipart upload (no JSON Content-Type — the browser sets the multipart boundary itself). */
+async function uploadFile<TResp>(path: string, file: File): Promise<TResp> {
+  const doFetch = () => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = useAuthStore.getState().accessToken;
+    return fetch(`${API_BASE_URL}${path}`, {
+      method: "POST",
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+  };
 
-  if (!res.ok) {
-    let bodyJson: unknown = null;
-    try {
-      bodyJson = await res.json();
-    } catch {
-      // no JSON body
-    }
-    const { message, messages, error } = extractMessage(bodyJson);
-    throw new ApiError(res.status, message, messages, error);
-  }
-
-  if (res.status === 204) return undefined as TResp;
-  return (await res.json()) as TResp;
+  const res = await withAuthRetry(doFetch, path);
+  return parseResponse<TResp>(res);
 }
 
 function qs(params: Record<string, string | number | undefined | null>): string {
@@ -276,6 +300,7 @@ export const socialApi = {
 // ── Admin ────────────────────────────────────────────────────────────────
 
 export const adminApi = {
+  uploadImage: (file: File) => uploadFile<{ url: string; filename: string }>("/admin/uploads", file),
   listSeries: () => request<T.CardSeries[]>("/admin/series"),
   createSeries: (input: unknown) => request<T.CardSeries>("/admin/series", { method: "POST", body: input }),
   updateSeries: (id: string, input: unknown) =>

@@ -21,6 +21,8 @@ export const envSchema = z.object({
     .default("true")
     .transform((v) => v === "true"),
   MARKET_FEE_BPS: z.coerce.number().int().min(0).max(10000).default(500),
+  LOCAL_STORAGE_DIR: z.string().default("storage/uploads"),
+  UPLOAD_MAX_SIZE_MB: z.coerce.number().int().min(1).max(25).default(5),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBearerAuth, ApiConsumes, ApiTags } from "@nestjs/swagger";
 import type { Prisma, ReportStatus } from "@railcards/database";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
@@ -7,6 +8,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { CatalogService } from "../catalog/catalog.service";
 import { BoostersService } from "../boosters/boosters.service";
+import { StorageService } from "../storage/storage.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -38,7 +40,19 @@ export class AdminController {
     private readonly reports: ReportsService,
     private readonly auditLog: AuditLogService,
     private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
   ) {}
+
+  // ── Uploads ──────────────────────────────────────────────────────
+  @Post("uploads")
+  @ApiConsumes("multipart/form-data")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 10 * 1024 * 1024 } }))
+  async uploadImage(@CurrentUser() admin: AuthenticatedUser, @UploadedFile() file?: Express.Multer.File) {
+    if (!file) throw new BadRequestException("No file provided");
+    const result = await this.storage.saveImage(file);
+    await this.auditLog.record(admin.id, "upload.create", "Upload", result.filename);
+    return result;
+  }
 
   // ── Catalog ──────────────────────────────────────────────────────
   @Get("series")
