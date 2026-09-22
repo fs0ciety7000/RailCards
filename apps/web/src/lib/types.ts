@@ -132,6 +132,22 @@ export interface AlbumSeriesEntry {
   completionPct: number;
 }
 
+export interface AlbumSeriesCard {
+  id: string;
+  slug: string;
+  name: string | null;
+  rarity: Rarity;
+  imageUrl: string | null;
+  owned: boolean;
+}
+
+export interface AlbumSeriesDetail {
+  seriesId: string;
+  name: string;
+  category: CardCategory;
+  cards: AlbumSeriesCard[];
+}
+
 export type BoosterCategory = "DISCOVERY" | "CLASSIC" | "THEMED";
 
 export interface BoosterDefinition {

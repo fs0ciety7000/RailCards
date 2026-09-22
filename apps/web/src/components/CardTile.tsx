@@ -131,6 +131,21 @@ export interface CardFaceData {
   imageUrl: string;
 }
 
+function isPlaceholderArt(imageUrl: string): boolean {
+  return imageUrl.startsWith("/card-placeholders/");
+}
+
+/**
+ * The rarity SVG used as a decorative art-window border/matte behind a
+ * real photo — the same file the API falls back to as a card's `imageUrl`
+ * when no real photo has been set (see `placeholderImageUrl` in
+ * prisma/seed.ts), keyed off the rarity code rather than the card's own
+ * (possibly real-photo) imageUrl.
+ */
+function placeholderArtUrl(rarityCode: string): string {
+  return `/card-placeholders/${rarityCode.toLowerCase()}.svg`;
+}
+
 /**
  * The full card face: thick tiered frame → name plate → art window → rarity
  * footer. A cursor-tracked tilt + moving glare sweep on top (skipped under
@@ -218,15 +233,41 @@ export function CardFrame({
 
             {/* Art window */}
             <div className="relative min-h-0 flex-1 overflow-hidden">
-              <Image
-                src={card.imageUrl}
-                alt=""
-                fill
-                sizes="(max-width: 640px) 45vw, 260px"
-                className="object-cover"
-                unoptimized
-                priority={priority}
-              />
+              {isPlaceholderArt(card.imageUrl) ? (
+                <Image
+                  src={card.imageUrl}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 45vw, 260px"
+                  className="object-cover"
+                  unoptimized
+                  priority={priority}
+                />
+              ) : (
+                <>
+                  {/* Rarity SVG as a decorative border/matte around the real photo. */}
+                  <Image
+                    src={placeholderArtUrl(card.rarity.code)}
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 45vw, 260px"
+                    className="object-cover"
+                    unoptimized
+                    aria-hidden="true"
+                  />
+                  <div className="absolute inset-[9%] overflow-hidden rounded-md shadow-[0_2px_10px_rgba(0,0,0,0.5)] ring-1 ring-white/15">
+                    <Image
+                      src={card.imageUrl}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 40vw, 230px"
+                      className="object-cover"
+                      unoptimized
+                      priority={priority}
+                    />
+                  </div>
+                </>
+              )}
               {tier >= 4 && <SparkleField tier={tier} />}
               <div
                 aria-hidden="true"

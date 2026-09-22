@@ -43,16 +43,18 @@ function AlbumContent() {
         <Stagger className="grid gap-3 sm:grid-cols-2">
           {albumQuery.data!.map((s) => (
             <StaggerItem key={s.seriesId}>
-              <Card>
-                <CardBody>
-                  <div className="mb-1 flex items-center justify-between">
-                    <p className="font-semibold tracking-tight text-white">{s.name}</p>
-                    <span className="text-xs font-bold text-rc-accent">{s.completionPct}%</span>
-                  </div>
-                  <p className="mb-3 text-xs text-white/50">{CARD_CATEGORY_LABELS[s.category] ?? s.category}</p>
-                  <ProgressBar value={s.ownedUniqueCards} max={s.totalCards} />
-                </CardBody>
-              </Card>
+              <Link href={`/collection/album/${s.seriesId}`} className="block">
+                <Card className="transition-colors hover:bg-white/[0.04]">
+                  <CardBody>
+                    <div className="mb-1 flex items-center justify-between">
+                      <p className="font-semibold tracking-tight text-white">{s.name}</p>
+                      <span className="text-xs font-bold text-rc-accent">{s.completionPct}%</span>
+                    </div>
+                    <p className="mb-3 text-xs text-white/50">{CARD_CATEGORY_LABELS[s.category] ?? s.category}</p>
+                    <ProgressBar value={s.ownedUniqueCards} max={s.totalCards} />
+                  </CardBody>
+                </Card>
+              </Link>
             </StaggerItem>
           ))}
         </Stagger>

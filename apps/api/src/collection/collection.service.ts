@@ -71,4 +71,46 @@ export class CollectionService {
       };
     });
   }
+
+  /**
+   * Every published card in a series, panini-album style: owned ones
+   * reveal their art, missing ones are flagged `owned: false` with
+   * `imageUrl` withheld so the frontend can render a silhouette instead
+   * of spoiling art the player hasn't earned yet.
+   */
+  async getAlbumSeries(userId: string, seriesId: string) {
+    const series = await this.prisma.cardSeries.findUnique({ where: { id: seriesId } });
+    if (!series) throw new NotFoundException("Series not found");
+
+    const [cards, owned] = await Promise.all([
+      this.prisma.cardDefinition.findMany({
+        where: { seriesId, status: "PUBLISHED" },
+        include: { rarity: true },
+        orderBy: [{ rarity: { order: "asc" } }, { name: "asc" }],
+      }),
+      this.prisma.cardInstance.findMany({
+        where: { ownerId: userId, cardDefinition: { seriesId } },
+        distinct: ["cardDefinitionId"],
+        select: { cardDefinitionId: true },
+      }),
+    ]);
+    const ownedSet = new Set(owned.map((o) => o.cardDefinitionId));
+
+    return {
+      seriesId: series.id,
+      name: series.name,
+      category: series.category,
+      cards: cards.map((c) => {
+        const isOwned = ownedSet.has(c.id);
+        return {
+          id: c.id,
+          slug: c.slug,
+          name: isOwned ? c.name : null,
+          rarity: c.rarity,
+          imageUrl: isOwned ? c.imageUrl : null,
+          owned: isOwned,
+        };
+      }),
+    };
+  }
 }

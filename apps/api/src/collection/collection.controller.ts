@@ -37,6 +37,11 @@ export class CollectionController {
     return this.collection.getAlbum(user.id);
   }
 
+  @Get("album/:seriesId")
+  async albumSeries(@CurrentUser() user: AuthenticatedUser, @Param("seriesId") seriesId: string) {
+    return this.collection.getAlbumSeries(user.id, seriesId);
+  }
+
   @Get(":instanceId")
   async instanceDetail(@CurrentUser() user: AuthenticatedUser, @Param("instanceId") instanceId: string) {
     return this.collection.getInstanceDetail(user.id, instanceId);
