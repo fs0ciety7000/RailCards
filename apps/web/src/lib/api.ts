@@ -189,6 +189,19 @@ export const collectionApi = {
   detail: (instanceId: string) => request<T.CardInstanceDetail>(`/collection/${instanceId}`),
 };
 
+// ── Craft ────────────────────────────────────────────────────────────────
+
+export interface CraftableGroup {
+  cardDefinition: T.CardDefinition;
+  count: number;
+  instanceIds: string[];
+}
+
+export const craftApi = {
+  craftable: () => request<CraftableGroup[]>("/craft/craftable"),
+  craft: (cardInstanceIds: string[]) => request<T.CardInstance>("/craft", { method: "POST", body: { cardInstanceIds } }),
+};
+
 // ── Boosters ─────────────────────────────────────────────────────────────
 
 export const boostersApi = {

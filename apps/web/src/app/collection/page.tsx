@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Folder } from "lucide-react";
+import { BookOpen, Folder, Sparkles } from "lucide-react";
 import { Button, EmptyState, ErrorState, Select, SkeletonGrid } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -47,11 +47,18 @@ function CollectionContent() {
           collectionQuery.data ? `${collectionQuery.data.total} carte(s) au total` : "Vos cartes collectionnées"
         }
         actions={
-          <Link href="/collection/album">
-            <Button variant="outline" size="sm" icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}>
-              Vue album
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/collection/craft">
+              <Button variant="outline" size="sm" icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}>
+                Fusion
+              </Button>
+            </Link>
+            <Link href="/collection/album">
+              <Button variant="outline" size="sm" icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}>
+                Vue album
+              </Button>
+            </Link>
+          </div>
         }
       />
 

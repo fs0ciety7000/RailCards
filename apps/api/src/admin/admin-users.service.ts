@@ -159,7 +159,7 @@ export class AdminUsersService {
         cardDefinitionId,
         quantity,
       });
-      return { granted: instanceIds.length, cardDefinitionId };
+      return { granted: instanceIds.length, cardDefinitionId, instanceIds };
     });
   }
 

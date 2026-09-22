@@ -241,6 +241,7 @@ enum AcquisitionSource {
   MISSION_REWARD
   ACHIEVEMENT_REWARD
   FOUNDER_GRANT
+  CRAFT
 }
 
 model CardInstance {

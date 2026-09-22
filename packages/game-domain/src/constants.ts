@@ -13,4 +13,8 @@ export const GAME_CONSTANTS = {
   // the cutoff — a one-time thank-you for joining during the early days.
   FOUNDERS_CARD_SLUG: "carte-fondateurs-railcards",
   FOUNDERS_CARD_CUTOFF_ISO: "2028-01-01T00:00:00.000Z",
+  // Fusion/craft: sacrifice this many same-rarity duplicates for one random
+  // card at the next rarity tier up. A duplicate sink, and MYTHIC has no
+  // tier above it so it can never be a craft input.
+  CRAFT_RECIPE_SIZE: 3,
 } as const;
