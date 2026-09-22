@@ -1,7 +1,16 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@railcards/database";
 import { levelForXp } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { GradesService } from "../grades/grades.service";
+
+export type LeaderboardSort = "xp" | "cards" | "albums";
+
+const ORDER_BY_SQL: Record<LeaderboardSort, Prisma.Sql> = {
+  xp: Prisma.sql`up.xp DESC, "uniqueCardCount" DESC`,
+  cards: Prisma.sql`"uniqueCardCount" DESC, up.xp DESC`,
+  albums: Prisma.sql`"completeSeriesCount" DESC, up.xp DESC`,
+};
 
 interface LeaderboardRow {
   id: string;
@@ -22,11 +31,12 @@ export class LeaderboardService {
   ) {}
 
   /**
-   * Ranked by XP (then unique cards as a tiebreaker). Only players with a
-   * public profile and an active account show up here — the same
-   * visibility rule as viewing a profile directly.
+   * Ranked by XP, unique card count, or complete-series count depending on
+   * `sortBy` (ties broken by XP). Only players with a public profile and an
+   * active account show up here — the same visibility rule as viewing a
+   * profile directly.
    */
-  async top(limit = 50) {
+  async top(limit = 50, sortBy: LeaderboardSort = "xp") {
     const rows = await this.prisma.$queryRaw<LeaderboardRow[]>`
       WITH published_totals AS (
         SELECT "seriesId", COUNT(*)::int AS total
@@ -63,7 +73,7 @@ export class LeaderboardService {
       LEFT JOIN unique_counts uc ON uc."ownerId" = u.id
       LEFT JOIN complete_series cs ON cs."ownerId" = u.id
       WHERE u.status = 'ACTIVE' AND up."isPublic" = true
-      ORDER BY up.xp DESC, "uniqueCardCount" DESC
+      ORDER BY ${ORDER_BY_SQL[sortBy]}
       LIMIT ${limit}
     `;
 

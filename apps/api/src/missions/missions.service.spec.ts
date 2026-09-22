@@ -1,4 +1,4 @@
-import { grantXp } from "./missions.service";
+import { grantXp, MissionsService } from "./missions.service";
 
 /** Minimal fake of the slice of Prisma.TransactionClient that grantXp touches. */
 function fakeTx(initialXp: number) {
@@ -45,5 +45,121 @@ describe("grantXp", () => {
     const result = await grantXp(tx, "user-1", 650);
     expect(result.leveledUp).toBe(true);
     expect(result.newLevel).toBe(4);
+  });
+});
+
+/**
+ * Fake of the slice of Prisma.TransactionClient that claimMission/
+ * claimAchievement touch, wired to a mutable in-memory user profile so
+ * grantXp's real level-crossing logic runs unmodified.
+ */
+function fakeClaimTx(initialXp: number, userMission?: Record<string, unknown>, userAchievement?: Record<string, unknown>) {
+  let xp = initialXp;
+  let level = 1;
+  return {
+    userProfile: {
+      findUniqueOrThrow: async () => ({ xp, level }),
+      update: async ({ data }: { data: { xp?: { increment: number }; level?: number } }) => {
+        if (data.xp) xp += data.xp.increment;
+        if (data.level !== undefined) level = data.level;
+        return { xp, level };
+      },
+    },
+    userMission: {
+      findUnique: async () => userMission,
+      update: async ({ data }: { data: Record<string, unknown> }) => ({ ...userMission, ...data }),
+    },
+    userAchievement: {
+      findUnique: async () => userAchievement,
+      update: async ({ data }: { data: Record<string, unknown> }) => ({ ...userAchievement, ...data }),
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+}
+
+function makeMissionsService(tx: unknown) {
+  const wallet = { credit: jest.fn().mockResolvedValue({}) };
+  const grades = { gradeForLevel: (level: number) => `Grade ${level}` };
+  const notifications = { create: jest.fn().mockResolvedValue({}) };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const prisma = { $transaction: (fn: (tx: unknown) => unknown) => fn(tx) } as any;
+  const service = new MissionsService(prisma, wallet as never, grades as never, notifications as never);
+  return { service, notifications, wallet };
+}
+
+describe("MissionsService notifications", () => {
+  it("claimMission notifies MISSION_COMPLETED, and LEVEL_UP only when xp crosses a threshold", async () => {
+    const userMission = {
+      id: "um-1",
+      userId: "user-1",
+      completedAt: new Date(),
+      claimedAt: null,
+      mission: { id: "m-1", title: "Ouvrir un booster", rewardCr: 20, rewardXp: 10 },
+    };
+    const tx = fakeClaimTx(95, userMission); // 95 + 10 = 105, crosses the level-2 threshold at 100
+    const { service, notifications } = makeMissionsService(tx);
+
+    const result = await service.claimMission("user-1", "um-1");
+
+    expect(result.leveledUp).toBe(true);
+    expect(notifications.create).toHaveBeenCalledWith(
+      tx,
+      "user-1",
+      "MISSION_COMPLETED",
+      expect.objectContaining({ missionId: "m-1", title: "Ouvrir un booster" }),
+    );
+    expect(notifications.create).toHaveBeenCalledWith(
+      tx,
+      "user-1",
+      "LEVEL_UP",
+      expect.objectContaining({ newLevel: 2 }),
+    );
+    expect(notifications.create).toHaveBeenCalledTimes(2);
+  });
+
+  it("claimMission does not notify LEVEL_UP when xp stays within the same level", async () => {
+    const userMission = {
+      id: "um-1",
+      userId: "user-1",
+      completedAt: new Date(),
+      claimedAt: null,
+      mission: { id: "m-1", title: "Pointer présent", rewardCr: 10, rewardXp: 5 },
+    };
+    const tx = fakeClaimTx(0, userMission);
+    const { service, notifications } = makeMissionsService(tx);
+
+    await service.claimMission("user-1", "um-1");
+
+    expect(notifications.create).toHaveBeenCalledTimes(1);
+    expect(notifications.create).toHaveBeenCalledWith(tx, "user-1", "MISSION_COMPLETED", expect.anything());
+  });
+
+  it("claimAchievement notifies ACHIEVEMENT_UNLOCKED and LEVEL_UP when xp crosses a threshold", async () => {
+    const userAchievement = {
+      id: "ua-1",
+      userId: "user-1",
+      achievementId: "a-1",
+      completedAt: new Date(),
+      claimedAt: null,
+      achievement: { id: "a-1", title: "Habitué des boosters", rewardCr: 100, rewardXp: 50 },
+    };
+    const tx = fakeClaimTx(60, undefined, userAchievement); // 60 + 50 = 110, crosses the level-2 threshold at 100
+    const { service, notifications } = makeMissionsService(tx);
+
+    const result = await service.claimAchievement("user-1", "a-1");
+
+    expect(result.leveledUp).toBe(true);
+    expect(notifications.create).toHaveBeenCalledWith(
+      tx,
+      "user-1",
+      "ACHIEVEMENT_UNLOCKED",
+      expect.objectContaining({ achievementId: "a-1", title: "Habitué des boosters" }),
+    );
+    expect(notifications.create).toHaveBeenCalledWith(
+      tx,
+      "user-1",
+      "LEVEL_UP",
+      expect.objectContaining({ newLevel: 2 }),
+    );
   });
 });

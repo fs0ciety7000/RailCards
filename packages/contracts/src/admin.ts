@@ -17,12 +17,14 @@ export const createSeriesSchema = z.object({
   name: z.string().min(2).max(120),
   description: z.string().optional(),
   category: cardCategorySchema,
+  coverImageUrl: z.string().optional(),
 });
 export type CreateSeriesInput = z.infer<typeof createSeriesSchema>;
 
 export const updateSeriesSchema = z.object({
   name: z.string().max(120).optional(),
   description: z.string().optional(),
+  coverImageUrl: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 export type UpdateSeriesInput = z.infer<typeof updateSeriesSchema>;
@@ -69,6 +71,17 @@ export const createBoosterDefinitionSchema = z.object({
   imageUrl: z.string().min(1),
 });
 export type CreateBoosterDefinitionInput = z.infer<typeof createBoosterDefinitionSchema>;
+
+export const updateBoosterDefinitionSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  description: z.string().min(1).optional(),
+  category: boosterCategorySchema.optional(),
+  priceCr: z.coerce.number().int().min(1).optional(),
+  cardCount: z.coerce.number().int().min(1).max(15).optional(),
+  imageUrl: z.string().min(1).optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateBoosterDefinitionInput = z.infer<typeof updateBoosterDefinitionSchema>;
 
 export const poolEntrySchema = z.object({
   rarityId: z.string().uuid(),

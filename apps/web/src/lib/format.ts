@@ -66,5 +66,33 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   MARKET_SOLD: "Une de vos cartes a été vendue",
   MISSION_COMPLETED: "Mission complétée",
   ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
+  LEVEL_UP: "Niveau supérieur",
+  CREDITS_EARNED: "Crédits reçus",
   SYSTEM: "Notification système",
 };
+
+/**
+ * Richer, payload-aware text for notification types where the raw label
+ * alone loses the interesting detail (which mission, how many CR, which
+ * level). Falls back to the static label for everything else.
+ */
+export function notificationMessage(type: string, payload: Record<string, unknown>): string {
+  switch (type) {
+    case "MISSION_COMPLETED":
+      return typeof payload.title === "string" ? `Mission complétée : ${payload.title}` : NOTIFICATION_LABELS[type]!;
+    case "ACHIEVEMENT_UNLOCKED":
+      return typeof payload.title === "string" ? `Haut fait débloqué : ${payload.title}` : NOTIFICATION_LABELS[type]!;
+    case "LEVEL_UP":
+      return typeof payload.newLevel === "number"
+        ? `Niveau ${payload.newLevel} atteint${typeof payload.newGrade === "string" && payload.newGrade ? ` — ${payload.newGrade}` : ""} !`
+        : NOTIFICATION_LABELS[type]!;
+    case "CREDITS_EARNED":
+      return typeof payload.amount === "number"
+        ? `+${payload.amount} CR reçus${typeof payload.reason === "string" && payload.reason ? ` — ${payload.reason}` : ""}`
+        : NOTIFICATION_LABELS[type]!;
+    case "SYSTEM":
+      return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;
+    default:
+      return NOTIFICATION_LABELS[type] ?? type;
+  }
+}

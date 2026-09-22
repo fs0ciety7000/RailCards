@@ -5,6 +5,7 @@ import { EconomyModule } from "../economy/economy.module";
 import { StorageModule } from "../storage/storage.module";
 import { MissionsModule } from "../missions/missions.module";
 import { GradesModule } from "../grades/grades.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { AdminController } from "./admin.controller";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
@@ -12,7 +13,7 @@ import { ReportsService } from "./reports.service";
 import { AuditLogService } from "./audit-log.service";
 
 @Module({
-  imports: [CatalogModule, BoostersModule, EconomyModule, StorageModule, MissionsModule, GradesModule],
+  imports: [CatalogModule, BoostersModule, EconomyModule, StorageModule, MissionsModule, GradesModule, NotificationsModule],
   controllers: [AdminController],
   providers: [AdminUsersService, InvitationsService, ReportsService, AuditLogService],
   exports: [InvitationsService, ReportsService],

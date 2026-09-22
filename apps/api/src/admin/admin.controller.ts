@@ -28,6 +28,7 @@ import {
   PublishPoolVersionDto,
   ResolveReportDto,
   UpdateAchievementDto,
+  UpdateBoosterDefinitionDto,
   UpdateCardDto,
   UpdateGradeDto,
   UpdateMissionDto,
@@ -150,6 +151,13 @@ export class AdminController {
   async createBooster(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateBoosterDefinitionDto) {
     const booster = await this.boosters.createDefinition(dto);
     await this.auditLog.record(admin.id, "booster.create", "BoosterDefinition", booster.id, { slug: booster.slug });
+    return booster;
+  }
+
+  @Patch("boosters/:id")
+  async updateBooster(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateBoosterDefinitionDto) {
+    const booster = await this.boosters.updateDefinition(id, dto);
+    await this.auditLog.record(admin.id, "booster.update", "BoosterDefinition", id, dto);
     return booster;
   }
 

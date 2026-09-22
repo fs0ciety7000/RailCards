@@ -1,8 +1,14 @@
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
+import { GAME_CONSTANTS } from "@railcards/game-domain";
 import { createTestApp } from "./utils/test-app";
 import { loginAdmin, registerUser } from "./utils/fixtures";
+
+// A fresh registration auto-grants the founders card while the cutoff hasn't
+// passed (see AuthService.grantFoundersCardIfEligible), so a brand-new
+// player already owns exactly one unique card until that date.
+const NEW_PLAYER_STARTING_CARDS = new Date() < new Date(GAME_CONSTANTS.FOUNDERS_CARD_CUTOFF_ISO) ? 1 : 0;
 
 describe("Leaderboard (e2e, real Postgres)", () => {
   let app: INestApplication;
@@ -27,7 +33,7 @@ describe("Leaderboard (e2e, real Postgres)", () => {
     const entryBefore = before.body.find((e: { username: string }) => e.username === username);
     expect(entryBefore).toBeTruthy();
     expect(entryBefore.xp).toBe(0);
-    expect(entryBefore.uniqueCardCount).toBe(0);
+    expect(entryBefore.uniqueCardCount).toBe(NEW_PLAYER_STARTING_CARDS);
 
     await request(app.getHttpServer())
       .post("/api/v1/boosters/open")
@@ -79,5 +85,31 @@ describe("Leaderboard (e2e, real Postgres)", () => {
       .set("Authorization", `Bearer ${accessToken}`)
       .expect(200);
     expect(list.body.some((e: { username: string }) => e.username === username)).toBe(false);
+  });
+
+  it("supports sorting by unique card count and by complete series count", async () => {
+    const { accessToken } = await registerUser(app, adminToken, "lbsort");
+
+    const byCards = await request(app.getHttpServer())
+      .get("/api/v1/leaderboard?limit=500&sortBy=cards")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .expect(200);
+    const cardCounts = byCards.body.map((e: { uniqueCardCount: number }) => e.uniqueCardCount);
+    expect([...cardCounts].sort((a: number, b: number) => b - a)).toEqual(cardCounts);
+
+    const byAlbums = await request(app.getHttpServer())
+      .get("/api/v1/leaderboard?limit=500&sortBy=albums")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .expect(200);
+    const albumCounts = byAlbums.body.map((e: { completeSeriesCount: number }) => e.completeSeriesCount);
+    expect([...albumCounts].sort((a: number, b: number) => b - a)).toEqual(albumCounts);
+
+    // An unknown sortBy value falls back to the default (XP) ranking rather than erroring.
+    const bogus = await request(app.getHttpServer())
+      .get("/api/v1/leaderboard?limit=500&sortBy=not-a-real-sort")
+      .set("Authorization", `Bearer ${accessToken}`)
+      .expect(200);
+    const xps = bogus.body.map((e: { xp: number }) => e.xp);
+    expect([...xps].sort((a: number, b: number) => b - a)).toEqual(xps);
   });
 });

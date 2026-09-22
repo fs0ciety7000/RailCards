@@ -10,9 +10,11 @@ import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { GAME_CONSTANTS } from "@railcards/game-domain";
+import type { Prisma } from "@railcards/database";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { MissionsService } from "../missions/missions.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { generateOpaqueToken, hashOpaqueToken } from "../common/utils/tokens";
 import { parseDurationToMs } from "../common/utils/duration";
 import type { RegisterDto } from "./dto/register.dto";
@@ -45,6 +47,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly wallet: WalletService,
     private readonly missions: MissionsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private toAuthenticatedUser(user: {
@@ -153,6 +156,8 @@ export class AuthService {
       // Registering counts as today's login for the "Pointer présent" mission.
       await this.missions.recordProgress(tx, createdUser.id, "LOGIN", 1);
 
+      await this.grantFoundersCardIfEligible(tx, createdUser.id);
+
       return createdUser;
     });
 
@@ -161,6 +166,31 @@ export class AuthService {
     const { rawToken, expiresAt } = await this.createSession(user.id, meta);
 
     return { accessToken, refreshToken: rawToken, refreshTokenExpiresAt: expiresAt, user: authUser };
+  }
+
+  /**
+   * One-time thank-you: every account created before the cutoff automatically
+   * receives the "Carte Fondateurs RailCards" card. Silently no-ops if the
+   * card hasn't been seeded yet, rather than failing registration over it.
+   */
+  private async grantFoundersCardIfEligible(tx: Prisma.TransactionClient, userId: string): Promise<void> {
+    if (new Date() >= new Date(GAME_CONSTANTS.FOUNDERS_CARD_CUTOFF_ISO)) return;
+
+    const card = await tx.cardDefinition.findUnique({ where: { slug: GAME_CONSTANTS.FOUNDERS_CARD_SLUG } });
+    if (!card) {
+      this.logger.warn(`Founders card "${GAME_CONSTANTS.FOUNDERS_CARD_SLUG}" not found — skipping grant.`);
+      return;
+    }
+
+    const priorCount = await tx.cardInstance.count({ where: { cardDefinitionId: card.id } });
+    const instance = await tx.cardInstance.create({
+      data: { cardDefinitionId: card.id, ownerId: userId, serialNumber: priorCount + 1, acquiredVia: "FOUNDER_GRANT" },
+    });
+    await this.notifications.create(tx, userId, "SYSTEM", {
+      message: "Bienvenue parmi les fondateurs ! Vous avez reçu la Carte Fondateurs RailCards.",
+      cardInstanceId: instance.id,
+      cardDefinitionId: card.id,
+    });
   }
 
   async login(dto: LoginDto, meta: SessionMeta): Promise<AuthResult> {

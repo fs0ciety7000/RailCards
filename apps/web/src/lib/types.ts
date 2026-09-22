@@ -46,6 +46,8 @@ export interface PublicProfile {
   favoriteCards: CardDefinition[];
 }
 
+export type LeaderboardSort = "xp" | "cards" | "albums";
+
 export interface LeaderboardEntry {
   rank: number;
   username: string;
@@ -129,6 +131,7 @@ export interface AlbumSeriesEntry {
   slug: string;
   name: string;
   category: CardCategory;
+  coverImageUrl: string | null;
   totalCards: number;
   ownedUniqueCards: number;
   completionPct: number;
@@ -299,6 +302,8 @@ export type NotificationType =
   | "MARKET_SOLD"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
+  | "LEVEL_UP"
+  | "CREDITS_EARNED"
   | "SYSTEM";
 
 export interface AppNotification {

@@ -21,11 +21,13 @@ export class CreateSeriesDto {
   @IsString() @MinLength(2) @MaxLength(120) name!: string;
   @IsOptional() @IsString() description?: string;
   @IsString() category!: CardCategory;
+  @IsOptional() @IsString() coverImageUrl?: string;
 }
 
 export class UpdateSeriesDto {
   @IsOptional() @IsString() @MaxLength(120) name?: string;
   @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() coverImageUrl?: string;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
@@ -69,6 +71,16 @@ export class CreateBoosterDefinitionDto {
   @IsInt() @Min(1) priceCr!: number;
   @IsInt() @Min(1) @Max(15) cardCount!: number;
   @IsString() imageUrl!: string;
+}
+
+export class UpdateBoosterDefinitionDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) name?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsString() category?: BoosterCategory;
+  @IsOptional() @IsInt() @Min(1) priceCr?: number;
+  @IsOptional() @IsInt() @Min(1) @Max(15) cardCount?: number;
+  @IsOptional() @IsString() imageUrl?: string;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 export class PoolEntryDto {

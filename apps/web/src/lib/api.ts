@@ -276,7 +276,8 @@ export const usersApi = {
 // ── Leaderboard ──────────────────────────────────────────────────────────
 
 export const leaderboardApi = {
-  top: (limit = 50) => request<T.LeaderboardEntry[]>(`/leaderboard${qs({ limit })}`),
+  top: (limit = 50, sortBy: T.LeaderboardSort = "xp") =>
+    request<T.LeaderboardEntry[]>(`/leaderboard${qs({ limit, sortBy })}`),
 };
 
 // ── Missions & achievements ─────────────────────────────────────────────
@@ -339,6 +340,8 @@ export const adminApi = {
 
   listBoosters: () => request<unknown[]>("/admin/boosters"),
   createBooster: (input: unknown) => request<T.BoosterDefinition>("/admin/boosters", { method: "POST", body: input }),
+  updateBooster: (id: string, input: unknown) =>
+    request<T.BoosterDefinition>(`/admin/boosters/${id}`, { method: "PATCH", body: input }),
   publishPool: (id: string, input: unknown) => request<unknown>(`/admin/boosters/${id}/pool`, { method: "POST", body: input }),
 
   listMissions: () => request<T.Mission[]>("/admin/missions"),

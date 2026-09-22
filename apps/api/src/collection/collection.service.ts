@@ -65,6 +65,7 @@ export class CollectionService {
         slug: s.slug,
         name: s.name,
         category: s.category,
+        coverImageUrl: s.coverImageUrl,
         totalCards,
         ownedUniqueCards: ownedCards,
         completionPct: totalCards === 0 ? 0 : Math.round((ownedCards / totalCards) * 100),

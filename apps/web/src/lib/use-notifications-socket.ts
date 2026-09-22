@@ -5,22 +5,10 @@ import { io, type Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "./auth-store";
 import { useToast } from "@railcards/ui";
+import { notificationMessage } from "./format";
 import type { AppNotification } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:4000";
-
-const NOTIF_LABELS: Record<string, string> = {
-  TRADE_RECEIVED: "Nouvelle proposition d'échange",
-  TRADE_ACCEPTED: "Échange accepté",
-  TRADE_REJECTED: "Échange refusé",
-  TRADE_CANCELLED: "Échange annulé",
-  TRADE_COUNTERED: "Contre-offre reçue",
-  TRADE_EXPIRED: "Échange expiré",
-  MARKET_SOLD: "Une de vos cartes a été vendue",
-  MISSION_COMPLETED: "Mission complétée",
-  ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
-  SYSTEM: "Notification",
-};
 
 /**
  * Live-push fallback: connects to the /realtime namespace and, on each
@@ -45,7 +33,7 @@ export function useNotificationsSocket() {
         void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         toast.show({
           tone: "info",
-          title: NOTIF_LABELS[notification.type] ?? "Notification",
+          title: notificationMessage(notification.type, notification.payload),
         });
       });
     } catch {

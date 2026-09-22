@@ -238,6 +238,7 @@ enum AcquisitionSource {
   ADMIN_GRANT
   MISSION_REWARD
   ACHIEVEMENT_REWARD
+  FOUNDER_GRANT
 }
 
 model CardInstance {
@@ -647,6 +648,8 @@ enum NotificationType {
   MARKET_SOLD
   MISSION_COMPLETED
   ACHIEVEMENT_UNLOCKED
+  LEVEL_UP
+  CREDITS_EARNED
   SYSTEM
 }
 

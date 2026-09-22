@@ -4,6 +4,7 @@ import { gradeForLevel as defaultGradeForLevel, levelForXp } from "@railcards/ga
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { GradesService } from "../grades/grades.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -45,6 +46,7 @@ export class MissionsService {
     private readonly prisma: PrismaService,
     private readonly wallet: WalletService,
     private readonly grades: GradesService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   /**
@@ -155,6 +157,17 @@ export class MissionsService {
           : { leveledUp: false, newLevel: 0, newGrade: "" };
 
       const userMission = await tx.userMission.update({ where: { id: um.id }, data: { claimedAt: new Date() } });
+
+      await this.notifications.create(tx, userId, "MISSION_COMPLETED", {
+        missionId: um.mission.id,
+        title: um.mission.title,
+        rewardCr: um.mission.rewardCr,
+        rewardXp: um.mission.rewardXp,
+      });
+      if (levelUp.leveledUp) {
+        await this.notifications.create(tx, userId, "LEVEL_UP", { newLevel: levelUp.newLevel, newGrade: levelUp.newGrade });
+      }
+
       return { ...userMission, ...levelUp };
     });
   }
@@ -185,6 +198,17 @@ export class MissionsService {
           : { leveledUp: false, newLevel: 0, newGrade: "" };
 
       const userAchievement = await tx.userAchievement.update({ where: { id: ua.id }, data: { claimedAt: new Date() } });
+
+      await this.notifications.create(tx, userId, "ACHIEVEMENT_UNLOCKED", {
+        achievementId: ua.achievement.id,
+        title: ua.achievement.title,
+        rewardCr: ua.achievement.rewardCr,
+        rewardXp: ua.achievement.rewardXp,
+      });
+      if (levelUp.leveledUp) {
+        await this.notifications.create(tx, userId, "LEVEL_UP", { newLevel: levelUp.newLevel, newGrade: levelUp.newGrade });
+      }
+
       return { ...userAchievement, ...levelUp };
     });
   }

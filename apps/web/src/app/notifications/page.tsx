@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { notificationsApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
-import { NOTIFICATION_LABELS, formatDateTime } from "@/lib/format";
+import { notificationMessage, formatDateTime } from "@/lib/format";
 
 const PAGE_SIZE = 20;
 
@@ -72,7 +72,7 @@ function NotificationsContent() {
                     <div>
                       <div className="flex items-center gap-2">
                         <p className={n.readAt ? "text-sm text-white/70" : "text-sm font-semibold text-white"}>
-                          {NOTIFICATION_LABELS[n.type] ?? n.type}
+                          {notificationMessage(n.type, n.payload)}
                         </p>
                         {!n.readAt && <Badge tone="accent">Nouveau</Badge>}
                       </div>

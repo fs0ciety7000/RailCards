@@ -45,13 +45,22 @@ function AlbumContent() {
             <StaggerItem key={s.seriesId}>
               <Link href={`/collection/album/${s.seriesId}`} className="block">
                 <Card className="transition-colors hover:bg-white/[0.04]">
-                  <CardBody>
-                    <div className="mb-1 flex items-center justify-between">
-                      <p className="font-semibold tracking-tight text-white">{s.name}</p>
-                      <span className="text-xs font-bold text-rc-accent">{s.completionPct}%</span>
+                  <CardBody className="flex gap-3">
+                    {s.coverImageUrl && (
+                      <img
+                        src={s.coverImageUrl}
+                        alt=""
+                        className="h-16 w-16 shrink-0 rounded-lg border border-rc-border object-cover"
+                      />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center justify-between">
+                        <p className="truncate font-semibold tracking-tight text-white">{s.name}</p>
+                        <span className="shrink-0 text-xs font-bold text-rc-accent">{s.completionPct}%</span>
+                      </div>
+                      <p className="mb-3 text-xs text-white/50">{CARD_CATEGORY_LABELS[s.category] ?? s.category}</p>
+                      <ProgressBar value={s.ownedUniqueCards} max={s.totalCards} />
                     </div>
-                    <p className="mb-3 text-xs text-white/50">{CARD_CATEGORY_LABELS[s.category] ?? s.category}</p>
-                    <ProgressBar value={s.ownedUniqueCards} max={s.totalCards} />
                   </CardBody>
                 </Card>
               </Link>

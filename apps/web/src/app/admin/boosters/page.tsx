@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Gift, PlusCircle, Settings2 } from "lucide-react";
+import { Gift, Pencil, PlusCircle, Settings2 } from "lucide-react";
 import {
   createBoosterDefinitionSchema,
   publishPoolVersionSchema,
+  updateBoosterDefinitionSchema,
   type CreateBoosterDefinitionInput,
   type PublishPoolVersionInput,
+  type UpdateBoosterDefinitionInput,
 } from "@railcards/contracts";
 import {
   Badge,
@@ -17,6 +19,7 @@ import {
   Card,
   CardBody,
   CrAmount,
+  Dialog,
   FieldError,
   FieldGroup,
   Input,
@@ -111,6 +114,137 @@ function CreateBoosterForm() {
   );
 }
 
+function EditBoosterDialog({ booster, onClose }: { booster: BoosterDefinition | null; onClose: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<UpdateBoosterDefinitionInput>({ resolver: zodResolver(updateBoosterDefinitionSchema) });
+
+  useEffect(() => {
+    if (!booster) return;
+    reset({
+      name: booster.name,
+      description: booster.description,
+      category: booster.category,
+      priceCr: booster.priceCr,
+      cardCount: booster.cardCount,
+      imageUrl: booster.imageUrl,
+      isActive: booster.isActive,
+    });
+    // Re-run only when a different booster is opened for editing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booster?.id]);
+
+  const updateMutation = useMutation({
+    mutationFn: (values: UpdateBoosterDefinitionInput) => adminApi.updateBooster(booster!.id, values),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Booster mis à jour" });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "boosters"] });
+      onClose();
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec de la mise à jour", description: getErrorMessage(err) }),
+  });
+
+  function close() {
+    reset();
+    onClose();
+  }
+
+  return (
+    <Dialog
+      open={!!booster}
+      onClose={close}
+      title="Modifier le booster"
+      description={booster ? booster.slug : undefined}
+      className="max-w-lg"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={close} disabled={updateMutation.isPending}>
+            Annuler
+          </Button>
+          <Button type="submit" form="edit-booster-form" loading={updateMutation.isPending}>
+            Enregistrer
+          </Button>
+        </>
+      }
+    >
+      {booster && (
+        <form
+          id="edit-booster-form"
+          onSubmit={handleSubmit((v) => updateMutation.mutate(v))}
+          noValidate
+          className="grid gap-3 sm:grid-cols-2"
+        >
+          <FieldGroup>
+            <Label htmlFor="edit-booster-name">Nom</Label>
+            <Input id="edit-booster-name" invalid={!!errors.name} {...register("name")} />
+            <FieldError>{errors.name?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="edit-booster-category">Catégorie</Label>
+            <Select id="edit-booster-category" invalid={!!errors.category} {...register("category")}>
+              {BOOSTER_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+            <FieldError>{errors.category?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="edit-booster-priceCr">Prix (CR)</Label>
+            <Input id="edit-booster-priceCr" type="number" min={1} invalid={!!errors.priceCr} {...register("priceCr")} />
+            <FieldError>{errors.priceCr?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="edit-booster-cardCount">Nombre de cartes</Label>
+            <Input
+              id="edit-booster-cardCount"
+              type="number"
+              min={1}
+              max={15}
+              invalid={!!errors.cardCount}
+              {...register("cardCount")}
+            />
+            <FieldError>{errors.cardCount?.message}</FieldError>
+          </FieldGroup>
+          <div className="sm:col-span-2">
+            <ImageUrlField
+              id="edit-booster-imageUrl"
+              label="URL image"
+              value={watch("imageUrl") ?? ""}
+              onChange={(url) => setValue("imageUrl", url, { shouldValidate: true })}
+              error={errors.imageUrl?.message}
+            />
+          </div>
+          <FieldGroup className="sm:col-span-2">
+            <Label htmlFor="edit-booster-description">Description</Label>
+            <Textarea id="edit-booster-description" invalid={!!errors.description} {...register("description")} />
+            <FieldError>{errors.description?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup className="sm:col-span-2 mb-0">
+            <label className="flex items-center gap-2 text-sm text-white/80">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-white/30 accent-[var(--color-rc-accent)]"
+                {...register("isActive")}
+              />
+              Actif (visible dans la boutique)
+            </label>
+          </FieldGroup>
+        </form>
+      )}
+    </Dialog>
+  );
+}
+
 function PublishPoolForm({ boosterId, onDone }: { boosterId: string; onDone: () => void }) {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -185,6 +319,7 @@ function PublishPoolForm({ boosterId, onDone }: { boosterId: string; onDone: () 
 
 function BoostersList() {
   const [editingPoolFor, setEditingPoolFor] = useState<string | null>(null);
+  const [editTarget, setEditTarget] = useState<BoosterDefinition | null>(null);
   const boostersQuery = useQuery({
     queryKey: ["admin", "boosters"],
     queryFn: () => adminApi.listBoosters() as Promise<(BoosterDefinition & { pools?: { entries: { id: string; weight: number; rarity: { label: string } }[] }[] })[]>,
@@ -199,11 +334,18 @@ function BoostersList() {
           <CardBody>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rc-accent/12 text-rc-accent" aria-hidden="true">
-                  <Gift className="h-[18px] w-[18px]" strokeWidth={2} />
-                </span>
+                {b.imageUrl ? (
+                  <img src={b.imageUrl} alt="" className="h-9 w-9 shrink-0 rounded-xl border border-rc-border object-cover" />
+                ) : (
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rc-accent/12 text-rc-accent" aria-hidden="true">
+                    <Gift className="h-[18px] w-[18px]" strokeWidth={2} />
+                  </span>
+                )}
                 <div>
-                  <p className="font-display font-semibold text-white">{b.name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="font-display font-semibold text-white">{b.name}</p>
+                    {!b.isActive && <Badge tone="neutral">Inactif</Badge>}
+                  </div>
                   <p className="text-xs text-white/50">{b.slug} · {b.cardCount} cartes</p>
                 </div>
               </div>
@@ -211,6 +353,14 @@ function BoostersList() {
                 <Badge tone="accent">
                   <CrAmount value={b.priceCr} />
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  icon={<Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
+                  onClick={() => setEditTarget(b)}
+                >
+                  Modifier
+                </Button>
                 <Button
                   size="sm"
                   variant="outline"
@@ -234,6 +384,7 @@ function BoostersList() {
           </CardBody>
         </Card>
       ))}
+      <EditBoosterDialog booster={editTarget} onClose={() => setEditTarget(null)} />
     </div>
   );
 }

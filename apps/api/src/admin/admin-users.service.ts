@@ -1,12 +1,14 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 @Injectable()
 export class AdminUsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly wallet: WalletService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async list(search: string | undefined, page: number, pageSize: number) {
@@ -64,23 +66,26 @@ export class AdminUsersService {
     const user = await this.prisma.user.findUnique({ where: { id: targetUserId } });
     if (!user) throw new NotFoundException("User not found");
 
-    const entry = await this.prisma.$transaction((tx) =>
-      amount > 0
-        ? this.wallet.credit(tx, {
-            userId: targetUserId,
-            amount,
-            type: "ADMIN_ADJUSTMENT",
-            referenceType: "admin-wallet-adjustment",
-            metadata: reason ? { reason } : undefined,
-          })
-        : this.wallet.debit(tx, {
-            userId: targetUserId,
-            amount: -amount,
-            type: "ADMIN_ADJUSTMENT",
-            referenceType: "admin-wallet-adjustment",
-            metadata: reason ? { reason } : undefined,
-          }),
-    );
+    const entry = await this.prisma.$transaction(async (tx) => {
+      if (amount > 0) {
+        const result = await this.wallet.credit(tx, {
+          userId: targetUserId,
+          amount,
+          type: "ADMIN_ADJUSTMENT",
+          referenceType: "admin-wallet-adjustment",
+          metadata: reason ? { reason } : undefined,
+        });
+        await this.notifications.create(tx, targetUserId, "CREDITS_EARNED", { amount, reason });
+        return result;
+      }
+      return this.wallet.debit(tx, {
+        userId: targetUserId,
+        amount: -amount,
+        type: "ADMIN_ADJUSTMENT",
+        referenceType: "admin-wallet-adjustment",
+        metadata: reason ? { reason } : undefined,
+      });
+    });
 
     return { balance: entry.balanceAfter };
   }

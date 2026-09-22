@@ -1,9 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Crown, Layers, Medal, Sparkles } from "lucide-react";
-import { Badge, Card, CardBody, EmptyState, ErrorState, Skeleton } from "@railcards/ui";
+import { BookOpen, Crown, Layers, Medal, Sparkles } from "lucide-react";
+import { Badge, Card, CardBody, EmptyState, ErrorState, Skeleton, Tabs } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -11,7 +12,13 @@ import { Avatar } from "@/components/Avatar";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { leaderboardApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
-import type { LeaderboardEntry } from "@/lib/types";
+import type { LeaderboardEntry, LeaderboardSort } from "@/lib/types";
+
+const SORT_TABS: { id: LeaderboardSort; label: string }[] = [
+  { id: "xp", label: "XP" },
+  { id: "cards", label: "Cartes" },
+  { id: "albums", label: "Albums complets" },
+];
 
 const RANK_TONE: Record<number, string> = {
   1: "text-amber-300",
@@ -26,7 +33,16 @@ function RankBadge({ rank }: { rank: number }) {
   return <span className="w-5 text-center text-sm font-semibold text-white/40">{rank}</span>;
 }
 
-function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
+function Stat({ icon: Icon, value, active }: { icon: typeof Sparkles; value: number | string; active: boolean }) {
+  return (
+    <span className={`flex items-center gap-1 ${active ? "font-bold text-rc-accent" : "text-white/50"}`}>
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {value}
+    </span>
+  );
+}
+
+function LeaderboardRow({ entry, sortBy }: { entry: LeaderboardEntry; sortBy: LeaderboardSort }) {
   return (
     <Link href={`/profile/${entry.username}`} className="block">
       <Card className="transition-colors hover:bg-white/[0.04]">
@@ -44,15 +60,10 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <Badge tone="accent">{entry.grade}</Badge>
-            <div className="flex items-center gap-2 text-[11px] text-white/50">
-              <span className="flex items-center gap-1">
-                <Sparkles className="h-3 w-3" aria-hidden="true" />
-                {entry.xp} XP
-              </span>
-              <span className="flex items-center gap-1">
-                <Layers className="h-3 w-3" aria-hidden="true" />
-                {entry.uniqueCardCount}
-              </span>
+            <div className="flex items-center gap-2 text-[11px]">
+              <Stat icon={Sparkles} value={`${entry.xp} XP`} active={sortBy === "xp"} />
+              <Stat icon={Layers} value={entry.uniqueCardCount} active={sortBy === "cards"} />
+              <Stat icon={BookOpen} value={entry.completeSeriesCount} active={sortBy === "albums"} />
             </div>
           </div>
         </CardBody>
@@ -62,36 +73,38 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 }
 
 function LeaderboardContent() {
-  const leaderboardQuery = useQuery({ queryKey: ["leaderboard"], queryFn: () => leaderboardApi.top(100) });
-
-  if (leaderboardQuery.isLoading) {
-    return (
-      <div className="space-y-2">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-[72px] w-full" />
-        ))}
-      </div>
-    );
-  }
-
-  if (leaderboardQuery.isError) {
-    return <ErrorState title="Classement indisponible" description={getErrorMessage(leaderboardQuery.error)} />;
-  }
-
-  const entries = leaderboardQuery.data ?? [];
-
-  if (entries.length === 0) {
-    return <EmptyState icon={<Crown />} title="Aucun joueur classé" description="Revenez plus tard." />;
-  }
+  const [sortBy, setSortBy] = useState<LeaderboardSort>("xp");
+  const leaderboardQuery = useQuery({
+    queryKey: ["leaderboard", sortBy],
+    queryFn: () => leaderboardApi.top(100, sortBy),
+  });
 
   return (
-    <Stagger className="space-y-2">
-      {entries.map((entry) => (
-        <StaggerItem key={entry.username}>
-          <LeaderboardRow entry={entry} />
-        </StaggerItem>
-      ))}
-    </Stagger>
+    <div>
+      <div className="mb-4">
+        <Tabs tabs={SORT_TABS} activeId={sortBy} onChange={(id) => setSortBy(id as LeaderboardSort)} />
+      </div>
+
+      {leaderboardQuery.isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-[72px] w-full" />
+          ))}
+        </div>
+      ) : leaderboardQuery.isError ? (
+        <ErrorState title="Classement indisponible" description={getErrorMessage(leaderboardQuery.error)} />
+      ) : (leaderboardQuery.data ?? []).length === 0 ? (
+        <EmptyState icon={<Crown />} title="Aucun joueur classé" description="Revenez plus tard." />
+      ) : (
+        <Stagger className="space-y-2">
+          {leaderboardQuery.data!.map((entry) => (
+            <StaggerItem key={entry.username}>
+              <LeaderboardRow entry={entry} sortBy={sortBy} />
+            </StaggerItem>
+          ))}
+        </Stagger>
+      )}
+    </div>
   );
 }
 
@@ -101,7 +114,7 @@ export default function LeaderboardPage() {
       <AppShell>
         <PageHeader
           title="Classement"
-          description="Les meilleurs joueurs, classés par XP. Un profil masqué n'apparaît pas ici."
+          description="Les meilleurs joueurs. Un profil masqué n'apparaît pas ici."
         />
         <LeaderboardContent />
       </AppShell>

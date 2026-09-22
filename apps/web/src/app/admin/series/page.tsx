@@ -23,6 +23,7 @@ import {
 } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
+import { ImageUrlField } from "@/components/ImageUrlField";
 import { adminApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { CARD_CATEGORY_LABELS } from "@/lib/format";
@@ -37,8 +38,10 @@ function CreateSeriesForm() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
-  } = useForm<CreateSeriesInput>({ resolver: zodResolver(createSeriesSchema) });
+  } = useForm<CreateSeriesInput>({ resolver: zodResolver(createSeriesSchema), defaultValues: { coverImageUrl: "" } });
 
   const createMutation = useMutation({
     mutationFn: (values: CreateSeriesInput) => adminApi.createSeries(values),
@@ -77,6 +80,15 @@ function CreateSeriesForm() {
             </Select>
             <FieldError>{errors.category?.message}</FieldError>
           </FieldGroup>
+          <div className="sm:col-span-2">
+            <ImageUrlField
+              id="coverImageUrl"
+              label="Image de couverture (optionnel)"
+              value={watch("coverImageUrl") ?? ""}
+              onChange={(url) => setValue("coverImageUrl", url, { shouldValidate: true })}
+              error={errors.coverImageUrl?.message}
+            />
+          </div>
           <FieldGroup className="sm:col-span-2">
             <Label htmlFor="description">Description (optionnel)</Label>
             <Textarea id="description" {...register("description")} />
@@ -100,12 +112,19 @@ function EditSeriesDialog({ series, onClose }: { series: CardSeries | null; onCl
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<UpdateSeriesInput>({ resolver: zodResolver(updateSeriesSchema) });
 
   useEffect(() => {
     if (!series) return;
-    reset({ name: series.name, description: series.description ?? "", isActive: series.isActive });
+    reset({
+      name: series.name,
+      description: series.description ?? "",
+      coverImageUrl: series.coverImageUrl ?? "",
+      isActive: series.isActive,
+    });
     // Re-run only when a different series is opened for editing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [series?.id]);
@@ -154,6 +173,13 @@ function EditSeriesDialog({ series, onClose }: { series: CardSeries | null; onCl
             <Label htmlFor="edit-series-description">Description (optionnel)</Label>
             <Textarea id="edit-series-description" {...register("description")} />
           </FieldGroup>
+          <ImageUrlField
+            id="edit-series-coverImageUrl"
+            label="Image de couverture (optionnel)"
+            value={watch("coverImageUrl") ?? ""}
+            onChange={(url) => setValue("coverImageUrl", url, { shouldValidate: true })}
+            error={errors.coverImageUrl?.message}
+          />
         </form>
       )}
     </Dialog>
@@ -184,7 +210,8 @@ function SeriesList() {
         <table className="w-full min-w-[520px] text-left text-sm">
           <thead>
             <tr className="border-b border-rc-border-strong text-xs font-semibold uppercase tracking-wide text-white/40">
-              <th className="py-2.5">Nom</th>
+              <th className="py-2.5">Image</th>
+              <th>Nom</th>
               <th>Catégorie</th>
               <th>Cartes</th>
               <th>Statut</th>
@@ -194,6 +221,13 @@ function SeriesList() {
           <tbody>
             {seriesQuery.data?.map((s) => (
               <tr key={s.id} className="border-b border-rc-border transition-colors odd:bg-white/[0.015] hover:bg-white/[0.035]">
+                <td className="py-2.5">
+                  {s.coverImageUrl ? (
+                    <img src={s.coverImageUrl} alt="" className="h-10 w-10 rounded-md border border-rc-border object-cover" />
+                  ) : (
+                    <span className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-rc-border text-[10px] text-white/30">—</span>
+                  )}
+                </td>
                 <td className="py-2.5 font-display font-medium text-white">{s.name}</td>
                 <td className="text-white/60">{CARD_CATEGORY_LABELS[s.category] ?? s.category}</td>
                 <td className="text-white/60">{s._count?.cards ?? 0}</td>

@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { usersApi, walletApi, missionsApi, notificationsApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
-import { NOTIFICATION_LABELS, formatDateTime } from "@/lib/format";
+import { notificationMessage, formatDateTime } from "@/lib/format";
 
 const QUICK_LINKS = [
   { href: "/boosters", icon: Gift, title: "Ouvrir un booster", desc: "Tentez votre chance" },
@@ -180,7 +180,7 @@ function HomeContent() {
                   {notifQuery.data!.items.map((n) => (
                     <li key={n.id} className="text-sm">
                       <p className={n.readAt ? "text-white/60" : "font-medium text-white"}>
-                        {NOTIFICATION_LABELS[n.type] ?? n.type}
+                        {notificationMessage(n.type, n.payload)}
                       </p>
                       <p className="mt-0.5 text-xs text-white/40">{formatDateTime(n.createdAt)}</p>
                     </li>
