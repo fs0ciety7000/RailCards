@@ -11,6 +11,7 @@ const ADMIN_TABS = [
   { href: "/admin/cards", label: "Cartes" },
   { href: "/admin/series", label: "Séries" },
   { href: "/admin/boosters", label: "Boosters" },
+  { href: "/admin/missions", label: "Missions" },
   { href: "/admin/invitations", label: "Invitations" },
   { href: "/admin/users", label: "Utilisateurs" },
   { href: "/admin/reports", label: "Signalements" },

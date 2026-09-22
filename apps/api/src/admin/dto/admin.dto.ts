@@ -14,7 +14,7 @@ import {
   NotEquals,
   ValidateNested,
 } from "class-validator";
-import type { BoosterCategory, CardCategory } from "@railcards/database";
+import type { BoosterCategory, CardCategory, MissionGoalType, MissionResetPeriod } from "@railcards/database";
 
 export class CreateSeriesDto {
   @IsString() @MinLength(2) @MaxLength(80) slug!: string;
@@ -100,4 +100,56 @@ export class AdjustWalletDto {
   // taking a wallet below zero (see WalletService.debit).
   @IsInt() @NotEquals(0) @Min(-1_000_000) @Max(1_000_000) amount!: number;
   @IsOptional() @IsString() @MaxLength(280) reason?: string;
+}
+
+const MISSION_GOAL_TYPES = [
+  "OPEN_BOOSTER",
+  "COLLECT_UNIQUE_CARDS",
+  "COMPLETE_TRADE",
+  "SELL_ON_MARKET",
+  "BUY_ON_MARKET",
+  "LOGIN",
+  "COMPLETE_SERIES",
+];
+
+export class CreateMissionDto {
+  @IsString() @MinLength(2) @MaxLength(80) code!: string;
+  @IsString() @MinLength(2) @MaxLength(120) title!: string;
+  @IsString() description!: string;
+  @IsIn(MISSION_GOAL_TYPES) goalType!: MissionGoalType;
+  @IsInt() @Min(1) goalCount!: number;
+  @IsOptional() @IsInt() @Min(0) rewardCr?: number;
+  @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+  @IsOptional() @IsIn(["NONE", "DAILY"]) resetPeriod?: MissionResetPeriod;
+}
+
+export class UpdateMissionDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) title?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsIn(MISSION_GOAL_TYPES) goalType?: MissionGoalType;
+  @IsOptional() @IsInt() @Min(1) goalCount?: number;
+  @IsOptional() @IsInt() @Min(0) rewardCr?: number;
+  @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+  @IsOptional() @IsIn(["NONE", "DAILY"]) resetPeriod?: MissionResetPeriod;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}
+
+export class CreateAchievementDto {
+  @IsString() @MinLength(2) @MaxLength(80) code!: string;
+  @IsString() @MinLength(2) @MaxLength(120) title!: string;
+  @IsString() description!: string;
+  @IsIn(MISSION_GOAL_TYPES) goalType!: MissionGoalType;
+  @IsInt() @Min(1) goalCount!: number;
+  @IsOptional() @IsInt() @Min(0) rewardCr?: number;
+  @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+}
+
+export class UpdateAchievementDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) title?: string;
+  @IsOptional() @IsString() description?: string;
+  @IsOptional() @IsIn(MISSION_GOAL_TYPES) goalType?: MissionGoalType;
+  @IsOptional() @IsInt() @Min(1) goalCount?: number;
+  @IsOptional() @IsInt() @Min(0) rewardCr?: number;
+  @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+  @IsOptional() @IsBoolean() isActive?: boolean;
 }

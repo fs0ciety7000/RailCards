@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiTags } from "@nestjs/swagger";
 import type { Prisma, ReportStatus } from "@railcards/database";
@@ -9,6 +9,7 @@ import type { AuthenticatedUser } from "../auth/auth.types";
 import { CatalogService } from "../catalog/catalog.service";
 import { BoostersService } from "../boosters/boosters.service";
 import { StorageService } from "../storage/storage.service";
+import { MissionsService } from "../missions/missions.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -16,13 +17,17 @@ import { AuditLogService } from "./audit-log.service";
 import { PrismaService } from "../prisma/prisma.service";
 import {
   AdjustWalletDto,
+  CreateAchievementDto,
   CreateBoosterDefinitionDto,
   CreateCardDto,
   CreateInvitationDto,
+  CreateMissionDto,
   CreateSeriesDto,
   PublishPoolVersionDto,
   ResolveReportDto,
+  UpdateAchievementDto,
   UpdateCardDto,
+  UpdateMissionDto,
   UpdateSeriesDto,
 } from "./dto/admin.dto";
 
@@ -41,6 +46,7 @@ export class AdminController {
     private readonly auditLog: AuditLogService,
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly missions: MissionsService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -122,6 +128,13 @@ export class AdminController {
     return card;
   }
 
+  @Delete("cards/:id")
+  async deleteCard(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Query("cascade") cascade?: string) {
+    const result = await this.catalog.deleteCard(id, cascade === "true");
+    await this.auditLog.record(admin.id, "card.delete", "CardDefinition", id, { instancesRemoved: result.instancesRemoved });
+    return result;
+  }
+
   // ── Boosters ─────────────────────────────────────────────────────
   @Get("boosters")
   async listBoosters() {
@@ -142,6 +155,45 @@ export class AdminController {
       rulesVersion: pool.rulesVersion,
     });
     return pool;
+  }
+
+  // ── Missions & achievements ──────────────────────────────────────
+  @Get("missions")
+  async listMissions() {
+    return this.missions.listAllMissionsForAdmin();
+  }
+
+  @Post("missions")
+  async createMission(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateMissionDto) {
+    const mission = await this.missions.createMission(dto);
+    await this.auditLog.record(admin.id, "mission.create", "Mission", mission.id, { code: mission.code });
+    return mission;
+  }
+
+  @Patch("missions/:id")
+  async updateMission(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateMissionDto) {
+    const mission = await this.missions.updateMission(id, dto);
+    await this.auditLog.record(admin.id, "mission.update", "Mission", id, dto);
+    return mission;
+  }
+
+  @Get("achievements")
+  async listAchievements() {
+    return this.missions.listAllAchievementsForAdmin();
+  }
+
+  @Post("achievements")
+  async createAchievement(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateAchievementDto) {
+    const achievement = await this.missions.createAchievement(dto);
+    await this.auditLog.record(admin.id, "achievement.create", "Achievement", achievement.id, { code: achievement.code });
+    return achievement;
+  }
+
+  @Patch("achievements/:id")
+  async updateAchievement(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateAchievementDto) {
+    const achievement = await this.missions.updateAchievement(id, dto);
+    await this.auditLog.record(admin.id, "achievement.update", "Achievement", id, dto);
+    return achievement;
   }
 
   // ── Invitations ──────────────────────────────────────────────────

@@ -330,10 +330,21 @@ export const adminApi = {
     request<T.CardDefinition>(`/admin/cards/${id}`, { method: "PATCH", body: input }),
   publishCard: (id: string) => request<T.CardDefinition>(`/admin/cards/${id}/publish`, { method: "POST" }),
   archiveCard: (id: string) => request<T.CardDefinition>(`/admin/cards/${id}/archive`, { method: "POST" }),
+  deleteCard: (id: string, cascade: boolean) =>
+    request<{ deleted: boolean; instancesRemoved: number }>(`/admin/cards/${id}${cascade ? "?cascade=true" : ""}`, { method: "DELETE" }),
 
   listBoosters: () => request<unknown[]>("/admin/boosters"),
   createBooster: (input: unknown) => request<T.BoosterDefinition>("/admin/boosters", { method: "POST", body: input }),
   publishPool: (id: string, input: unknown) => request<unknown>(`/admin/boosters/${id}/pool`, { method: "POST", body: input }),
+
+  listMissions: () => request<T.Mission[]>("/admin/missions"),
+  createMission: (input: unknown) => request<T.Mission>("/admin/missions", { method: "POST", body: input }),
+  updateMission: (id: string, input: unknown) => request<T.Mission>(`/admin/missions/${id}`, { method: "PATCH", body: input }),
+
+  listAchievements: () => request<T.Achievement[]>("/admin/achievements"),
+  createAchievement: (input: unknown) => request<T.Achievement>("/admin/achievements", { method: "POST", body: input }),
+  updateAchievement: (id: string, input: unknown) =>
+    request<T.Achievement>(`/admin/achievements/${id}`, { method: "PATCH", body: input }),
 
   listInvitations: (params: { page?: number; pageSize?: number } = {}) =>
     request<{ items: T.Invitation[]; total: number }>(`/admin/invitations${qs(params)}`),

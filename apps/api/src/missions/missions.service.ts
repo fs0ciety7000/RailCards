@@ -174,4 +174,30 @@ export class MissionsService {
       return { ...userAchievement, ...levelUp };
     });
   }
+
+  // ── Admin write operations ──────────────────────────────────────────
+
+  async listAllMissionsForAdmin() {
+    return this.prisma.mission.findMany({ orderBy: { createdAt: "asc" } });
+  }
+
+  async createMission(data: Parameters<PrismaService["mission"]["create"]>[0]["data"]) {
+    return this.prisma.mission.create({ data });
+  }
+
+  async updateMission(id: string, data: Parameters<PrismaService["mission"]["update"]>[0]["data"]) {
+    return this.prisma.mission.update({ where: { id }, data });
+  }
+
+  async listAllAchievementsForAdmin() {
+    return this.prisma.achievement.findMany({ orderBy: { createdAt: "asc" } });
+  }
+
+  async createAchievement(data: Parameters<PrismaService["achievement"]["create"]>[0]["data"]) {
+    return this.prisma.achievement.create({ data });
+  }
+
+  async updateAchievement(id: string, data: Parameters<PrismaService["achievement"]["update"]>[0]["data"]) {
+    return this.prisma.achievement.update({ where: { id }, data });
+  }
 }

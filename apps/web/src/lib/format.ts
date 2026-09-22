@@ -28,6 +28,16 @@ export const CARD_CATEGORY_LABELS: Record<string, string> = {
   SPECIAL_EDITION: "Édition spéciale",
 };
 
+export const MISSION_GOAL_TYPE_LABELS: Record<string, string> = {
+  OPEN_BOOSTER: "Ouvrir un booster",
+  COLLECT_UNIQUE_CARDS: "Collectionner des cartes uniques",
+  COMPLETE_TRADE: "Compléter un échange",
+  SELL_ON_MARKET: "Vendre sur le marché",
+  BUY_ON_MARKET: "Acheter sur le marché",
+  LOGIN: "Se connecter",
+  COMPLETE_SERIES: "Compléter une série",
+};
+
 export const ACQUISITION_LABELS: Record<string, string> = {
   BOOSTER: "Booster",
   TRADE: "Échange",

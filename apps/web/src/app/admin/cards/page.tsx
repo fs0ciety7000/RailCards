@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, CheckCircle2, PlusCircle, Pencil } from "lucide-react";
+import { Archive, CheckCircle2, PlusCircle, Pencil, Trash2 } from "lucide-react";
 import { createCardSchema, updateCardSchema, type CreateCardInput, type UpdateCardInput } from "@railcards/contracts";
 import {
   Badge,
@@ -26,7 +26,7 @@ import {
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
 import { ImageUrlField } from "@/components/ImageUrlField";
-import { adminApi, catalogApi } from "@/lib/api";
+import { ApiError, adminApi, catalogApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { CARD_CATEGORY_LABELS } from "@/lib/format";
 import type { CardDefinition } from "@/lib/types";
@@ -288,6 +288,8 @@ function CardsList() {
   const queryClient = useQueryClient();
   const [archiveTarget, setArchiveTarget] = useState<string | null>(null);
   const [editTarget, setEditTarget] = useState<CardDefinition | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CardDefinition | null>(null);
+  const [cascadeTarget, setCascadeTarget] = useState<{ card: CardDefinition; message: string } | null>(null);
   const cardsQuery = useQuery({ queryKey: ["admin", "cards"], queryFn: () => adminApi.listCards({ pageSize: 100 }) });
 
   const publishMutation = useMutation({
@@ -307,6 +309,29 @@ function CardsList() {
       void queryClient.invalidateQueries({ queryKey: ["admin", "cards"] });
     },
     onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ card, cascade }: { card: CardDefinition; cascade: boolean }) => adminApi.deleteCard(card.id, cascade),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Carte supprimée" });
+      setDeleteTarget(null);
+      setCascadeTarget(null);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "cards"] });
+    },
+    onError: (err, { card }) => {
+      // A card with owned instances is refused without cascade — offer the
+      // cascading delete explicitly instead of just showing an error, so
+      // the admin sees exactly what they're about to remove before
+      // confirming. A refusal for reserved (mid-trade/sale) instances has
+      // no such follow-up: those must be resolved first.
+      if (err instanceof ApiError && err.statusCode === 409 && /exemplaire\(s\) de cette carte existent/.test(err.message)) {
+        setDeleteTarget(null);
+        setCascadeTarget({ card, message: err.message });
+        return;
+      }
+      toast.show({ tone: "error", title: "Suppression impossible", description: getErrorMessage(err) });
+    },
   });
 
   if (cardsQuery.isLoading) return <Skeleton className="h-64 w-full" />;
@@ -375,6 +400,16 @@ function CardsList() {
                         Archiver
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      icon={<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                      onClick={() => setDeleteTarget(card)}
+                      className="hover:bg-rc-danger/10"
+                      style={{ color: "var(--color-rc-danger)" }}
+                    >
+                      Supprimer
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -391,6 +426,26 @@ function CardsList() {
         description="La carte ne sera plus proposée dans les boosters, mais les exemplaires déjà possédés restent inchangés."
         destructive
         confirmLabel="Archiver"
+      />
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate({ card: deleteTarget, cascade: false })}
+        loading={deleteMutation.isPending}
+        title="Supprimer définitivement cette carte ?"
+        description="Action irréversible. Si aucun joueur n'en possède d'exemplaire, la carte est supprimée immédiatement — sinon, un choix de suppression en cascade vous sera proposé."
+        destructive
+        confirmLabel="Supprimer"
+      />
+      <ConfirmDialog
+        open={!!cascadeTarget}
+        onClose={() => setCascadeTarget(null)}
+        onConfirm={() => cascadeTarget && deleteMutation.mutate({ card: cascadeTarget.card, cascade: true })}
+        loading={deleteMutation.isPending}
+        title="Supprimer aussi des collections des joueurs ?"
+        description={`${cascadeTarget?.message ?? ""} Les exemplaires possédés, ainsi que leur historique d'échange/vente/booster, seront retirés définitivement.`}
+        destructive
+        confirmLabel="Supprimer en cascade"
       />
       <EditCardDialog card={editTarget} onClose={() => setEditTarget(null)} />
     </Card>

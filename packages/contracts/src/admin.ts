@@ -104,3 +104,57 @@ export const adjustWalletSchema = z.object({
   reason: z.string().max(280).optional().or(z.literal("")),
 });
 export type AdjustWalletInput = z.infer<typeof adjustWalletSchema>;
+
+export const missionGoalTypeSchema = z.enum([
+  "OPEN_BOOSTER",
+  "COLLECT_UNIQUE_CARDS",
+  "COMPLETE_TRADE",
+  "SELL_ON_MARKET",
+  "BUY_ON_MARKET",
+  "LOGIN",
+  "COMPLETE_SERIES",
+]);
+export type MissionGoalTypeInput = z.infer<typeof missionGoalTypeSchema>;
+
+const missionBaseFields = {
+  title: z.string().min(2).max(120),
+  description: z.string().min(1),
+  goalType: missionGoalTypeSchema,
+  goalCount: z.coerce.number().int().min(1),
+  rewardCr: z.coerce.number().int().min(0).optional(),
+  rewardXp: z.coerce.number().int().min(0).optional(),
+};
+
+export const createMissionSchema = z.object({
+  code: z.string().min(2).max(80),
+  ...missionBaseFields,
+  resetPeriod: z.enum(["NONE", "DAILY"]).optional(),
+});
+export type CreateMissionInput = z.infer<typeof createMissionSchema>;
+
+export const updateMissionSchema = z.object({
+  ...missionBaseFields,
+  title: missionBaseFields.title.optional(),
+  description: missionBaseFields.description.optional(),
+  goalType: missionBaseFields.goalType.optional(),
+  goalCount: missionBaseFields.goalCount.optional(),
+  resetPeriod: z.enum(["NONE", "DAILY"]).optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateMissionInput = z.infer<typeof updateMissionSchema>;
+
+export const createAchievementSchema = z.object({
+  code: z.string().min(2).max(80),
+  ...missionBaseFields,
+});
+export type CreateAchievementInput = z.infer<typeof createAchievementSchema>;
+
+export const updateAchievementSchema = z.object({
+  ...missionBaseFields,
+  title: missionBaseFields.title.optional(),
+  description: missionBaseFields.description.optional(),
+  goalType: missionBaseFields.goalType.optional(),
+  goalCount: missionBaseFields.goalCount.optional(),
+  isActive: z.boolean().optional(),
+});
+export type UpdateAchievementInput = z.infer<typeof updateAchievementSchema>;

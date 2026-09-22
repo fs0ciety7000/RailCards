@@ -250,6 +250,7 @@ export interface Mission {
   rewardCr: number;
   rewardXp: number;
   resetPeriod: "NONE" | "DAILY";
+  isActive: boolean;
 }
 
 export interface MissionProgress {
@@ -270,6 +271,7 @@ export interface Achievement {
   goalCount: number;
   rewardCr: number;
   rewardXp: number;
+  isActive: boolean;
 }
 
 export interface AchievementProgress {
