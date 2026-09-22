@@ -24,9 +24,11 @@ COPY --from=pruner /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .
 COPY tsconfig.base.json tsconfig.base.json
-# The Prisma schema and migrations live at the repo root, outside any
-# workspace package, so `turbo prune` doesn't pick them up automatically.
+# The Prisma schema/migrations and the ops scripts (grant-credits.js,
+# set-admin-role.js, ...) live at the repo root, outside any workspace
+# package, so `turbo prune` doesn't pick them up automatically.
 COPY prisma prisma
+COPY scripts scripts
 
 RUN pnpm --filter @railcards/database prisma:generate
 RUN pnpm turbo run build
