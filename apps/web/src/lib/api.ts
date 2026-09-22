@@ -271,6 +271,8 @@ export const usersApi = {
     request<T.CardDefinition[]>("/me/favorites", { method: "POST", body: { cardDefinitionId } }),
   removeFavorite: (cardDefinitionId: string) =>
     request<T.CardDefinition[]>(`/me/favorites/${cardDefinitionId}`, { method: "DELETE" }),
+  search: (q: string) =>
+    request<{ username: string; displayName: string; avatarUrl: string | null }[]>(`/users/search${qs({ q })}`),
 };
 
 // ── Leaderboard ──────────────────────────────────────────────────────────

@@ -77,4 +77,32 @@ describe("Users: self-service profile (e2e, real Postgres)", () => {
       .set("Authorization", `Bearer ${adminToken}`)
       .expect(200);
   });
+
+  describe("GET /users/search", () => {
+    it("finds a user by a case-insensitive partial username match, excluding the requester", async () => {
+      const searcher = await registerUser(app, adminToken, "searcher");
+      const target = await registerUser(app, adminToken, "railfan");
+
+      const res = await request(app.getHttpServer())
+        .get("/api/v1/users/search")
+        .query({ q: target.username.slice(0, 5).toUpperCase() })
+        .set("Authorization", `Bearer ${searcher.accessToken}`)
+        .expect(200);
+
+      expect(res.body.some((u: { username: string }) => u.username === target.username)).toBe(true);
+      expect(res.body.some((u: { username: string }) => u.username === searcher.username)).toBe(false);
+    });
+
+    it("returns nothing for a query shorter than 2 characters", async () => {
+      const { accessToken } = await registerUser(app, adminToken, "shortq");
+
+      const res = await request(app.getHttpServer())
+        .get("/api/v1/users/search")
+        .query({ q: "a" })
+        .set("Authorization", `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+  });
 });

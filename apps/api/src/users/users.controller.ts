@@ -56,6 +56,14 @@ export class UsersController {
     return this.favorites.remove(user.id, cardDefinitionId);
   }
 
+  // Declared before "users/:username" — Nest matches routes in registration
+  // order, so this static segment must come first or "search" would be
+  // swallowed as a :username param.
+  @Get("users/search")
+  async searchUsers(@CurrentUser() user: AuthenticatedUser, @Query("q") q = "") {
+    return this.usersService.searchUsernames(q, user.id);
+  }
+
   @Get("users/:username")
   async publicProfile(@CurrentUser() user: AuthenticatedUser, @Param("username") username: string) {
     return this.usersService.getPublicProfile(username, user);

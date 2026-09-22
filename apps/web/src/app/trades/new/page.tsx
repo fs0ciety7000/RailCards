@@ -25,6 +25,7 @@ import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { collectionApi, tradesApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
+import { Avatar } from "@/components/Avatar";
 import type { CardInstance } from "@/lib/types";
 
 function CardPicker({
@@ -126,6 +127,7 @@ function NewTradeForm() {
   const [offered, setOffered] = useState<string[]>(preselected ? [preselected] : []);
   const [requested, setRequested] = useState<string[]>([]);
   const [debouncedRecipient, setDebouncedRecipient] = useState(lockedRecipient.toLowerCase());
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
   const inventoryQuery = useQuery({
     queryKey: ["collection", "available-for-trade"],
@@ -138,6 +140,13 @@ function NewTradeForm() {
     enabled: debouncedRecipient.length >= 3,
     retry: false,
   });
+
+  const recipientSuggestionsQuery = useQuery({
+    queryKey: ["users", "search", debouncedRecipient],
+    queryFn: () => usersApi.search(debouncedRecipient),
+    enabled: !counterOf && debouncedRecipient.length >= 2,
+  });
+  const suggestions = recipientSuggestionsQuery.data ?? [];
 
   const {
     register,
@@ -161,9 +170,18 @@ function NewTradeForm() {
       setDebouncedRecipient(lockedRecipient.toLowerCase());
       return;
     }
-    const timer = setTimeout(() => setDebouncedRecipient(recipientUsername.trim().toLowerCase()), 400);
+    const timer = setTimeout(() => {
+      setDebouncedRecipient(recipientUsername.trim().toLowerCase());
+      setSuggestionsOpen(recipientUsername.trim().length >= 2);
+    }, 400);
     return () => clearTimeout(timer);
   }, [recipientUsername, counterOf, lockedRecipient]);
+
+  function selectRecipient(username: string) {
+    setValue("recipientUsername", username, { shouldValidate: true });
+    setDebouncedRecipient(username.toLowerCase());
+    setSuggestionsOpen(false);
+  }
 
   function toggleOffered(id: string) {
     setOffered((prev) => {
@@ -214,12 +232,39 @@ function NewTradeForm() {
           <form onSubmit={handleSubmit((v) => submitMutation.mutate(v))} noValidate>
             <FieldGroup>
               <Label htmlFor="recipientUsername">Nom d&apos;utilisateur du destinataire</Label>
-              <Input
-                id="recipientUsername"
-                invalid={!!errors.recipientUsername}
-                disabled={!!counterOf}
-                {...register("recipientUsername")}
-              />
+              <div className="relative">
+                <Input
+                  id="recipientUsername"
+                  invalid={!!errors.recipientUsername}
+                  disabled={!!counterOf}
+                  autoComplete="off"
+                  {...register("recipientUsername")}
+                  onFocus={() => setSuggestionsOpen(recipientUsername.trim().length >= 2)}
+                  onBlur={() => setSuggestionsOpen(false)}
+                />
+                {suggestionsOpen && suggestions.length > 0 && (
+                  <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-rc-border bg-rc-surface shadow-lg">
+                    {suggestions.map((s) => (
+                      <li key={s.username}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            selectRecipient(s.username);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-white/5"
+                        >
+                          <Avatar avatarUrl={s.avatarUrl} displayName={s.displayName} isAdmin={false} size={28} />
+                          <span className="min-w-0">
+                            <span className="block truncate text-white">{s.displayName}</span>
+                            <span className="block truncate text-xs text-white/50">@{s.username}</span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
               <FieldError>{errors.recipientUsername?.message}</FieldError>
             </FieldGroup>
 

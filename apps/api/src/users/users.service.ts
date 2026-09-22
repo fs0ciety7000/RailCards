@@ -43,6 +43,29 @@ export class UsersService {
   }
 
   /**
+   * Lightweight username/display-name autocomplete for pickers like the
+   * trade recipient field — active accounts only, excluding the requester
+   * themselves, capped small since this is a type-ahead, not a directory.
+   * A hidden profile still trades normally, so it isn't filtered out here
+   * (only its detail view is gated, in getPublicProfile).
+   */
+  async searchUsernames(query: string, requesterId: string) {
+    const q = query.trim();
+    if (q.length < 2) return [];
+    const users = await this.prisma.user.findMany({
+      where: {
+        status: "ACTIVE",
+        id: { not: requesterId },
+        OR: [{ username: { contains: q, mode: "insensitive" } }, { displayName: { contains: q, mode: "insensitive" } }],
+      },
+      select: { username: true, displayName: true, avatarUrl: true },
+      orderBy: { username: "asc" },
+      take: 8,
+    });
+    return users;
+  }
+
+  /**
    * `viewerId` is who's asking: the profile owner and admins can always see
    * a profile, even when its owner has hidden it from everyone else.
    */
