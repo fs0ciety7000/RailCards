@@ -1,36 +1,74 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import type { CardInstanceState, Prisma } from "@railcards/database";
+import { Prisma, type CardInstanceState } from "@railcards/database";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class CollectionService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Owned card instances, stacked by (cardDefinitionId, state) — a player
+   * holding 5 copies of the same card in the same state sees one grouped
+   * entry with a count, not 5 separate tiles. The grouping (and its count)
+   * happens in SQL, and pagination applies to the resulting groups, not
+   * the raw instance rows — otherwise duplicates split across a page
+   * boundary would silently stop stacking once a collection outgrew a
+   * single page.
+   */
   async listInventory(
     userId: string,
     params: { page: number; pageSize: number; seriesId?: string; rarityCode?: string; state?: CardInstanceState },
   ) {
-    const where: Prisma.CardInstanceWhereInput = {
-      ownerId: userId,
-      state: params.state,
-      cardDefinition: {
-        seriesId: params.seriesId,
-        rarity: params.rarityCode ? { code: params.rarityCode } : undefined,
-      },
-    };
+    const seriesFilter = params.seriesId ? Prisma.sql`AND cd."seriesId" = ${params.seriesId}` : Prisma.empty;
+    const rarityFilter = params.rarityCode ? Prisma.sql`AND r.code = ${params.rarityCode}` : Prisma.empty;
+    const stateFilter = params.state ? Prisma.sql`AND ci.state = ${params.state}::"CardInstanceState"` : Prisma.empty;
+    const offset = (params.page - 1) * params.pageSize;
 
-    const [items, total] = await Promise.all([
-      this.prisma.cardInstance.findMany({
-        where,
-        include: { cardDefinition: { include: { series: true, rarity: true } } },
-        orderBy: { acquiredAt: "desc" },
-        skip: (params.page - 1) * params.pageSize,
-        take: params.pageSize,
-      }),
-      this.prisma.cardInstance.count({ where }),
+    const groups = await this.prisma.$queryRaw<
+      { cardDefinitionId: string; state: CardInstanceState; count: number; representativeId: string }[]
+    >`
+      SELECT
+        ci."cardDefinitionId",
+        ci.state,
+        COUNT(*)::int AS count,
+        (array_agg(ci.id ORDER BY ci."acquiredAt" DESC))[1] AS "representativeId"
+      FROM "CardInstance" ci
+      JOIN "CardDefinition" cd ON cd.id = ci."cardDefinitionId"
+      JOIN "Rarity" r ON r.id = cd."rarityId"
+      WHERE ci."ownerId" = ${userId} ${seriesFilter} ${rarityFilter} ${stateFilter}
+      GROUP BY ci."cardDefinitionId", ci.state
+      ORDER BY MAX(ci."acquiredAt") DESC
+      LIMIT ${params.pageSize} OFFSET ${offset}
+    `;
+
+    const [totalResult, instances] = await Promise.all([
+      this.prisma.$queryRaw<{ count: number }[]>`
+        SELECT COUNT(*)::int AS count FROM (
+          SELECT 1
+          FROM "CardInstance" ci
+          JOIN "CardDefinition" cd ON cd.id = ci."cardDefinitionId"
+          JOIN "Rarity" r ON r.id = cd."rarityId"
+          WHERE ci."ownerId" = ${userId} ${seriesFilter} ${rarityFilter} ${stateFilter}
+          GROUP BY ci."cardDefinitionId", ci.state
+        ) t
+      `,
+      groups.length > 0
+        ? this.prisma.cardInstance.findMany({
+            where: { id: { in: groups.map((g) => g.representativeId) } },
+            include: { cardDefinition: { include: { series: true, rarity: true } } },
+          })
+        : Promise.resolve([]),
     ]);
 
-    return { items, total };
+    const instanceById = new Map(instances.map((i) => [i.id, i]));
+    const items = groups
+      .map((g) => {
+        const instance = instanceById.get(g.representativeId);
+        return instance ? { ...instance, count: g.count } : null;
+      })
+      .filter((i): i is NonNullable<typeof i> => i !== null);
+
+    return { items, total: totalResult[0]?.count ?? 0 };
   }
 
   async getInstanceDetail(userId: string, instanceId: string) {

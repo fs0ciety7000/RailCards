@@ -1,8 +1,14 @@
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
+import { GAME_CONSTANTS } from "@railcards/game-domain";
 import { createTestApp } from "./utils/test-app";
 import { loginAdmin, registerUser } from "./utils/fixtures";
+
+// A fresh registration auto-grants the founders card while the cutoff hasn't
+// passed (see AuthService.grantFoundersCardIfEligible), adding one instance
+// on top of whatever's drawn from boosters.
+const FOUNDERS_CARD_INSTANCES = new Date() < new Date(GAME_CONSTANTS.FOUNDERS_CARD_CUTOFF_ISO) ? 1 : 0;
 
 async function openBooster(app: INestApplication, token: string, slug = "booster-decouverte") {
   const res = await request(app.getHttpServer())
@@ -51,11 +57,14 @@ describe("Admin: user lifecycle — grant cards, reset collection, delete accoun
       .get("/api/v1/collection?pageSize=50")
       .set("Authorization", `Bearer ${accessToken}`)
       .expect(200);
+    // The collection listing stacks same-card/same-state duplicates into a
+    // single grouped entry with a count, rather than 3 separate rows.
     const granted = collection.body.items.filter(
       (i: { cardDefinition: { id: string }; acquiredVia: string }) =>
         i.cardDefinition.id === someCardId && i.acquiredVia === "ADMIN_GRANT",
     );
-    expect(granted).toHaveLength(3);
+    expect(granted).toHaveLength(1);
+    expect(granted[0].count).toBe(3);
 
     const notifications = await request(app.getHttpServer())
       .get("/api/v1/notifications?pageSize=20")
@@ -76,8 +85,8 @@ describe("Admin: user lifecycle — grant cards, reset collection, delete accoun
 
   it("resets a player's entire collection without touching the rest of the account", async () => {
     const { accessToken, user } = await registerUser(app, adminToken, "resetcarduser");
-    await openBooster(app, accessToken);
-    await openBooster(app, accessToken);
+    await openBooster(app, accessToken); // 3 raw instances (booster-decouverte)
+    await openBooster(app, accessToken); // 3 more — 6 total, though possibly fewer distinct (cardDefinitionId, state) groups
 
     const before = await request(app.getHttpServer())
       .get("/api/v1/collection?pageSize=50")
@@ -89,7 +98,9 @@ describe("Admin: user lifecycle — grant cards, reset collection, delete accoun
       .post(`/api/v1/admin/users/${user.id}/reset-cards`)
       .set("Authorization", `Bearer ${adminToken}`)
       .expect(201);
-    expect(resetRes.body.instancesRemoved).toBe(before.body.total);
+    // instancesRemoved counts raw CardInstance rows; the collection listing
+    // stacks duplicates into groups, so it can report a smaller `total`.
+    expect(resetRes.body.instancesRemoved).toBe(6 + FOUNDERS_CARD_INSTANCES);
 
     const after = await request(app.getHttpServer())
       .get("/api/v1/collection?pageSize=50")

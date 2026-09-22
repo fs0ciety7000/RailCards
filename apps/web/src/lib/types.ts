@@ -108,7 +108,14 @@ export interface CardDefinition {
 }
 
 export type CardInstanceState = "AVAILABLE" | "RESERVED_TRADE" | "RESERVED_MARKET" | "ARCHIVED";
-export type AcquisitionSource = "BOOSTER" | "TRADE" | "MARKET" | "ADMIN_GRANT" | "MISSION_REWARD" | "ACHIEVEMENT_REWARD";
+export type AcquisitionSource =
+  | "BOOSTER"
+  | "TRADE"
+  | "MARKET"
+  | "ADMIN_GRANT"
+  | "MISSION_REWARD"
+  | "ACHIEVEMENT_REWARD"
+  | "FOUNDER_GRANT";
 
 export interface CardInstance {
   id: string;
@@ -119,6 +126,8 @@ export interface CardInstance {
   state: CardInstanceState;
   acquiredVia: AcquisitionSource;
   acquiredAt: string;
+  /** Present on grouped listings (e.g. the collection grid): how many owned copies this entry stacks for. */
+  count?: number;
 }
 
 export interface CardInstanceDetail extends CardInstance {
