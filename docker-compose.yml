@@ -62,7 +62,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # Domain (e.g. api.railcards.fs0ciety.org) + HTTPS: assigned in the
+    # Domain (single-level subdomain, e.g. railcards-api.fs0ciety.org — see
+    # docs/deployment.md on why not a nested one) + HTTPS: assigned in the
     # Coolify UI. ALL Traefik routing is managed by Coolify — NO labels.
 
   worker:

@@ -13,10 +13,19 @@ Le `docker-compose.yml` racine définit 5 services :
 | Service | Rôle | Domaine public |
 |---|---|---|
 | `web` | Next.js (`apps/web`), image standalone | `railcards.fs0ciety.org` |
-| `api` | NestJS (`apps/api`) — REST + WebSocket | `api.railcards.fs0ciety.org` |
+| `api` | NestJS (`apps/api`) — REST + WebSocket | `railcards-api.fs0ciety.org` |
 | `worker` | BullMQ (`apps/worker`) — purge des échanges expirés | aucun (interne) |
 | `postgres` | PostgreSQL 16 | aucun (interne) |
 | `redis` | Redis 7 | aucun (interne) |
+
+**Sous-domaines à un seul niveau, toujours** — `railcards-api.fs0ciety.org`,
+pas `api.railcards.fs0ciety.org`. Le certificat Universal SSL gratuit de
+Cloudflare ne couvre qu'un seul niveau de sous-domaine sous l'apex
+(`*.fs0ciety.org`) ; un deuxième niveau (`api.railcards.fs0ciety.org`)
+échoue au handshake TLS (`SSL handshake failure`) tant que Cloudflare
+« Total TLS » n'est pas activé pour cette zone. Même convention que les
+autres projets sur cette instance (`db.fs0ciety.org`, `blog.fs0ciety.org`,
+etc.).
 
 Chaque app (`web`, `api`, `worker`) a son propre `Dockerfile` multi-stage
 (`apps/*/Dockerfile`), construit avec la **racine du dépôt comme contexte de
@@ -49,8 +58,9 @@ schéma n'est pas encore à jour.
 ### 1. Pointer le domaine
 
 Ajoutez les enregistrements DNS pour `railcards.fs0ciety.org` et
-`api.railcards.fs0ciety.org` vers votre instance Coolify, de la même façon
-que pour vos autres projets sur `fs0ciety.org`.
+`railcards-api.fs0ciety.org` (CNAME proxié vers `fs0ciety.org`, comme vos
+autres sous-domaines) vers votre instance Coolify. Voir l'encadré ci-dessus
+sur pourquoi ce sont bien des sous-domaines à un seul niveau.
 
 ### 2. Créer la ressource dans Coolify
 
@@ -74,8 +84,8 @@ Dans l'onglet *Environment Variables* de la ressource Coolify, définissez
 | `JWT_REFRESH_SECRET` | secret généré |
 | `COOKIE_SECRET` | secret généré |
 | `WEB_BASE_URL` | `https://railcards.fs0ciety.org` |
-| `NEXT_PUBLIC_API_BASE_URL` | `https://api.railcards.fs0ciety.org/api/v1` |
-| `NEXT_PUBLIC_WS_URL` | `https://api.railcards.fs0ciety.org` |
+| `NEXT_PUBLIC_API_BASE_URL` | `https://railcards-api.fs0ciety.org/api/v1` |
+| `NEXT_PUBLIC_WS_URL` | `https://railcards-api.fs0ciety.org` |
 | `INVITE_ONLY_MODE` | `true` (garde le jeu fermé tant que non annoncé) |
 
 Toutes les autres variables de [`.env.example`](../.env.example) ont des
@@ -97,7 +107,7 @@ complet (pas juste un restart).
 Dans l'onglet *Domains* de la ressource :
 
 - Service `web`, port `3000` → `https://railcards.fs0ciety.org`
-- Service `api`, port `4000` → `https://api.railcards.fs0ciety.org`
+- Service `api`, port `4000` → `https://railcards-api.fs0ciety.org`
 
 Ne pas assigner de domaine à `worker`, `postgres` ou `redis` : ils n'ont pas
 de port HTTP à exposer et ne doivent jamais être accessibles publiquement
@@ -129,7 +139,7 @@ soient inscrits**, il recréerait ces comptes de test.
 ### 7. Vérification post-déploiement
 
 ```bash
-curl https://api.railcards.fs0ciety.org/api/v1/health
+curl https://railcards-api.fs0ciety.org/api/v1/health
 # → {"status":"ok","timestamp":"..."}
 ```
 
