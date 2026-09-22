@@ -208,8 +208,11 @@ export function CardFrame({
         className="relative h-full w-full"
         style={prefersReduced ? undefined : { rotateX: springX, rotateY: springY }}
       >
-        {/* Outer frame: the thick tiered border that makes this read as a card, not a photo. */}
-        <div className={cn("relative h-full w-full rounded-2xl", frame.thickness)} style={frame.frameStyle(hex)}>
+        {/* Outer frame: the thick tiered border that makes this read as a card, not a photo.
+            overflow-hidden clips the Mythique holo-spin overlay below (it deliberately
+            extends past the card body for a soft glow) to the card's own rounded rect —
+            without it, the overlay bleeds across the entire page. */}
+        <div className={cn("relative h-full w-full overflow-hidden rounded-2xl", frame.thickness)} style={frame.frameStyle(hex)}>
           {frame.holo && (
             <div
               aria-hidden="true"
