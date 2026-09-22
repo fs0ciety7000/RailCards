@@ -260,6 +260,12 @@ export const usersApi = {
     request<T.Paginated<T.CardInstance>>(`/users/${username}/collection${qs(params)}`),
 };
 
+// ── Leaderboard ──────────────────────────────────────────────────────────
+
+export const leaderboardApi = {
+  top: (limit = 50) => request<T.LeaderboardEntry[]>(`/leaderboard${qs({ limit })}`),
+};
+
 // ── Missions & achievements ─────────────────────────────────────────────
 
 export const missionsApi = {

@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import {
   ArrowLeftRight,
   Bell,
+  Crown,
   Folder,
   Home,
   LogOut,
@@ -34,6 +35,7 @@ const PRIMARY_TABS = [
 
 const SECONDARY_LINKS = [
   { href: "/missions", label: "Missions & hauts faits", icon: Trophy },
+  { href: "/leaderboard", label: "Classement", icon: Crown },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/boosters/history", label: "Historique boosters", icon: Repeat },
 ];

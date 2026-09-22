@@ -44,6 +44,19 @@ export interface PublicProfile {
   totalSeriesCount: number;
 }
 
+export interface LeaderboardEntry {
+  rank: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: UserRole;
+  xp: number;
+  level: number;
+  grade: string;
+  uniqueCardCount: number;
+  completeSeriesCount: number;
+}
+
 export interface LevelUpInfo {
   leveledUp: boolean;
   newLevel: number;
