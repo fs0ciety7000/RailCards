@@ -161,6 +161,12 @@ export const authApi = {
     request<AuthResponse>("/auth/login", { method: "POST", body: input, skipAuthRetry: true }),
   refresh: () => request<AuthResponse>("/auth/refresh", { method: "POST", skipAuthRetry: true }),
   logout: () => request<{ success: boolean }>("/auth/logout", { method: "POST", skipAuthRetry: true }),
+  changePassword: (input: { currentPassword: string; newPassword: string }) =>
+    request<AuthResponse>("/auth/change-password", { method: "POST", body: input }),
+  forgotPassword: (input: { email: string }) =>
+    request<{ message: string }>("/auth/forgot-password", { method: "POST", body: input, skipAuthRetry: true }),
+  resetPassword: (input: { token: string; password: string }) =>
+    request<{ message: string }>("/auth/reset-password", { method: "POST", body: input, skipAuthRetry: true }),
 };
 
 // ── Catalog ──────────────────────────────────────────────────────────────
@@ -195,6 +201,8 @@ export const boostersApi = {
       body: { boosterSlug },
       headers: { "Idempotency-Key": idempotencyKey },
     }),
+  freeStatus: () => request<T.FreeBoosterStatus>("/boosters/free/status"),
+  claimFree: () => request<T.BoosterOpening>("/boosters/free/claim", { method: "POST" }),
 };
 
 // ── Market ───────────────────────────────────────────────────────────────

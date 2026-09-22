@@ -99,6 +99,15 @@ async function seedCatalog(rarityIdByCode: Record<string, string>) {
 async function seedBoosters(rarityIdByCode: Record<string, string>, seriesIdBySlug: Record<string, string>) {
   const boosterDefs = [
     {
+      slug: GAME_CONSTANTS.FREE_BOOSTER_SLUG,
+      name: "Booster Gratuit",
+      description: `2 cartes offertes, à réclamer toutes les ${GAME_CONSTANTS.FREE_BOOSTER_INTERVAL_HOURS} heures.`,
+      category: "DISCOVERY" as const,
+      priceCr: 0,
+      cardCount: 2,
+      seriesSlug: null as string | null,
+    },
+    {
       slug: "booster-decouverte",
       name: "Booster Découverte",
       description: "L'entrée idéale dans RailCards : 3 cartes toutes séries confondues, à prix doux.",

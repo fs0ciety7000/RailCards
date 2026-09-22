@@ -184,6 +184,11 @@ export interface BoosterOpening {
   pulls: BoosterPull[];
 }
 
+export interface FreeBoosterStatus {
+  claimable: boolean;
+  nextAvailableAt: string | null;
+}
+
 export type MarketListingStatus = "ACTIVE" | "SOLD" | "CANCELLED";
 
 export interface MarketListing {

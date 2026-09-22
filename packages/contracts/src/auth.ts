@@ -40,6 +40,12 @@ export const resetPasswordSchema = z.object({
 });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Mot de passe actuel requis"),
+  newPassword: passwordSchema,
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
 export interface AuthUserDto {
   id: string;
   email: string;

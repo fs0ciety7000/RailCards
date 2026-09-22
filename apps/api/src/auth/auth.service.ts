@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -32,8 +33,12 @@ export interface AuthResult {
   user: AuthenticatedUser;
 }
 
+const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
@@ -231,5 +236,66 @@ export class AuthService {
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /**
+   * Verifies the current password, sets the new one, and revokes every
+   * other session while issuing a fresh one for the caller — so changing
+   * your password logs every other device out but keeps this one signed in.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string, meta: SessionMeta): Promise<AuthResult> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) throw new UnauthorizedException("Current password is incorrect");
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+      this.prisma.session.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+    ]);
+
+    const authUser = this.toAuthenticatedUser(user);
+    const accessToken = this.signAccessToken(authUser);
+    const { rawToken, expiresAt } = await this.createSession(userId, meta);
+    return { accessToken, refreshToken: rawToken, refreshTokenExpiresAt: expiresAt, user: authUser };
+  }
+
+  /**
+   * Always succeeds from the caller's point of view, whether or not the
+   * email is registered, so this can't be used to enumerate accounts. The
+   * actual reset link is logged rather than emailed — no SMTP provider is
+   * configured by default (see .env.example / docs/product/known-limitations.md).
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user) return;
+
+    const rawToken = generateOpaqueToken();
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashOpaqueToken(rawToken),
+        expiresAt: new Date(Date.now() + PASSWORD_RESET_TTL_MS),
+      },
+    });
+
+    const webBaseUrl = (this.config.get<string>("WEB_BASE_URL") ?? "http://localhost:3000").replace(/\/+$/, "");
+    const resetUrl = `${webBaseUrl}/reset-password?token=${rawToken}`;
+    this.logger.log(`Password reset requested for ${user.email} — link (no SMTP configured, logging instead): ${resetUrl}`);
+  }
+
+  async resetPassword(rawToken: string, newPassword: string): Promise<void> {
+    const tokenHash = hashOpaqueToken(rawToken);
+    const resetToken = await this.prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+    if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
+      throw new BadRequestException("This reset link is invalid or has expired");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: resetToken.userId }, data: { passwordHash } }),
+      this.prisma.passwordResetToken.update({ where: { id: resetToken.id }, data: { usedAt: new Date() } }),
+      this.prisma.session.updateMany({ where: { userId: resetToken.userId, revokedAt: null }, data: { revokedAt: new Date() } }),
+    ]);
   }
 }

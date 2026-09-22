@@ -38,4 +38,14 @@ export class BoostersController {
   ) {
     return this.boosters.open(user.id, dto.boosterSlug, idempotencyKey);
   }
+
+  @Get("free/status")
+  async freeStatus(@CurrentUser() user: AuthenticatedUser) {
+    return this.boosters.freeBoosterStatus(user.id);
+  }
+
+  @Post("free/claim")
+  async claimFree(@CurrentUser() user: AuthenticatedUser) {
+    return this.boosters.claimFreeBooster(user.id);
+  }
 }

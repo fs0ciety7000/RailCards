@@ -1,9 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { drawBoosterCards } from "@railcards/game-domain";
+import type { Prisma } from "@railcards/database";
+import { drawBoosterCards, GAME_CONSTANTS } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { MissionsService } from "../missions/missions.service";
 import { resolveBoosterPool } from "./booster-pool-resolver";
+
+const FREE_BOOSTER_INTERVAL_MS = GAME_CONSTANTS.FREE_BOOSTER_INTERVAL_HOURS * 60 * 60 * 1000;
 
 @Injectable()
 export class BoostersService {
@@ -14,7 +17,12 @@ export class BoostersService {
   ) {}
 
   async listDefinitions() {
-    return this.prisma.boosterDefinition.findMany({ where: { isActive: true }, orderBy: { priceCr: "asc" } });
+    // The free, time-gated booster isn't part of the shop — it's claimed
+    // through its own dedicated endpoint, never bought.
+    return this.prisma.boosterDefinition.findMany({
+      where: { isActive: true, slug: { not: GAME_CONSTANTS.FREE_BOOSTER_SLUG } },
+      orderBy: { priceCr: "asc" },
+    });
   }
 
   // ── Admin write operations ──────────────────────────────────────────
@@ -93,6 +101,9 @@ export class BoostersService {
    * original result instead of drawing new cards or double-charging.
    */
   async open(userId: string, boosterSlug: string, clientIdempotencyKey: string) {
+    if (boosterSlug === GAME_CONSTANTS.FREE_BOOSTER_SLUG) {
+      throw new NotFoundException("Booster not found");
+    }
     if (!clientIdempotencyKey || clientIdempotencyKey.length < 8) {
       throw new BadRequestException("A valid Idempotency-Key header is required to open a booster");
     }
@@ -137,43 +148,7 @@ export class BoostersService {
         },
       });
 
-      const ownedDefinitionIdsBefore = new Set(
-        (
-          await tx.cardInstance.findMany({
-            where: { ownerId: userId, cardDefinitionId: { in: draws.map((d) => d.cardDefinitionId) } },
-            distinct: ["cardDefinitionId"],
-            select: { cardDefinitionId: true },
-          })
-        ).map((c) => c.cardDefinitionId),
-      );
-
-      let newUniqueCount = 0;
-      for (const [index, draw] of draws.entries()) {
-        const priorCount = await tx.cardInstance.count({ where: { cardDefinitionId: draw.cardDefinitionId } });
-        const cardInstance = await tx.cardInstance.create({
-          data: {
-            cardDefinitionId: draw.cardDefinitionId,
-            ownerId: userId,
-            serialNumber: priorCount + 1,
-            acquiredVia: "BOOSTER",
-          },
-        });
-        await tx.boosterPull.create({
-          data: {
-            boosterOpeningId: opening.id,
-            cardInstanceId: cardInstance.id,
-            cardDefinitionId: draw.cardDefinitionId,
-            rarityId: draw.rarityId,
-            position: index,
-          },
-        });
-        if (!ownedDefinitionIdsBefore.has(draw.cardDefinitionId)) newUniqueCount += 1;
-      }
-
-      await this.missions.recordProgress(tx, userId, "OPEN_BOOSTER", 1);
-      if (newUniqueCount > 0) {
-        await this.missions.recordProgress(tx, userId, "COLLECT_UNIQUE_CARDS", newUniqueCount);
-      }
+      await this.grantDrawnCards(tx, userId, opening.id, draws);
 
       return tx.boosterOpening.findUniqueOrThrow({
         where: { id: opening.id },
@@ -182,5 +157,114 @@ export class BoostersService {
         },
       });
     });
+  }
+
+  /** Creates the card instances/pulls for a drawn set and records mission progress. */
+  private async grantDrawnCards(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    openingId: string,
+    draws: { cardDefinitionId: string; rarityId: string }[],
+  ): Promise<void> {
+    const ownedDefinitionIdsBefore = new Set(
+      (
+        await tx.cardInstance.findMany({
+          where: { ownerId: userId, cardDefinitionId: { in: draws.map((d) => d.cardDefinitionId) } },
+          distinct: ["cardDefinitionId"],
+          select: { cardDefinitionId: true },
+        })
+      ).map((c) => c.cardDefinitionId),
+    );
+
+    let newUniqueCount = 0;
+    for (const [index, draw] of draws.entries()) {
+      const priorCount = await tx.cardInstance.count({ where: { cardDefinitionId: draw.cardDefinitionId } });
+      const cardInstance = await tx.cardInstance.create({
+        data: {
+          cardDefinitionId: draw.cardDefinitionId,
+          ownerId: userId,
+          serialNumber: priorCount + 1,
+          acquiredVia: "BOOSTER",
+        },
+      });
+      await tx.boosterPull.create({
+        data: {
+          boosterOpeningId: openingId,
+          cardInstanceId: cardInstance.id,
+          cardDefinitionId: draw.cardDefinitionId,
+          rarityId: draw.rarityId,
+          position: index,
+        },
+      });
+      if (!ownedDefinitionIdsBefore.has(draw.cardDefinitionId)) newUniqueCount += 1;
+    }
+
+    await this.missions.recordProgress(tx, userId, "OPEN_BOOSTER", 1);
+    if (newUniqueCount > 0) {
+      await this.missions.recordProgress(tx, userId, "COLLECT_UNIQUE_CARDS", newUniqueCount);
+    }
+  }
+
+  /**
+   * The free, time-gated booster: no price, no client idempotency key —
+   * the guard is `UserProfile.lastFreeBoosterAt`, advanced atomically via a
+   * conditional update so two concurrent claims can't both succeed.
+   */
+  async claimFreeBooster(userId: string) {
+    const boosterDef = await this.prisma.boosterDefinition.findUnique({
+      where: { slug: GAME_CONSTANTS.FREE_BOOSTER_SLUG },
+    });
+    if (!boosterDef || !boosterDef.isActive) throw new NotFoundException("Free booster is not available");
+
+    const pool = await this.prisma.boosterPool.findFirst({
+      where: { boosterDefinitionId: boosterDef.id, isActive: true },
+      orderBy: { rulesVersion: "desc" },
+    });
+    if (!pool) throw new NotFoundException("No active pool configured for the free booster");
+
+    const resolvedPool = await resolveBoosterPool(this.prisma, pool.id);
+    const draws = drawBoosterCards(boosterDef.cardCount, resolvedPool);
+
+    return this.prisma.$transaction(async (tx) => {
+      const now = new Date();
+      const cutoff = new Date(now.getTime() - FREE_BOOSTER_INTERVAL_MS);
+
+      const claimed = await tx.userProfile.updateMany({
+        where: { userId, OR: [{ lastFreeBoosterAt: null }, { lastFreeBoosterAt: { lt: cutoff } }] },
+        data: { lastFreeBoosterAt: now },
+      });
+      if (claimed.count === 0) {
+        const status = await this.freeBoosterStatus(userId, tx);
+        throw new BadRequestException(`Free booster not available yet — next claim at ${status.nextAvailableAt}`);
+      }
+
+      const opening = await tx.boosterOpening.create({
+        data: {
+          userId,
+          boosterDefinitionId: boosterDef.id,
+          boosterPoolId: pool.id,
+          idempotencyKey: `free-booster-${userId}-${now.getTime()}`,
+          pricePaidCr: 0,
+          walletTransactionId: null,
+        },
+      });
+
+      await this.grantDrawnCards(tx, userId, opening.id, draws);
+
+      return tx.boosterOpening.findUniqueOrThrow({
+        where: { id: opening.id },
+        include: {
+          pulls: { include: { cardDefinition: { include: { rarity: true } } }, orderBy: { position: "asc" } },
+        },
+      });
+    });
+  }
+
+  async freeBoosterStatus(userId: string, tx: Prisma.TransactionClient | PrismaService = this.prisma) {
+    const profile = await tx.userProfile.findUnique({ where: { userId } });
+    const lastClaim = profile?.lastFreeBoosterAt ?? null;
+    if (!lastClaim) return { claimable: true, nextAvailableAt: null };
+    const nextAvailableAt = new Date(lastClaim.getTime() + FREE_BOOSTER_INTERVAL_MS);
+    return { claimable: nextAvailableAt <= new Date(), nextAvailableAt: nextAvailableAt.toISOString() };
   }
 }

@@ -318,7 +318,8 @@ function CardsList() {
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
             <tr className="border-b border-rc-border-strong text-xs font-semibold uppercase tracking-wide text-white/40">
-              <th className="py-2.5">Nom</th>
+              <th className="py-2.5">Image</th>
+              <th>Nom</th>
               <th>Série</th>
               <th>Rareté</th>
               <th>Statut</th>
@@ -328,6 +329,9 @@ function CardsList() {
           <tbody>
             {cardsQuery.data?.items.map((card) => (
               <tr key={card.id} className="border-b border-rc-border transition-colors odd:bg-white/[0.015] hover:bg-white/[0.035]">
+                <td className="py-2.5">
+                  <img src={card.imageUrl} alt="" className="h-10 w-10 rounded-md border border-rc-border object-cover" />
+                </td>
                 <td className="py-2.5 font-medium text-white">{card.name}</td>
                 <td className="text-white/60">{card.series?.name}</td>
                 <td>

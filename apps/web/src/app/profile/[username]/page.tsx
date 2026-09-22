@@ -3,19 +3,24 @@
 import { useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Lock, Unlock } from "lucide-react";
-import { Badge, Button, Card, CardBody, ErrorState, ProgressBar, Skeleton, useToast } from "@railcards/ui";
+import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Lock, Unlock, Pencil, ShieldCheck } from "lucide-react";
+import { changePasswordSchema, type ChangePasswordInput } from "@railcards/contracts";
+import { Badge, Button, Card, CardBody, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
-import { ApiError, usersApi } from "@/lib/api";
+import { ApiError, authApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
+import { useAuthStore } from "@/lib/auth-store";
 
 const AVATAR_ACCEPTED_TYPES = "image/png,image/jpeg,image/webp,image/gif";
+const BIO_MAX_LENGTH = 280;
 
 function AvatarUploadButton({ onUploaded }: { onUploaded: (url: string) => void }) {
   const toast = useToast();
@@ -51,6 +56,124 @@ function AvatarUploadButton({ onUploaded }: { onUploaded: (url: string) => void 
       </button>
       <input ref={fileInputRef} type="file" accept={AVATAR_ACCEPTED_TYPES} className="hidden" onChange={handleFile} />
     </>
+  );
+}
+
+function BioSection({ bio, isOwn, username }: { bio: string | null; isOwn: boolean; username: string }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(bio ?? "");
+
+  const updateBioMutation = useMutation({
+    mutationFn: (value: string) => usersApi.updateMe({ bio: value }),
+    onSuccess: () => {
+      setEditing(false);
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["users", "profile", username] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  if (!isOwn) {
+    if (!bio) return null;
+    return <p className="mt-3 max-w-sm text-sm text-white/70">{bio}</p>;
+  }
+
+  if (editing) {
+    return (
+      <div className="mt-3 w-full max-w-sm text-left">
+        <Textarea
+          value={draft}
+          maxLength={BIO_MAX_LENGTH}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Quelques mots sur vous…"
+          rows={3}
+        />
+        <div className="mt-1 flex items-center justify-between">
+          <span className="text-[11px] text-white/40">
+            {draft.length}/{BIO_MAX_LENGTH}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setDraft(bio ?? "");
+                setEditing(false);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button size="sm" loading={updateBioMutation.isPending} onClick={() => updateBioMutation.mutate(draft)}>
+              Enregistrer
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraft(bio ?? "");
+        setEditing(true);
+      }}
+      className="mt-3 flex max-w-sm items-start gap-1.5 text-left text-sm text-white/70 hover:text-white"
+    >
+      <Pencil className="mt-0.5 h-3 w-3 shrink-0 text-white/40" aria-hidden="true" />
+      {bio || <span className="text-white/40 italic">Ajouter une bio…</span>}
+    </button>
+  );
+}
+
+function ChangePasswordForm() {
+  const toast = useToast();
+  const setSession = useAuthStore((s) => s.setSession);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ChangePasswordInput>({ resolver: zodResolver(changePasswordSchema) });
+
+  async function onSubmit(values: ChangePasswordInput) {
+    try {
+      const res = await authApi.changePassword(values);
+      setSession(res.accessToken, res.user);
+      reset();
+      toast.show({ tone: "success", title: "Mot de passe modifié", description: "Vos autres sessions ont été déconnectées." });
+    } catch (err) {
+      toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) });
+    }
+  }
+
+  return (
+    <Card className="mt-4">
+      <CardBody>
+        <h2 className="mb-3 flex items-center gap-1.5 font-semibold text-white">
+          <ShieldCheck className="h-4 w-4 text-white/50" aria-hidden="true" />
+          Sécurité
+        </h2>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid gap-3">
+          <FieldGroup className="mb-0">
+            <Label htmlFor="currentPassword">Mot de passe actuel</Label>
+            <Input id="currentPassword" type="password" autoComplete="current-password" invalid={!!errors.currentPassword} {...register("currentPassword")} />
+            <FieldError>{errors.currentPassword?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup className="mb-0">
+            <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+            <Input id="newPassword" type="password" autoComplete="new-password" invalid={!!errors.newPassword} {...register("newPassword")} />
+            <FieldError>{errors.newPassword?.message}</FieldError>
+          </FieldGroup>
+          <Button type="submit" loading={isSubmitting} className="justify-self-start">
+            Changer le mot de passe
+          </Button>
+        </form>
+      </CardBody>
+    </Card>
   );
 }
 
@@ -116,6 +239,7 @@ function ProfileContent() {
             <p className="text-xl font-bold tracking-tight text-white">{profile.displayName}</p>
             <p className="text-sm text-white/50">@{profile.username}</p>
           </div>
+          <BioSection bio={profile.bio} isOwn={isOwn} username={profile.username} />
           <div className="flex items-center gap-2">
             <Badge tone="accent">{profile.grade}</Badge>
             {isAdmin && (
@@ -165,6 +289,8 @@ function ProfileContent() {
           </CardBody>
         </Card>
       )}
+
+      {isOwn && <ChangePasswordForm />}
     </div>
   );
 }

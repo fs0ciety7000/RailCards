@@ -8,6 +8,9 @@ import type { AuthenticatedUser } from "./auth.types";
 import { AuthService, type AuthResult } from "./auth.service";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
+import { ChangePasswordDto } from "./dto/change-password.dto";
+import { ForgotPasswordDto } from "./dto/forgot-password.dto";
+import { ResetPasswordDto } from "./dto/reset-password.dto";
 import { REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH } from "./auth.constants";
 
 @ApiTags("auth")
@@ -77,5 +80,32 @@ export class AuthController {
     await this.authService.logoutAll(user.id);
     res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
     return { success: true };
+  }
+
+  @ApiBearerAuth()
+  @Post("change-password")
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword, this.sessionMeta(req));
+    this.setRefreshCookie(res, result);
+    return this.toResponseBody(result);
+  }
+
+  @Public()
+  @Post("forgot-password")
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.requestPasswordReset(dto.email);
+    return { message: "Si cet email est enregistré, un lien de réinitialisation a été envoyé." };
+  }
+
+  @Public()
+  @Post("reset-password")
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.password);
+    return { message: "Mot de passe réinitialisé avec succès." };
   }
 }

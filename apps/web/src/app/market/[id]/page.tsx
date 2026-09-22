@@ -12,6 +12,7 @@ import { AppShell } from "@/components/AppShell";
 import { marketApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDateTime } from "@/lib/format";
+import { CombatStatsPanel, parseCombatStats } from "@/components/CombatStatsPanel";
 
 function ListingDetailContent() {
   const params = useParams<{ id: string }>();
@@ -86,6 +87,7 @@ function ListingDetailContent() {
   const card = listing.cardInstance.cardDefinition;
   const isOwn = meQuery.data?.username === listing.seller.username;
   const isSold = listing.status !== "ACTIVE";
+  const combatStats = card.combatStatsEnabled ? parseCombatStats(card.combatStats) : null;
 
   return (
     <motion.div
@@ -116,6 +118,8 @@ function ListingDetailContent() {
       <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">{card.name}</h1>
       <p className="mt-1 text-sm text-white/60">Vendue par @{listing.seller.username}</p>
       <p className="mt-1 text-xs text-white/40">Mise en vente le {formatDateTime(listing.createdAt)}</p>
+
+      {combatStats && <CombatStatsPanel stats={combatStats} colorHex={card.rarity.colorHex} />}
 
       <Card className="mt-4">
         <CardBody className="flex items-center justify-between">

@@ -12,6 +12,7 @@ import { collectionApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { ACQUISITION_LABELS, formatDateTime } from "@/lib/format";
 import { CardArt, stateLabel } from "@/components/CardTile";
+import { CombatStatsPanel, parseCombatStats } from "@/components/CombatStatsPanel";
 
 function CardDetailContent() {
   const params = useParams<{ instanceId: string }>();
@@ -50,6 +51,7 @@ function CardDetailContent() {
   const instance = detailQuery.data!;
   const card = instance.cardDefinition;
   const canAct = instance.isOwnedByRequester && instance.state === "AVAILABLE";
+  const combatStats = card.combatStatsEnabled ? parseCombatStats(card.combatStats) : null;
 
   return (
     <motion.div
@@ -81,6 +83,8 @@ function CardDetailContent() {
       <h1 className="font-display mt-3 text-2xl font-bold tracking-tight text-white">{card.name}</h1>
       <p className="mt-2 text-sm text-white/70">{card.description}</p>
       {card.flavorText && <p className="mt-2 text-sm italic text-white/50">&laquo; {card.flavorText} &raquo;</p>}
+
+      {combatStats && <CombatStatsPanel stats={combatStats} colorHex={card.rarity.colorHex} />}
 
       <Card className="mt-4">
         <CardBody className="grid grid-cols-2 gap-3 text-sm">

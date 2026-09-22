@@ -74,6 +74,7 @@ model UserProfile {
   level             Int      @default(1)
   dailyRewardStreak Int      @default(0)
   lastDailyRewardAt DateTime?
+  lastFreeBoosterAt DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
