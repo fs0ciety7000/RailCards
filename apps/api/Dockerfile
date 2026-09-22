@@ -40,10 +40,13 @@ RUN pnpm turbo run build
 # This keeps the image larger than a fully-pruned one, but correct.
 FROM base AS runner
 ENV NODE_ENV=production
-RUN addgroup -S nodejs && adduser -S nestjs -G nodejs
+RUN addgroup -S nodejs && adduser -S nestjs -G nodejs && apk add --no-cache su-exec
 COPY --from=installer --chown=nestjs:nodejs /app /app
 RUN chmod +x /app/apps/api/docker-entrypoint.sh
-USER nestjs
+# Stays root here on purpose: the entrypoint fixes up the uploads volume's
+# ownership (it may be freshly created and root-owned) before dropping to
+# the unprivileged nestjs user itself via su-exec, for both the migration
+# step and the server process.
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
   CMD node -e "fetch('http://localhost:'+(process.env.API_PORT||4000)+'/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
