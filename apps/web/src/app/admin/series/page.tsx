@@ -1,16 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusCircle, Power } from "lucide-react";
-import { createSeriesSchema, type CreateSeriesInput } from "@railcards/contracts";
-import { Badge, Button, Card, CardBody, FieldError, FieldGroup, Input, Label, Select, Skeleton, Textarea, useToast } from "@railcards/ui";
+import { Pencil, PlusCircle, Power } from "lucide-react";
+import { createSeriesSchema, updateSeriesSchema, type CreateSeriesInput, type UpdateSeriesInput } from "@railcards/contracts";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  Dialog,
+  FieldError,
+  FieldGroup,
+  Input,
+  Label,
+  Select,
+  Skeleton,
+  Textarea,
+  useToast,
+} from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
 import { adminApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { CARD_CATEGORY_LABELS } from "@/lib/format";
+import type { CardSeries } from "@/lib/types";
 
 const CATEGORIES = Object.keys(CARD_CATEGORY_LABELS);
 
@@ -76,10 +92,79 @@ function CreateSeriesForm() {
   );
 }
 
+function EditSeriesDialog({ series, onClose }: { series: CardSeries | null; onClose: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<UpdateSeriesInput>({ resolver: zodResolver(updateSeriesSchema) });
+
+  useEffect(() => {
+    if (!series) return;
+    reset({ name: series.name, description: series.description ?? "", isActive: series.isActive });
+    // Re-run only when a different series is opened for editing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [series?.id]);
+
+  const updateMutation = useMutation({
+    mutationFn: (values: UpdateSeriesInput) => adminApi.updateSeries(series!.id, values),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Série mise à jour" });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "series"] });
+      onClose();
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec de la mise à jour", description: getErrorMessage(err) }),
+  });
+
+  function close() {
+    reset();
+    onClose();
+  }
+
+  return (
+    <Dialog
+      open={!!series}
+      onClose={close}
+      title="Modifier la série"
+      description={series ? series.slug : undefined}
+      className="max-w-lg"
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={close} disabled={updateMutation.isPending}>
+            Annuler
+          </Button>
+          <Button type="submit" form="edit-series-form" loading={updateMutation.isPending}>
+            Enregistrer
+          </Button>
+        </>
+      }
+    >
+      {series && (
+        <form id="edit-series-form" onSubmit={handleSubmit((v) => updateMutation.mutate(v))} noValidate className="grid gap-3">
+          <FieldGroup>
+            <Label htmlFor="edit-series-name">Nom</Label>
+            <Input id="edit-series-name" invalid={!!errors.name} {...register("name")} />
+            <FieldError>{errors.name?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup className="mb-0">
+            <Label htmlFor="edit-series-description">Description (optionnel)</Label>
+            <Textarea id="edit-series-description" {...register("description")} />
+          </FieldGroup>
+        </form>
+      )}
+    </Dialog>
+  );
+}
+
 function SeriesList() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const seriesQuery = useQuery({ queryKey: ["admin", "series"], queryFn: adminApi.listSeries });
+  const [editTarget, setEditTarget] = useState<CardSeries | null>(null);
 
   const toggleActiveMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => adminApi.updateSeries(id, { isActive }),
@@ -115,7 +200,10 @@ function SeriesList() {
                 <td>
                   <Badge tone={s.isActive ? "success" : "neutral"}>{s.isActive ? "Active" : "Inactive"}</Badge>
                 </td>
-                <td className="py-2.5 text-right">
+                <td className="py-2.5 text-right space-x-2 whitespace-nowrap">
+                  <Button size="sm" variant="ghost" icon={<Pencil className="h-3.5 w-3.5" aria-hidden="true" />} onClick={() => setEditTarget(s)}>
+                    Modifier
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -131,6 +219,7 @@ function SeriesList() {
           </tbody>
         </table>
       </CardBody>
+      <EditSeriesDialog series={editTarget} onClose={() => setEditTarget(null)} />
     </Card>
   );
 }
