@@ -11,6 +11,7 @@ import * as bcrypt from "bcryptjs";
 import { GAME_CONSTANTS } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
+import { MissionsService } from "../missions/missions.service";
 import { generateOpaqueToken, hashOpaqueToken } from "../common/utils/tokens";
 import { parseDurationToMs } from "../common/utils/duration";
 import type { RegisterDto } from "./dto/register.dto";
@@ -38,6 +39,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly wallet: WalletService,
+    private readonly missions: MissionsService,
   ) {}
 
   private toAuthenticatedUser(user: {
@@ -143,6 +145,9 @@ export class AuthService {
         idempotencyKey: `welcome-bonus-${createdUser.id}`,
       });
 
+      // Registering counts as today's login for the "Pointer présent" mission.
+      await this.missions.recordProgress(tx, createdUser.id, "LOGIN", 1);
+
       return createdUser;
     });
 
@@ -164,7 +169,10 @@ export class AuthService {
       throw new ForbiddenException("This account is suspended or banned");
     }
 
-    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+      await this.missions.recordProgress(tx, user.id, "LOGIN", 1);
+    });
 
     const authUser = this.toAuthenticatedUser(user);
     const accessToken = this.signAccessToken(authUser);

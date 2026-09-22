@@ -66,6 +66,32 @@ describe("Missions, achievements & leveling (e2e, real Postgres)", () => {
     expect(after.body.level).toBe(1);
   });
 
+  it("completes and lets you claim the daily login mission just by registering/logging in", async () => {
+    const registered = await registerUser(app, adminToken, "loginmissionuser");
+
+    const missions = await request(app.getHttpServer())
+      .get("/api/v1/missions")
+      .set("Authorization", `Bearer ${registered.accessToken}`)
+      .expect(200);
+    const loginMission = missions.body.find((m: { mission: { code: string } }) => m.mission.code === "daily-login");
+    expect(loginMission).toBeTruthy();
+    expect(loginMission.completedAt).toBeTruthy();
+    expect(loginMission.claimedAt).toBeFalsy();
+
+    const claim = await request(app.getHttpServer())
+      .post(`/api/v1/missions/${loginMission.userMissionId}/claim`)
+      .set("Authorization", `Bearer ${registered.accessToken}`)
+      .expect(201);
+    expect(claim.body.claimedAt).toBeTruthy();
+
+    // Logging in again the same day must not re-trigger progress past the goal
+    // (goalCount 1) or blow up on the already-claimed mission.
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ email: registered.email, password: "Abcdef1234" })
+      .expect(201);
+  });
+
   it("rejects claiming a mission that isn't completed yet", async () => {
     const registered = await registerUser(app, adminToken, "missionuser2");
     const missions = await request(app.getHttpServer())
