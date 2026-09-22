@@ -120,6 +120,12 @@ export const adjustWalletSchema = z.object({
 });
 export type AdjustWalletInput = z.infer<typeof adjustWalletSchema>;
 
+export const grantCardSchema = z.object({
+  cardDefinitionId: z.string().uuid("Sélectionnez une carte"),
+  quantity: z.coerce.number().int().min(1).max(50).optional(),
+});
+export type GrantCardInput = z.infer<typeof grantCardSchema>;
+
 export const missionGoalTypeSchema = z.enum([
   "OPEN_BOOSTER",
   "COLLECT_UNIQUE_CARDS",

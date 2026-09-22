@@ -25,6 +25,7 @@ import {
   CreateInvitationDto,
   CreateMissionDto,
   CreateSeriesDto,
+  GrantCardDto,
   PublishPoolVersionDto,
   ResolveReportDto,
   UpdateAchievementDto,
@@ -277,6 +278,27 @@ export class AdminController {
       reason: dto.reason,
       newBalance: result.balance,
     });
+    return result;
+  }
+
+  @Post("users/:id/grant-card")
+  async grantCard(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: GrantCardDto) {
+    const result = await this.adminUsers.grantCard(id, dto.cardDefinitionId, dto.quantity ?? 1);
+    await this.auditLog.record(admin.id, "user.grant_card", "User", id, result);
+    return result;
+  }
+
+  @Post("users/:id/reset-cards")
+  async resetUserCards(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+    const result = await this.adminUsers.resetCards(id);
+    await this.auditLog.record(admin.id, "user.reset_cards", "User", id, result);
+    return result;
+  }
+
+  @Delete("users/:id")
+  async deleteUser(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+    const result = await this.adminUsers.deleteUser(id, admin.id);
+    await this.auditLog.record(admin.id, "user.delete", "User", id);
     return result;
   }
 

@@ -368,6 +368,11 @@ export const adminApi = {
   reactivateUser: (id: string) => request<T.AdminUserRow>(`/admin/users/${id}/reactivate`, { method: "POST" }),
   adjustWallet: (id: string, input: { amount: number; reason?: string }) =>
     request<{ balance: number }>(`/admin/users/${id}/wallet-adjustment`, { method: "POST", body: input }),
+  grantCard: (id: string, input: { cardDefinitionId: string; quantity?: number }) =>
+    request<{ granted: number; cardDefinitionId: string }>(`/admin/users/${id}/grant-card`, { method: "POST", body: input }),
+  resetUserCards: (id: string) =>
+    request<{ instancesRemoved: number }>(`/admin/users/${id}/reset-cards`, { method: "POST" }),
+  deleteUser: (id: string) => request<{ deleted: boolean }>(`/admin/users/${id}`, { method: "DELETE" }),
 
   listReports: (params: { status?: string; page?: number; pageSize?: number } = {}) =>
     request<{ items: T.Report[]; total: number }>(`/admin/reports${qs(params)}`),

@@ -116,6 +116,11 @@ export class AdjustWalletDto {
   @IsOptional() @IsString() @MaxLength(280) reason?: string;
 }
 
+export class GrantCardDto {
+  @IsUUID("4") cardDefinitionId!: string;
+  @IsOptional() @IsInt() @Min(1) @Max(50) quantity?: number;
+}
+
 const MISSION_GOAL_TYPES = [
   "OPEN_BOOSTER",
   "COLLECT_UNIQUE_CARDS",

@@ -4,15 +4,29 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldOff, ShieldCheck, Search, Wallet } from "lucide-react";
-import { adjustWalletSchema, type AdjustWalletInput } from "@railcards/contracts";
-import { Badge, Button, Card, CardBody, ConfirmDialog, Dialog, FieldError, FieldGroup, Input, Label, Skeleton, useToast } from "@railcards/ui";
+import { ShieldOff, ShieldCheck, Search, Wallet, Gift, RotateCcw, Trash2 } from "lucide-react";
+import { adjustWalletSchema, grantCardSchema, type AdjustWalletInput, type GrantCardInput } from "@railcards/contracts";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  ConfirmDialog,
+  Dialog,
+  FieldError,
+  FieldGroup,
+  Input,
+  Label,
+  Select,
+  Skeleton,
+  useToast,
+} from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
 import { adminApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
-import type { AdminUserRow } from "@/lib/types";
+import type { AdminUserRow, CardDefinition } from "@/lib/types";
 
 function StatusAction({
   user,
@@ -104,10 +118,86 @@ function WalletAdjustmentDialog({ user, onClose }: { user: AdminUserRow | null; 
   );
 }
 
+function GrantCardDialog({ user, onClose }: { user: AdminUserRow | null; onClose: () => void }) {
+  const toast = useToast();
+  const cardsQuery = useQuery({
+    queryKey: ["admin", "cards", "all"],
+    queryFn: () => adminApi.listCards({ pageSize: 500 }),
+    enabled: !!user,
+  });
+  const sortedCards = [...(cardsQuery.data?.items ?? [])].sort((a: CardDefinition, b: CardDefinition) => a.name.localeCompare(b.name));
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<GrantCardInput>({ resolver: zodResolver(grantCardSchema), defaultValues: { cardDefinitionId: "", quantity: 1 } });
+
+  const mutation = useMutation({
+    mutationFn: (values: GrantCardInput) => adminApi.grantCard(user!.id, values),
+    onSuccess: (result) => {
+      toast.show({ tone: "success", title: `${result.granted} carte(s) offerte(s)` });
+      reset({ cardDefinitionId: "", quantity: 1 });
+      onClose();
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  function close() {
+    reset({ cardDefinitionId: "", quantity: 1 });
+    onClose();
+  }
+
+  return (
+    <Dialog
+      open={!!user}
+      onClose={close}
+      title="Donner une carte"
+      description={user ? `${user.displayName} (@${user.username})` : undefined}
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={close} disabled={mutation.isPending}>
+            Annuler
+          </Button>
+          <Button type="submit" form="grant-card-form" loading={mutation.isPending}>
+            Offrir
+          </Button>
+        </>
+      }
+    >
+      {user && (
+        <form id="grant-card-form" onSubmit={handleSubmit((v) => mutation.mutate(v))} noValidate className="grid gap-3">
+          <FieldGroup>
+            <Label htmlFor="cardDefinitionId">Carte</Label>
+            <Select id="cardDefinitionId" invalid={!!errors.cardDefinitionId} disabled={cardsQuery.isLoading} {...register("cardDefinitionId")}>
+              <option value="">Sélectionnez</option>
+              {sortedCards.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.series.name} ({c.rarity.label})
+                </option>
+              ))}
+            </Select>
+            <FieldError>{errors.cardDefinitionId?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup className="mb-0">
+            <Label htmlFor="quantity">Quantité</Label>
+            <Input id="quantity" type="number" min={1} max={50} invalid={!!errors.quantity} {...register("quantity")} />
+            <FieldError>{errors.quantity?.message}</FieldError>
+          </FieldGroup>
+        </form>
+      )}
+    </Dialog>
+  );
+}
+
 function AdminUsersContent() {
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<{ id: string; action: "suspend" | "reactivate" } | null>(null);
   const [walletTarget, setWalletTarget] = useState<AdminUserRow | null>(null);
+  const [grantCardTarget, setGrantCardTarget] = useState<AdminUserRow | null>(null);
+  const [resetTarget, setResetTarget] = useState<AdminUserRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
   const toast = useToast();
   const queryClient = useQueryClient();
 
@@ -129,9 +219,37 @@ function AdminUsersContent() {
     },
   });
 
+  const resetCardsMutation = useMutation({
+    mutationFn: () => adminApi.resetUserCards(resetTarget!.id),
+    onSuccess: (result) => {
+      toast.show({ tone: "success", title: `${result.instancesRemoved} carte(s) supprimée(s)` });
+      setResetTarget(null);
+    },
+    onError: (err) => {
+      toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) });
+      setResetTarget(null);
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: () => adminApi.deleteUser(deleteTarget!.id),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Compte supprimé" });
+      setDeleteTarget(null);
+      void queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (err) => {
+      toast.show({ tone: "error", title: "Échec de la suppression", description: getErrorMessage(err) });
+      setDeleteTarget(null);
+    },
+  });
+
   return (
     <AdminShell>
-      <PageHeader title="Utilisateurs" description="Rechercher, suspendre, réactiver des comptes ou modifier leur solde." />
+      <PageHeader
+        title="Utilisateurs"
+        description="Rechercher, suspendre, réactiver, offrir des cartes, réinitialiser une collection ou supprimer un compte."
+      />
       <div className="relative mb-4 max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" aria-hidden="true" />
         <Input
@@ -187,6 +305,34 @@ function AdminUsersContent() {
                           onSuspend={() => setTarget({ id: u.id, action: "suspend" })}
                           onReactivate={() => setTarget({ id: u.id, action: "reactivate" })}
                         />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          icon={<Gift className="h-3.5 w-3.5" aria-hidden="true" />}
+                          onClick={() => setGrantCardTarget(u)}
+                        >
+                          Carte
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
+                          onClick={() => setResetTarget(u)}
+                          className="hover:bg-rc-danger/10"
+                          style={{ color: "var(--color-rc-danger)" }}
+                        >
+                          Reset cartes
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          icon={<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                          onClick={() => setDeleteTarget(u)}
+                          className="hover:bg-rc-danger/10"
+                          style={{ color: "var(--color-rc-danger)" }}
+                        >
+                          Supprimer
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -213,6 +359,37 @@ function AdminUsersContent() {
       />
 
       <WalletAdjustmentDialog user={walletTarget} onClose={() => setWalletTarget(null)} />
+      <GrantCardDialog user={grantCardTarget} onClose={() => setGrantCardTarget(null)} />
+
+      <ConfirmDialog
+        open={!!resetTarget}
+        onClose={() => setResetTarget(null)}
+        onConfirm={() => resetCardsMutation.mutate()}
+        loading={resetCardsMutation.isPending}
+        destructive
+        title="Réinitialiser la collection de ce joueur ?"
+        description={
+          resetTarget
+            ? `Toutes les cartes possédées par ${resetTarget.displayName} (@${resetTarget.username}) seront supprimées définitivement, ainsi que l'historique d'échanges et de ventes qui leur est lié. Cette action est irréversible.`
+            : undefined
+        }
+        confirmLabel="Réinitialiser"
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteUserMutation.mutate()}
+        loading={deleteUserMutation.isPending}
+        destructive
+        title="Supprimer définitivement ce compte ?"
+        description={
+          deleteTarget
+            ? `Le compte de ${deleteTarget.displayName} (@${deleteTarget.username}) sera effacé pour toujours : cartes, échanges, ventes, portefeuille, missions et notifications. Cette action est irréversible.`
+            : undefined
+        }
+        confirmLabel="Supprimer définitivement"
+      />
     </AdminShell>
   );
 }
