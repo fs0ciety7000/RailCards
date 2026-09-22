@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/commo
 import { PrismaService } from "../prisma/prisma.service";
 import { CollectionService } from "../collection/collection.service";
 import { GradesService } from "../grades/grades.service";
+import { FavoritesService } from "./favorites.service";
 import { levelForXp, xpToNextLevel } from "@railcards/game-domain";
 import type { UpdateMeDto } from "./dto/update-me.dto";
 
@@ -11,6 +12,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly collection: CollectionService,
     private readonly grades: GradesService,
+    private readonly favorites: FavoritesService,
   ) {}
 
   async getMe(userId: string) {
@@ -66,6 +68,7 @@ export class UsersService {
     ]);
 
     const level = levelForXp(user.profile?.xp ?? 0);
+    const favoriteCards = await this.favorites.list(user.id);
     return {
       username: user.username,
       displayName: user.displayName,
@@ -78,6 +81,7 @@ export class UsersService {
       memberSince: user.createdAt,
       uniqueCardCount: uniqueCardCount.length,
       totalSeriesCount: seriesCount,
+      favoriteCards,
     };
   }
 
@@ -94,7 +98,7 @@ export class UsersService {
     return { items, page, pageSize, total, totalPages: Math.ceil(total / pageSize) };
   }
 
-  private toDto(user: {
+  private async toDto(user: {
     id: string;
     email: string;
     username: string;
@@ -108,6 +112,7 @@ export class UsersService {
   }) {
     const xp = user.profile?.xp ?? 0;
     const progress = xpToNextLevel(xp);
+    const favoriteCards = await this.favorites.list(user.id);
     return {
       id: user.id,
       email: user.email,
@@ -123,6 +128,7 @@ export class UsersService {
       xpProgress: { xpIntoLevel: progress.xpIntoLevel, xpForNextLevel: progress.xpForNextLevel },
       dailyRewardStreak: user.profile?.dailyRewardStreak ?? 0,
       walletBalance: user.wallet?.balance ?? 0,
+      favoriteCards,
     };
   }
 }

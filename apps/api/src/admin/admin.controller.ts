@@ -108,10 +108,11 @@ export class AdminController {
 
   @Patch("cards/:id")
   async updateCard(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateCardDto) {
-    const { rarityId, combatStats, ...rest } = dto;
+    const { rarityId, seriesId, combatStats, ...rest } = dto;
     const card = await this.catalog.updateCard(id, {
       ...rest,
       rarity: rarityId ? { connect: { id: rarityId } } : undefined,
+      series: seriesId ? { connect: { id: seriesId } } : undefined,
       combatStats: combatStats as Prisma.InputJsonValue | undefined,
     });
     await this.auditLog.record(admin.id, "card.update", "CardDefinition", id, dto);

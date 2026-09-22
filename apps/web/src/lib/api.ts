@@ -267,6 +267,10 @@ export const usersApi = {
   publicProfile: (username: string) => request<T.PublicProfile>(`/users/${username}`),
   collection: (username: string, params: { page?: number; pageSize?: number } = {}) =>
     request<T.Paginated<T.CardInstance>>(`/users/${username}/collection${qs(params)}`),
+  addFavorite: (cardDefinitionId: string) =>
+    request<T.CardDefinition[]>("/me/favorites", { method: "POST", body: { cardDefinitionId } }),
+  removeFavorite: (cardDefinitionId: string) =>
+    request<T.CardDefinition[]>(`/me/favorites/${cardDefinitionId}`, { method: "DELETE" }),
 };
 
 // ── Leaderboard ──────────────────────────────────────────────────────────

@@ -28,6 +28,7 @@ export interface Me {
   xpProgress: { xpIntoLevel: number; xpForNextLevel: number };
   dailyRewardStreak: number;
   walletBalance: number;
+  favoriteCards: CardDefinition[];
 }
 
 export interface PublicProfile {
@@ -42,6 +43,7 @@ export interface PublicProfile {
   memberSince: string;
   uniqueCardCount: number;
   totalSeriesCount: number;
+  favoriteCards: CardDefinition[];
 }
 
 export interface LeaderboardEntry {

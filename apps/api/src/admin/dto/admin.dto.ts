@@ -51,6 +51,7 @@ export class UpdateCardDto {
   @IsOptional() @IsString() @MaxLength(120) name?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() flavorText?: string;
+  @IsOptional() @IsUUID("4") seriesId?: string;
   @IsOptional() @IsUUID("4") rarityId?: string;
   @IsOptional() @IsString() imageUrl?: string;
   @IsOptional() @IsBoolean() combatStatsEnabled?: boolean;

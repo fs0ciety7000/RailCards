@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Folder } from "lucide-react";
@@ -38,6 +38,21 @@ function CollectionContent() {
   function resetPage() {
     setPage(1);
   }
+
+  const groupedItems = useMemo(() => {
+    const items = collectionQuery.data?.items ?? [];
+    const groups = new Map<string, { instance: (typeof items)[number]; count: number }>();
+    for (const instance of items) {
+      const key = `${instance.cardDefinition.id}:${instance.state}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        groups.set(key, { instance, count: 1 });
+      }
+    }
+    return [...groups.values()];
+  }, [collectionQuery.data]);
 
   return (
     <div>
@@ -123,13 +138,14 @@ function CollectionContent() {
       ) : (
         <>
           <Stagger className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {collectionQuery.data!.items.map((instance) => (
+            {groupedItems.map(({ instance, count }) => (
               <StaggerItem key={instance.id}>
                 <CardTile
                   instanceId={instance.id}
                   card={instance.cardDefinition}
                   state={instance.state}
                   href={`/collection/${instance.id}`}
+                  count={count}
                 />
               </StaggerItem>
             ))}

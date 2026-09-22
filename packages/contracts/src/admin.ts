@@ -51,6 +51,7 @@ export const updateCardSchema = z.object({
   name: z.string().max(120).optional(),
   description: z.string().optional(),
   flavorText: z.string().optional(),
+  seriesId: z.string().uuid().optional(),
   rarityId: z.string().uuid().optional(),
   imageUrl: z.string().optional(),
   combatStatsEnabled: z.boolean().optional(),

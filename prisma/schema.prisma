@@ -60,6 +60,7 @@ model User {
   profile               UserProfile?
   dailyRewardClaims     DailyRewardClaim[]
   passwordResetTokens   PasswordResetToken[]
+  favoriteCards         FavoriteCard[]
 
   @@index([status])
 }
@@ -191,11 +192,32 @@ model CardDefinition {
   instances        CardInstance[]
   poolEntries      BoosterPoolEntry[]
   pulls            BoosterPull[]
+  favoritedBy      FavoriteCard[]
 
   @@index([seriesId])
   @@index([rarityId])
   @@index([status])
   @@index([category])
+}
+
+/**
+ * A card a player has chosen to showcase on their profile (max 5,
+ * enforced in FavoritesService). `position` orders the showcase; deleting
+ * either side cascades so a removed card silently drops out of favorites
+ * instead of leaving a dangling reference.
+ */
+model FavoriteCard {
+  id               String         @id @default(uuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardDefinitionId String
+  cardDefinition   CardDefinition @relation(fields: [cardDefinitionId], references: [id], onDelete: Cascade)
+  position         Int
+  createdAt        DateTime       @default(now())
+
+  @@unique([userId, cardDefinitionId])
+  @@unique([userId, position])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────

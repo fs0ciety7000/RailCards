@@ -31,7 +31,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="fr" className={`dark ${GeistSans.variable} ${spaceGrotesk.variable}`}>
       <body>
-        <Providers>{children}</Providers>
+        {/* Single, stable anchor for globals.css's stacking-context rule (keeps
+            page content above the body::before noise texture) — scoped to an
+            id rather than "body > div" so it never matches portalled overlays
+            (Dialog, Toast) that also mount directly under <body>. */}
+        <div id="rc-app-root">
+          <Providers>{children}</Providers>
+        </div>
       </body>
     </html>
   );

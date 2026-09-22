@@ -327,15 +327,23 @@ export function CardTile({
   card,
   state,
   href,
+  count,
 }: {
   instanceId: string;
   card: CardDefinition;
   state?: string;
   href?: string;
+  /** How many owned copies this tile stacks for (duplicates shown as one tile + a "×N" badge instead of repeating). */
+  count?: number;
 }) {
   const content = (
     <div className="group relative">
       <CardArt card={card} className="relative aspect-[3/4] w-full" />
+      {count && count > 1 && (
+        <span className="pointer-events-none absolute left-1.5 top-9 z-30 rounded-full border border-white/15 bg-black/75 px-2 py-0.5 text-[10.5px] font-bold text-white backdrop-blur-sm">
+          ×{count}
+        </span>
+      )}
       {state && state !== "AVAILABLE" && (
         <span className="pointer-events-none absolute right-1.5 top-9 z-30 max-w-[80%] truncate rounded-full border border-white/15 bg-black/75 px-2 py-0.5 text-[9px] font-semibold text-white/80 backdrop-blur-sm">
           {stateLabel(state)}

@@ -1,23 +1,27 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Lock, Unlock, Pencil, ShieldCheck } from "lucide-react";
+import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Lock, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
 import { changePasswordSchema, type ChangePasswordInput } from "@railcards/contracts";
-import { Badge, Button, Card, CardBody, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
+import { Badge, Button, Card, CardBody, Dialog, EmptyState, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
-import { ApiError, authApi, usersApi } from "@/lib/api";
+import { CardArt } from "@/components/CardTile";
+import { ApiError, authApi, collectionApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
 import { useAuthStore } from "@/lib/auth-store";
+import type { CardDefinition } from "@/lib/types";
+
+const MAX_FAVORITES = 5;
 
 const AVATAR_ACCEPTED_TYPES = "image/png,image/jpeg,image/webp,image/gif";
 const BIO_MAX_LENGTH = 280;
@@ -177,6 +181,145 @@ function ChangePasswordForm() {
   );
 }
 
+function FavoritesPickerDialog({ open, onClose, favoriteIds }: { open: boolean; onClose: () => void; favoriteIds: string[] }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const params = useParams<{ username: string }>();
+  const ownedQuery = useQuery({
+    queryKey: ["collection", "favorites-picker"],
+    queryFn: () => collectionApi.list({ pageSize: 100 }),
+    enabled: open,
+  });
+
+  const ownedCards = useMemo(() => {
+    const seen = new Map<string, CardDefinition>();
+    for (const item of ownedQuery.data?.items ?? []) {
+      if (!seen.has(item.cardDefinition.id)) seen.set(item.cardDefinition.id, item.cardDefinition);
+    }
+    return [...seen.values()];
+  }, [ownedQuery.data]);
+
+  function invalidate() {
+    void queryClient.invalidateQueries({ queryKey: ["me"] });
+    void queryClient.invalidateQueries({ queryKey: ["users", "profile", params.username] });
+  }
+
+  const addMutation = useMutation({
+    mutationFn: (cardDefinitionId: string) => usersApi.addFavorite(cardDefinitionId),
+    onSuccess: invalidate,
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+  const removeMutation = useMutation({
+    mutationFn: (cardDefinitionId: string) => usersApi.removeFavorite(cardDefinitionId),
+    onSuccess: invalidate,
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  const atCap = favoriteIds.length >= MAX_FAVORITES;
+  const pending = addMutation.isPending || removeMutation.isPending;
+
+  return (
+    <Dialog open={open} onClose={onClose} title="Gérer mes cartes favorites" description={`${favoriteIds.length}/${MAX_FAVORITES} sélectionnées`} className="max-w-lg">
+      {ownedQuery.isLoading ? (
+        <Skeleton className="h-40 w-full" />
+      ) : ownedCards.length === 0 ? (
+        <EmptyState title="Aucune carte" description="Ouvrez un booster pour obtenir des cartes à mettre en favori." />
+      ) : (
+        <div className="grid max-h-[60vh] grid-cols-3 gap-3 overflow-y-auto pr-1 sm:grid-cols-4">
+          {ownedCards.map((card) => {
+            const isFavorite = favoriteIds.includes(card.id);
+            return (
+              <button
+                key={card.id}
+                type="button"
+                disabled={pending || (!isFavorite && atCap)}
+                onClick={() => (isFavorite ? removeMutation.mutate(card.id) : addMutation.mutate(card.id))}
+                className="group relative rounded-2xl text-left disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <CardArt card={card} className="relative aspect-[3/4] w-full" />
+                <span
+                  className={`pointer-events-none absolute right-1.5 top-1.5 z-30 flex h-6 w-6 items-center justify-center rounded-full border backdrop-blur-sm transition-colors ${
+                    isFavorite ? "border-amber-400/60 bg-amber-400/90 text-rc-night" : "border-white/20 bg-black/70 text-white/70"
+                  }`}
+                >
+                  <Star className="h-3.5 w-3.5" fill={isFavorite ? "currentColor" : "none"} aria-hidden="true" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </Dialog>
+  );
+}
+
+function FavoritesSection({
+  favoriteCards,
+  isOwn,
+}: {
+  favoriteCards: CardDefinition[];
+  isOwn: boolean;
+}) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const params = useParams<{ username: string }>();
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const removeMutation = useMutation({
+    mutationFn: (cardDefinitionId: string) => usersApi.removeFavorite(cardDefinitionId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["users", "profile", params.username] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  if (!isOwn && favoriteCards.length === 0) return null;
+
+  return (
+    <Card className="mt-4">
+      <CardBody>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-1.5 font-semibold text-white">
+            <Star className="h-4 w-4 text-amber-400" fill="currentColor" aria-hidden="true" />
+            Cartes favorites
+          </h2>
+          {isOwn && (
+            <Button size="sm" variant="ghost" onClick={() => setPickerOpen(true)}>
+              Gérer
+            </Button>
+          )}
+        </div>
+        {favoriteCards.length === 0 ? (
+          <p className="text-sm text-white/40 italic">
+            {isOwn ? "Choisissez jusqu'à 5 cartes à mettre en avant." : "Aucune carte favorite pour l'instant."}
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+            {favoriteCards.map((card) => (
+              <div key={card.id} className="group relative">
+                <CardArt card={card} className="relative aspect-[3/4] w-full" />
+                {isOwn && (
+                  <button
+                    type="button"
+                    onClick={() => removeMutation.mutate(card.id)}
+                    disabled={removeMutation.isPending}
+                    aria-label={`Retirer ${card.name} des favoris`}
+                    className="absolute right-1.5 top-1.5 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-black/70 text-white/70 opacity-0 backdrop-blur-sm transition-opacity hover:text-white group-hover:opacity-100 disabled:opacity-40 sm:group-hover:opacity-100"
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardBody>
+      {isOwn && <FavoritesPickerDialog open={pickerOpen} onClose={() => setPickerOpen(false)} favoriteIds={favoriteCards.map((c) => c.id)} />}
+    </Card>
+  );
+}
+
 function ProfileContent() {
   const params = useParams<{ username: string }>();
   const toast = useToast();
@@ -269,6 +412,8 @@ function ProfileContent() {
           )}
         </CardBody>
       </Card>
+
+      <FavoritesSection favoriteCards={profile.favoriteCards} isOwn={isOwn} />
 
       {isOwn && meQuery.data && (
         <Card className="mt-4">

@@ -149,6 +149,7 @@ function CreateCardForm() {
 function EditCardDialog({ card, onClose }: { card: CardDefinition | null; onClose: () => void }) {
   const toast = useToast();
   const queryClient = useQueryClient();
+  const seriesQuery = useQuery({ queryKey: ["admin", "series"], queryFn: adminApi.listSeries });
   const raritiesQuery = useQuery({ queryKey: ["rarities"], queryFn: catalogApi.rarities });
 
   const {
@@ -168,6 +169,7 @@ function EditCardDialog({ card, onClose }: { card: CardDefinition | null; onClos
       name: card.name,
       description: card.description,
       flavorText: card.flavorText ?? "",
+      seriesId: card.seriesId,
       rarityId: card.rarityId,
       imageUrl: card.imageUrl,
       combatStatsEnabled: card.combatStatsEnabled,
@@ -221,6 +223,17 @@ function EditCardDialog({ card, onClose }: { card: CardDefinition | null; onClos
             <Label htmlFor="edit-name">Nom</Label>
             <Input id="edit-name" invalid={!!errors.name} {...register("name")} />
             <FieldError>{errors.name?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="edit-seriesId">Série</Label>
+            <Select id="edit-seriesId" invalid={!!errors.seriesId} {...register("seriesId")}>
+              {seriesQuery.data?.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Select>
+            <FieldError>{errors.seriesId?.message}</FieldError>
           </FieldGroup>
           <FieldGroup>
             <Label htmlFor="edit-rarityId">Rareté</Label>
