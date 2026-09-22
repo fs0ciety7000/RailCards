@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { levelForXp } from "@railcards/game-domain";
+import { gradeForLevel, levelForXp, xpToNextLevel } from "@railcards/game-domain";
 
 @Injectable()
 export class UsersService {
@@ -30,11 +30,13 @@ export class UsersService {
       this.prisma.cardSeries.count(),
     ]);
 
+    const level = levelForXp(user.profile?.xp ?? 0);
     return {
       username: user.username,
       displayName: user.displayName,
       avatarUrl: user.avatarUrl,
-      level: levelForXp(user.profile?.xp ?? 0),
+      level,
+      grade: gradeForLevel(level),
       memberSince: user.createdAt,
       uniqueCardCount: uniqueCardCount.length,
       totalSeriesCount: seriesCount,
@@ -53,6 +55,8 @@ export class UsersService {
     profile: { xp: number; level: number; dailyRewardStreak: number } | null;
     wallet: { balance: number } | null;
   }) {
+    const xp = user.profile?.xp ?? 0;
+    const progress = xpToNextLevel(xp);
     return {
       id: user.id,
       email: user.email,
@@ -62,8 +66,10 @@ export class UsersService {
       role: user.role,
       status: user.status,
       createdAt: user.createdAt,
-      xp: user.profile?.xp ?? 0,
-      level: levelForXp(user.profile?.xp ?? 0),
+      xp,
+      level: progress.level,
+      grade: gradeForLevel(progress.level),
+      xpProgress: { xpIntoLevel: progress.xpIntoLevel, xpForNextLevel: progress.xpForNextLevel },
       dailyRewardStreak: user.profile?.dailyRewardStreak ?? 0,
       walletBalance: user.wallet?.balance ?? 0,
     };

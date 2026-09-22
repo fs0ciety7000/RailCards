@@ -41,12 +41,23 @@ export class CreateCardDto {
   @IsOptional() @IsIn(["DRAFT", "PUBLISHED", "ARCHIVED"]) status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
 }
 
+export class CombatStatsDto {
+  @IsInt() @Min(0) @Max(100) power!: number;
+  @IsInt() @Min(0) @Max(100) reliability!: number;
+  @IsInt() @Min(0) @Max(100) charm!: number;
+}
+
 export class UpdateCardDto {
   @IsOptional() @IsString() @MaxLength(120) name?: string;
   @IsOptional() @IsString() description?: string;
   @IsOptional() @IsString() flavorText?: string;
   @IsOptional() @IsUUID("4") rarityId?: string;
   @IsOptional() @IsString() imageUrl?: string;
+  @IsOptional() @IsBoolean() combatStatsEnabled?: boolean;
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CombatStatsDto)
+  combatStats?: CombatStatsDto;
 }
 
 export class CreateBoosterDefinitionDto {

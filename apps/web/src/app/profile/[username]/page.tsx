@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "motion/react";
 import { Mail, Wallet, Sparkles, Flame } from "lucide-react";
-import { Card, CardBody, ErrorState, Skeleton } from "@railcards/ui";
+import { Badge, Card, CardBody, ErrorState, ProgressBar, Skeleton } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -54,6 +54,7 @@ function ProfileContent() {
             <p className="text-xl font-bold tracking-tight text-white">{profile.displayName}</p>
             <p className="text-sm text-white/50">@{profile.username}</p>
           </div>
+          <Badge tone="accent">{profile.grade}</Badge>
           <div className="mt-2 grid w-full grid-cols-3 divide-x divide-rc-border rounded-xl border border-rc-border bg-white/[0.03]">
             <Stat label="Niveau" value={profile.level} />
             <Stat label="Cartes uniques" value={profile.uniqueCardCount} />
@@ -65,11 +66,20 @@ function ProfileContent() {
 
       {isOwn && meQuery.data && (
         <Card className="mt-4">
-          <CardBody className="grid grid-cols-2 gap-4 text-sm">
-            <InfoField icon={Mail} label="Email" value={meQuery.data.email} />
-            <InfoField icon={Wallet} label="Portefeuille" value={`${meQuery.data.walletBalance.toLocaleString("fr-BE")} CR`} />
-            <InfoField icon={Sparkles} label="XP" value={String(meQuery.data.xp)} />
-            <InfoField icon={Flame} label="Série de récompenses" value={`${meQuery.data.dailyRewardStreak} jour(s)`} />
+          <CardBody>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <InfoField icon={Mail} label="Email" value={meQuery.data.email} />
+              <InfoField icon={Wallet} label="Portefeuille" value={`${meQuery.data.walletBalance.toLocaleString("fr-BE")} CR`} />
+              <InfoField icon={Sparkles} label="XP total" value={String(meQuery.data.xp)} />
+              <InfoField icon={Flame} label="Série de récompenses" value={`${meQuery.data.dailyRewardStreak} jour(s)`} />
+            </div>
+            <div className="mt-4">
+              <ProgressBar
+                value={meQuery.data.xpProgress.xpIntoLevel}
+                max={meQuery.data.xpProgress.xpForNextLevel}
+                label={`Progression vers le niveau ${meQuery.data.level + 1}`}
+              />
+            </div>
           </CardBody>
         </Card>
       )}

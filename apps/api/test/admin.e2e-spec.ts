@@ -100,6 +100,57 @@ describe("Admin permission control (e2e, real Postgres)", () => {
     expect(wallet.body.balance).toBe(before.body.balance + 150);
   });
 
+  it("lets an admin edit an existing card, including its combat stats", async () => {
+    const rarities = await request(app.getHttpServer())
+      .get("/api/v1/rarities")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+    const rarityId = rarities.body[0].id as string;
+
+    const series = await request(app.getHttpServer())
+      .post("/api/v1/admin/series")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ slug: `test-series-${Date.now()}`, name: "Série de test", category: "ROLLING_STOCK" })
+      .expect(201);
+
+    const card = await request(app.getHttpServer())
+      .post("/api/v1/admin/cards")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        slug: `test-card-${Date.now()}`,
+        seriesId: series.body.id,
+        name: "Carte de test",
+        description: "Avant modification",
+        category: "ROLLING_STOCK",
+        rarityId,
+        imageUrl: "/card-placeholders/common.svg",
+      })
+      .expect(201);
+
+    const updated = await request(app.getHttpServer())
+      .patch(`/api/v1/admin/cards/${card.body.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Carte de test (modifiée)",
+        imageUrl: "/card-art/test.jpg",
+        combatStatsEnabled: true,
+        combatStats: { power: 70, reliability: 55, charm: 90 },
+      })
+      .expect(200);
+
+    expect(updated.body.name).toBe("Carte de test (modifiée)");
+    expect(updated.body.imageUrl).toBe("/card-art/test.jpg");
+    expect(updated.body.combatStatsEnabled).toBe(true);
+    expect(updated.body.combatStats).toEqual({ power: 70, reliability: 55, charm: 90 });
+
+    const listed = await request(app.getHttpServer())
+      .get("/api/v1/admin/cards?pageSize=200")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+    const persisted = listed.body.items.find((c: { id: string }) => c.id === card.body.id);
+    expect(persisted.combatStats).toEqual({ power: 70, reliability: 55, charm: 90 });
+  });
+
   it("rejects a zero-amount wallet adjustment and a debit that would go below zero", async () => {
     const registered = await registerUser(app, adminToken, "walletguard");
     const before = await request(app.getHttpServer())

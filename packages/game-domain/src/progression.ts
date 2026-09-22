@@ -29,3 +29,31 @@ export function xpToNextLevel(xp: number): { level: number; xpIntoLevel: number;
     xpForNextLevel: nextThreshold - currentThreshold,
   };
 }
+
+/**
+ * Grade ladder, themed after the Belgian railway hierarchy a player
+ * "climbs" as they play. Levels are split into 10 tiers up to MAX_LEVEL;
+ * kept as a simple sorted array (rather than a formula) so titles can be
+ * tuned freely without touching the XP curve above.
+ */
+export const GRADES: ReadonlyArray<{ minLevel: number; title: string }> = [
+  { minLevel: 1, title: "Apprenti aiguilleur" },
+  { minLevel: 5, title: "Voyageur régulier" },
+  { minLevel: 10, title: "Contrôleur" },
+  { minLevel: 20, title: "Chef de bord" },
+  { minLevel: 30, title: "Conducteur" },
+  { minLevel: 40, title: "Chef de gare adjoint" },
+  { minLevel: 50, title: "Chef de gare" },
+  { minLevel: 65, title: "Inspecteur du réseau" },
+  { minLevel: 80, title: "Directeur régional" },
+  { minLevel: 95, title: "Légende du rail" },
+];
+
+export function gradeForLevel(level: number): string {
+  let title = GRADES[0]!.title;
+  for (const grade of GRADES) {
+    if (level < grade.minLevel) break;
+    title = grade.title;
+  }
+  return title;
+}

@@ -17,8 +17,11 @@ function MissionRow({ progress }: { progress: MissionProgress }) {
   const queryClient = useQueryClient();
   const claimMutation = useMutation({
     mutationFn: () => missionsApi.claim(progress.userMissionId!),
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.show({ tone: "success", title: "Récompense réclamée", description: `+${progress.mission.rewardCr} CR, +${progress.mission.rewardXp} XP` });
+      if (res.leveledUp) {
+        toast.show({ tone: "info", title: "Niveau supérieur !", description: `Vous êtes maintenant ${res.newGrade} (niveau ${res.newLevel}).` });
+      }
       void queryClient.invalidateQueries({ queryKey: ["missions"] });
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -62,8 +65,11 @@ function AchievementRow({ progress }: { progress: AchievementProgress }) {
   const queryClient = useQueryClient();
   const claimMutation = useMutation({
     mutationFn: () => missionsApi.claimAchievement(progress.achievement.id),
-    onSuccess: () => {
+    onSuccess: (res) => {
       toast.show({ tone: "success", title: "Haut fait réclamé", description: `+${progress.achievement.rewardCr} CR, +${progress.achievement.rewardXp} XP` });
+      if (res.leveledUp) {
+        toast.show({ tone: "info", title: "Niveau supérieur !", description: `Vous êtes maintenant ${res.newGrade} (niveau ${res.newLevel}).` });
+      }
       void queryClient.invalidateQueries({ queryKey: ["achievements"] });
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import type { ReportStatus } from "@railcards/database";
+import type { Prisma, ReportStatus } from "@railcards/database";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -84,10 +84,11 @@ export class AdminController {
 
   @Patch("cards/:id")
   async updateCard(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateCardDto) {
-    const { rarityId, ...rest } = dto;
+    const { rarityId, combatStats, ...rest } = dto;
     const card = await this.catalog.updateCard(id, {
       ...rest,
       rarity: rarityId ? { connect: { id: rarityId } } : undefined,
+      combatStats: combatStats as Prisma.InputJsonValue | undefined,
     });
     await this.auditLog.record(admin.id, "card.update", "CardDefinition", id, dto);
     return card;

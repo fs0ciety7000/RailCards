@@ -68,9 +68,18 @@ function HomeContent() {
                   <CrAmount value={meQuery.data?.walletBalance ?? 0} />
                 </p>
               )}
-              <p className="mt-1.5 text-xs text-white/50">
-                Niveau {meQuery.data?.level ?? 1} · {meQuery.data?.xp ?? 0} XP
-              </p>
+              {meQuery.data && (
+                <div className="mt-3">
+                  <p className="mb-1.5 text-xs font-medium text-white/70">
+                    {meQuery.data.grade} · Niveau {meQuery.data.level}
+                  </p>
+                  <ProgressBar
+                    value={meQuery.data.xpProgress.xpIntoLevel}
+                    max={meQuery.data.xpProgress.xpForNextLevel}
+                    label="XP vers le niveau suivant"
+                  />
+                </div>
+              )}
             </CardBody>
           </Card>
         </StaggerItem>

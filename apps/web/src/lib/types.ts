@@ -24,6 +24,8 @@ export interface Me {
   createdAt: string;
   xp: number;
   level: number;
+  grade: string;
+  xpProgress: { xpIntoLevel: number; xpForNextLevel: number };
   dailyRewardStreak: number;
   walletBalance: number;
 }
@@ -33,9 +35,16 @@ export interface PublicProfile {
   displayName: string;
   avatarUrl: string | null;
   level: number;
+  grade: string;
   memberSince: string;
   uniqueCardCount: number;
   totalSeriesCount: number;
+}
+
+export interface LevelUpInfo {
+  leveledUp: boolean;
+  newLevel: number;
+  newGrade: string;
 }
 
 export interface Rarity {

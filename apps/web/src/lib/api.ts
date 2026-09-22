@@ -225,10 +225,10 @@ export const usersApi = {
 
 export const missionsApi = {
   list: () => request<T.MissionProgress[]>("/missions"),
-  claim: (userMissionId: string) => request<unknown>(`/missions/${userMissionId}/claim`, { method: "POST" }),
+  claim: (userMissionId: string) => request<T.LevelUpInfo>(`/missions/${userMissionId}/claim`, { method: "POST" }),
   achievements: () => request<T.AchievementProgress[]>("/achievements"),
   claimAchievement: (achievementId: string) =>
-    request<unknown>(`/achievements/${achievementId}/claim`, { method: "POST" }),
+    request<T.LevelUpInfo>(`/achievements/${achievementId}/claim`, { method: "POST" }),
 };
 
 // ── Wallet ───────────────────────────────────────────────────────────────

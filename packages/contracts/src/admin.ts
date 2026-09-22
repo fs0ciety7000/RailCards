@@ -40,12 +40,21 @@ export const createCardSchema = z.object({
 });
 export type CreateCardInput = z.infer<typeof createCardSchema>;
 
+export const combatStatsSchema = z.object({
+  power: z.coerce.number().int().min(0).max(100),
+  reliability: z.coerce.number().int().min(0).max(100),
+  charm: z.coerce.number().int().min(0).max(100),
+});
+export type CombatStatsInput = z.infer<typeof combatStatsSchema>;
+
 export const updateCardSchema = z.object({
   name: z.string().max(120).optional(),
   description: z.string().optional(),
   flavorText: z.string().optional(),
   rarityId: z.string().uuid().optional(),
   imageUrl: z.string().optional(),
+  combatStatsEnabled: z.boolean().optional(),
+  combatStats: combatStatsSchema.optional(),
 });
 export type UpdateCardInput = z.infer<typeof updateCardSchema>;
 

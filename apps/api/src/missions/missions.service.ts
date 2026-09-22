@@ -1,9 +1,28 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { MissionGoalType, Prisma } from "@railcards/database";
+import { gradeForLevel, levelForXp } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 
 type Tx = Prisma.TransactionClient;
+
+export interface LevelUpInfo {
+  leveledUp: boolean;
+  newLevel: number;
+  newGrade: string;
+}
+
+/** Grants XP and reports whether it pushed the player into a new level. */
+export async function grantXp(tx: Tx, userId: string, amount: number): Promise<LevelUpInfo> {
+  const before = await tx.userProfile.findUniqueOrThrow({ where: { userId } });
+  const levelBefore = levelForXp(before.xp);
+  const after = await tx.userProfile.update({ where: { userId }, data: { xp: { increment: amount } } });
+  const levelAfter = levelForXp(after.xp);
+  if (levelAfter !== levelBefore) {
+    await tx.userProfile.update({ where: { userId }, data: { level: levelAfter } });
+  }
+  return { leveledUp: levelAfter > levelBefore, newLevel: levelAfter, newGrade: gradeForLevel(levelAfter) };
+}
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
@@ -118,10 +137,11 @@ export class MissionsService {
           idempotencyKey: `mission-claim-${um.id}`,
         });
       }
-      if (um.mission.rewardXp > 0) {
-        await tx.userProfile.update({ where: { userId }, data: { xp: { increment: um.mission.rewardXp } } });
-      }
-      return tx.userMission.update({ where: { id: um.id }, data: { claimedAt: new Date() } });
+      const levelUp: LevelUpInfo =
+        um.mission.rewardXp > 0 ? await grantXp(tx, userId, um.mission.rewardXp) : { leveledUp: false, newLevel: 0, newGrade: "" };
+
+      const userMission = await tx.userMission.update({ where: { id: um.id }, data: { claimedAt: new Date() } });
+      return { ...userMission, ...levelUp };
     });
   }
 
@@ -145,10 +165,13 @@ export class MissionsService {
           idempotencyKey: `achievement-claim-${ua.id}`,
         });
       }
-      if (ua.achievement.rewardXp > 0) {
-        await tx.userProfile.update({ where: { userId }, data: { xp: { increment: ua.achievement.rewardXp } } });
-      }
-      return tx.userAchievement.update({ where: { id: ua.id }, data: { claimedAt: new Date() } });
+      const levelUp: LevelUpInfo =
+        ua.achievement.rewardXp > 0
+          ? await grantXp(tx, userId, ua.achievement.rewardXp)
+          : { leveledUp: false, newLevel: 0, newGrade: "" };
+
+      const userAchievement = await tx.userAchievement.update({ where: { id: ua.id }, data: { claimedAt: new Date() } });
+      return { ...userAchievement, ...levelUp };
     });
   }
 }
