@@ -1,7 +1,8 @@
 import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiTags } from "@nestjs/swagger";
-import type { Prisma, ReportStatus } from "@railcards/database";
+import type { CardCategory, CardStatus, Prisma, ReportStatus } from "@railcards/database";
+import type { CardSortBy } from "../catalog/catalog.service";
 import { RolesGuard } from "../common/guards/roles.guard";
 import { Roles } from "../common/decorators/roles.decorator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -87,9 +88,18 @@ export class AdminController {
   }
 
   @Get("cards")
-  async listCards(@Query("page") page = "1", @Query("pageSize") pageSize = "50") {
+  async listCards(
+    @Query("page") page = "1",
+    @Query("pageSize") pageSize = "50",
+    @Query("search") search?: string,
+    @Query("seriesId") seriesId?: string,
+    @Query("rarity") rarityCode?: string,
+    @Query("category") category?: CardCategory,
+    @Query("status") status?: CardStatus,
+    @Query("sortBy") sortBy?: CardSortBy,
+  ) {
     const { items, total } = await this.catalog.searchCards(
-      { page: Number(page) || 1, pageSize: Number(pageSize) || 50 },
+      { page: Number(page) || 1, pageSize: Number(pageSize) || 50, search, seriesId, rarityCode, category, status, sortBy },
       true,
     );
     return { items, total };

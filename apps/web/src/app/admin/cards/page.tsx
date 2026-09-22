@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Archive, CheckCircle2, PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { Archive, CheckCircle2, PlusCircle, Pencil, Search, Trash2 } from "lucide-react";
 import { createCardSchema, updateCardSchema, type CreateCardInput, type UpdateCardInput } from "@railcards/contracts";
 import {
   Badge,
@@ -296,6 +296,20 @@ function EditCardDialog({ card, onClose }: { card: CardDefinition | null; onClos
   );
 }
 
+const STATUS_OPTIONS = [
+  { value: "", label: "Tous les statuts" },
+  { value: "DRAFT", label: "Brouillon" },
+  { value: "PUBLISHED", label: "Publié" },
+  { value: "ARCHIVED", label: "Archivé" },
+];
+
+const SORT_OPTIONS = [
+  { value: "rarity", label: "Rareté" },
+  { value: "name", label: "Nom (A-Z)" },
+  { value: "status", label: "Statut" },
+  { value: "newest", label: "Plus récentes" },
+];
+
 function CardsList() {
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -303,7 +317,19 @@ function CardsList() {
   const [editTarget, setEditTarget] = useState<CardDefinition | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<CardDefinition | null>(null);
   const [cascadeTarget, setCascadeTarget] = useState<{ card: CardDefinition; message: string } | null>(null);
-  const cardsQuery = useQuery({ queryKey: ["admin", "cards"], queryFn: () => adminApi.listCards({ pageSize: 100 }) });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"rarity" | "name" | "status" | "newest">("rarity");
+  const cardsQuery = useQuery({
+    queryKey: ["admin", "cards", { search, statusFilter, sortBy }],
+    queryFn: () =>
+      adminApi.listCards({
+        pageSize: 100,
+        search: search || undefined,
+        status: statusFilter || undefined,
+        sortBy,
+      }),
+  });
 
   const publishMutation = useMutation({
     mutationFn: (id: string) => adminApi.publishCard(id),
@@ -347,12 +373,46 @@ function CardsList() {
     },
   });
 
-  if (cardsQuery.isLoading) return <Skeleton className="h-64 w-full" />;
-
   return (
     <Card>
       <CardBody className="overflow-x-auto">
-        <h2 className="mb-3 font-semibold text-white">Toutes les cartes ({cardsQuery.data?.total ?? 0})</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-semibold text-white">Toutes les cartes ({cardsQuery.data?.total ?? 0})</h2>
+          <div className="flex flex-wrap gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" aria-hidden="true" />
+              <Input
+                aria-label="Rechercher par nom"
+                placeholder="Rechercher par nom…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-48 pl-9"
+              />
+            </div>
+            <Select aria-label="Filtrer par statut" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-auto">
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+            <Select
+              aria-label="Trier par"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="w-auto"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  Trier : {o.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        {cardsQuery.isLoading ? (
+          <Skeleton className="h-64 w-full" />
+        ) : (
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
             <tr className="border-b border-rc-border-strong text-xs font-semibold uppercase tracking-wide text-white/40">
@@ -429,6 +489,7 @@ function CardsList() {
             ))}
           </tbody>
         </table>
+        )}
       </CardBody>
       <ConfirmDialog
         open={!!archiveTarget}

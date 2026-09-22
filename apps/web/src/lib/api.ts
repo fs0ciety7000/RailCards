@@ -328,8 +328,18 @@ export const adminApi = {
   updateSeries: (id: string, input: unknown) =>
     request<T.CardSeries>(`/admin/series/${id}`, { method: "PATCH", body: input }),
 
-  listCards: (params: { page?: number; pageSize?: number } = {}) =>
-    request<{ items: T.CardDefinition[]; total: number }>(`/admin/cards${qs(params)}`),
+  listCards: (
+    params: {
+      page?: number;
+      pageSize?: number;
+      search?: string;
+      seriesId?: string;
+      rarity?: string;
+      category?: string;
+      status?: string;
+      sortBy?: "rarity" | "name" | "status" | "newest";
+    } = {},
+  ) => request<{ items: T.CardDefinition[]; total: number }>(`/admin/cards${qs(params)}`),
   createCard: (input: unknown) => request<T.CardDefinition>("/admin/cards", { method: "POST", body: input }),
   updateCard: (id: string, input: unknown) =>
     request<T.CardDefinition>(`/admin/cards/${id}`, { method: "PATCH", body: input }),

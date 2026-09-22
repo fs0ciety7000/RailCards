@@ -2,6 +2,8 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import type { CardCategory, CardStatus, Prisma } from "@railcards/database";
 import { PrismaService } from "../prisma/prisma.service";
 
+export type CardSortBy = "rarity" | "name" | "status" | "newest";
+
 export interface CardSearchParams {
   page: number;
   pageSize: number;
@@ -10,7 +12,17 @@ export interface CardSearchParams {
   rarityCode?: string;
   category?: CardCategory;
   status?: CardStatus;
+  sortBy?: CardSortBy;
 }
+
+const CARD_ORDER_BY: Record<CardSortBy, Prisma.CardDefinitionOrderByWithRelationInput[]> = {
+  rarity: [{ rarity: { order: "asc" } }, { name: "asc" }],
+  name: [{ name: "asc" }],
+  // Enum sort order follows declaration order (DRAFT, PUBLISHED, ARCHIVED)
+  // — draft cards still needing attention float to the top.
+  status: [{ status: "asc" }, { name: "asc" }],
+  newest: [{ createdAt: "desc" }],
+};
 
 @Injectable()
 export class CatalogService {
@@ -49,7 +61,7 @@ export class CatalogService {
       this.prisma.cardDefinition.findMany({
         where,
         include: { series: true, rarity: true },
-        orderBy: [{ rarity: { order: "asc" } }, { name: "asc" }],
+        orderBy: CARD_ORDER_BY[params.sortBy ?? "rarity"],
         skip: (params.page - 1) * params.pageSize,
         take: params.pageSize,
       }),
