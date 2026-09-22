@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Prisma } from "@railcards/database";
+import type { CardCategory, Prisma } from "@railcards/database";
 import { drawBoosterCards, GAME_CONSTANTS } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
@@ -30,7 +30,7 @@ export class BoostersService {
   async listAllDefinitionsForAdmin() {
     return this.prisma.boosterDefinition.findMany({
       orderBy: { priceCr: "asc" },
-      include: { pools: { where: { isActive: true }, include: { entries: { include: { rarity: true } } } } },
+      include: { pools: { where: { isActive: true }, include: { entries: { include: { rarity: true, series: true } } } } },
     });
   }
 
@@ -49,7 +49,7 @@ export class BoostersService {
    */
   async publishNewPoolVersion(
     boosterDefinitionId: string,
-    entries: { rarityId: string; weight: number; seriesId?: string; cardDefinitionId?: string }[],
+    entries: { rarityId: string; weight: number; category?: string; seriesId?: string; cardDefinitionId?: string }[],
   ) {
     return this.prisma.$transaction(async (tx) => {
       const previous = await tx.boosterPool.findFirst({
@@ -68,6 +68,7 @@ export class BoostersService {
           boosterPoolId: pool.id,
           rarityId: e.rarityId,
           weight: e.weight,
+          category: e.category as CardCategory | undefined,
           seriesId: e.seriesId,
           cardDefinitionId: e.cardDefinitionId,
         })),
@@ -125,7 +126,7 @@ export class BoostersService {
     if (!pool) throw new NotFoundException("No active pool configured for this booster");
 
     const resolvedPool = await resolveBoosterPool(this.prisma, pool.id);
-    const draws = drawBoosterCards(boosterDef.cardCount, resolvedPool);
+    const draws = this.drawOrThrow(boosterDef.cardCount, resolvedPool);
 
     return this.prisma.$transaction(async (tx) => {
       const walletTx = await this.wallet.debit(tx, {
@@ -157,6 +158,20 @@ export class BoostersService {
         },
       });
     });
+  }
+
+  /**
+   * Thin wrapper around drawBoosterCards that turns a misconfigured pool
+   * (a rarity/category/series combination with zero matching published
+   * cards) into a clean 400 instead of an unhandled 500 — this is an admin
+   * data problem, not a server fault.
+   */
+  private drawOrThrow(cardCount: number, resolvedPool: Parameters<typeof drawBoosterCards>[1]): ReturnType<typeof drawBoosterCards> {
+    try {
+      return drawBoosterCards(cardCount, resolvedPool);
+    } catch {
+      throw new BadRequestException("This booster's pool has no eligible cards for its configured rules");
+    }
   }
 
   /** Creates the card instances/pulls for a drawn set and records mission progress. */
@@ -223,7 +238,7 @@ export class BoostersService {
     if (!pool) throw new NotFoundException("No active pool configured for the free booster");
 
     const resolvedPool = await resolveBoosterPool(this.prisma, pool.id);
-    const draws = drawBoosterCards(boosterDef.cardCount, resolvedPool);
+    const draws = this.drawOrThrow(boosterDef.cardCount, resolvedPool);
 
     return this.prisma.$transaction(async (tx) => {
       const now = new Date();

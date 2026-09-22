@@ -310,6 +310,11 @@ model BoosterPoolEntry {
   boosterPool   BoosterPool @relation(fields: [boosterPoolId], references: [id], onDelete: Cascade)
   rarityId      String
   rarity        Rarity      @relation(fields: [rarityId], references: [id])
+  // Optional scoping, independently combinable: restrict this entry's draw
+  // to one card category, one series, or (rarest) one exact card — e.g. a
+  // themed booster's entries set `category` instead of picking every series
+  // in that category one by one.
+  category      CardCategory?
   seriesId      String?
   series        CardSeries? @relation(fields: [seriesId], references: [id])
   cardDefinitionId String?

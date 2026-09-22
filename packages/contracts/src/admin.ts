@@ -86,6 +86,7 @@ export type UpdateBoosterDefinitionInput = z.infer<typeof updateBoosterDefinitio
 export const poolEntrySchema = z.object({
   rarityId: z.string().uuid(),
   weight: z.coerce.number().int().min(1),
+  category: cardCategorySchema.optional().or(z.literal("")),
   seriesId: z.string().uuid().optional().or(z.literal("")),
   cardDefinitionId: z.string().uuid().optional().or(z.literal("")),
 });

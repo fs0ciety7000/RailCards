@@ -26,6 +26,7 @@ export async function resolveBoosterPool(prisma: PrismaService, boosterPoolId: s
       where: {
         status: "PUBLISHED",
         rarityId: entry.rarityId,
+        category: entry.category ?? undefined,
         seriesId: entry.seriesId ?? undefined,
         id: entry.cardDefinitionId ?? undefined,
       },

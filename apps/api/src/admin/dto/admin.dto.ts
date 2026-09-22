@@ -86,6 +86,7 @@ export class UpdateBoosterDefinitionDto {
 export class PoolEntryDto {
   @IsUUID("4") rarityId!: string;
   @IsInt() @Min(1) weight!: number;
+  @IsOptional() @IsString() category?: CardCategory;
   @IsOptional() @IsUUID("4") seriesId?: string;
   @IsOptional() @IsUUID("4") cardDefinitionId?: string;
 }

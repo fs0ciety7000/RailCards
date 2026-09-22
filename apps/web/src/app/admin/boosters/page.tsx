@@ -34,9 +34,11 @@ import { PageHeader } from "@/components/PageHeader";
 import { ImageUrlField } from "@/components/ImageUrlField";
 import { adminApi, catalogApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
+import { CARD_CATEGORY_LABELS } from "@/lib/format";
 import type { BoosterDefinition } from "@/lib/types";
 
 const BOOSTER_CATEGORIES = ["DISCOVERY", "CLASSIC", "THEMED"] as const;
+const CARD_CATEGORIES = Object.keys(CARD_CATEGORY_LABELS);
 
 function CreateBoosterForm() {
   const toast = useToast();
@@ -249,6 +251,7 @@ function PublishPoolForm({ boosterId, onDone }: { boosterId: string; onDone: () 
   const toast = useToast();
   const queryClient = useQueryClient();
   const raritiesQuery = useQuery({ queryKey: ["rarities"], queryFn: catalogApi.rarities });
+  const seriesQuery = useQuery({ queryKey: ["admin", "series"], queryFn: adminApi.listSeries });
 
   const {
     register,
@@ -267,6 +270,7 @@ function PublishPoolForm({ boosterId, onDone }: { boosterId: string; onDone: () 
         entries: values.entries.map((e) => ({
           rarityId: e.rarityId,
           weight: e.weight,
+          category: e.category || undefined,
           seriesId: e.seriesId || undefined,
           cardDefinitionId: e.cardDefinitionId || undefined,
         })),
@@ -282,6 +286,9 @@ function PublishPoolForm({ boosterId, onDone }: { boosterId: string; onDone: () 
   return (
     <form onSubmit={handleSubmit((v) => publishMutation.mutate(v))} noValidate className="mt-3 space-y-2 rounded-lg border border-white/10 p-3">
       <p className="text-xs font-semibold uppercase text-white/40">Nouvelle version du pool (poids par rareté)</p>
+      <p className="text-[11px] text-white/40">
+        Catégorie et série sont optionnelles et se combinent : laissez sur « Toutes » pour piocher dans tout le catalogue publié de cette rareté.
+      </p>
       {fields.map((field, index) => (
         <div key={field.id} className="flex flex-wrap items-center gap-2">
           <Select {...register(`entries.${index}.rarityId` as const)} className="w-auto">
@@ -299,6 +306,22 @@ function PublishPoolForm({ boosterId, onDone }: { boosterId: string; onDone: () 
             className="w-24"
             {...register(`entries.${index}.weight` as const)}
           />
+          <Select {...register(`entries.${index}.category` as const)} className="w-auto">
+            <option value="">Toutes catégories</option>
+            {CARD_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {CARD_CATEGORY_LABELS[c]}
+              </option>
+            ))}
+          </Select>
+          <Select {...register(`entries.${index}.seriesId` as const)} className="w-auto">
+            <option value="">Toutes séries</option>
+            {seriesQuery.data?.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Select>
           <Button type="button" size="sm" variant="ghost" onClick={() => remove(index)} disabled={fields.length <= 1}>
             Retirer
           </Button>
@@ -322,7 +345,20 @@ function BoostersList() {
   const [editTarget, setEditTarget] = useState<BoosterDefinition | null>(null);
   const boostersQuery = useQuery({
     queryKey: ["admin", "boosters"],
-    queryFn: () => adminApi.listBoosters() as Promise<(BoosterDefinition & { pools?: { entries: { id: string; weight: number; rarity: { label: string } }[] }[] })[]>,
+    queryFn: () =>
+      adminApi.listBoosters() as Promise<
+        (BoosterDefinition & {
+          pools?: {
+            entries: {
+              id: string;
+              weight: number;
+              rarity: { label: string };
+              category: string | null;
+              series: { name: string } | null;
+            }[];
+          }[];
+        })[]
+      >,
   });
 
   if (boostersQuery.isLoading) return <Skeleton className="h-64 w-full" />;
@@ -376,6 +412,8 @@ function BoostersList() {
                 {b.pools[0].entries.map((e) => (
                   <Badge key={e.id}>
                     {e.rarity.label}: {e.weight}
+                    {e.category && ` · ${CARD_CATEGORY_LABELS[e.category] ?? e.category}`}
+                    {e.series && ` · ${e.series.name}`}
                   </Badge>
                 ))}
               </div>
