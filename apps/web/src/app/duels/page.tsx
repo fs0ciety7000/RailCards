@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Swords, Trophy } from "lucide-react";
+import { Plus, RotateCcw, Swords, Trophy } from "lucide-react";
 import { Badge, Button, Card, CardBody, ConfirmDialog, CrAmount, Dialog, EmptyState, ErrorState, RarityBadge, Skeleton, Tabs, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -69,6 +69,13 @@ function DuelResult({ duel, myUserId }: { duel: Duel; myUserId?: string }) {
             ? `Victoire ! +${duel.wagerCr} CR`
             : `Défaite — -${duel.wagerCr} CR`}
       </p>
+      <Link
+        href={`/duels/${duel.id}`}
+        className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-white/50 hover:text-white"
+      >
+        <RotateCcw className="h-3 w-3" aria-hidden="true" />
+        Revoir le duel
+      </Link>
     </div>
   );
 }
@@ -105,9 +112,9 @@ function DuelCard({ duel, myUsername, myUserId }: { duel: Duel; myUsername?: str
     <Card>
       <CardBody>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <p className="font-semibold text-white">
+          <Link href={`/duels/${duel.id}`} className="font-semibold text-white hover:text-rc-accent hover:underline">
             {isChallenger ? "Défi envoyé à" : "Défi reçu de"} @{counterparty.username}
-          </p>
+          </Link>
           <Badge tone={STATUS_TONE[duel.status] ?? "neutral"}>{DUEL_STATUS_LABELS[duel.status] ?? duel.status}</Badge>
         </div>
         <p className="mb-3 text-xs text-white/40">{formatDateTime(duel.createdAt)}</p>
