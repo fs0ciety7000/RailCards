@@ -17,4 +17,8 @@ export const GAME_CONSTANTS = {
   // card at the next rarity tier up. A duplicate sink, and MYTHIC has no
   // tier above it so it can never be a craft input.
   CRAFT_RECIPE_SIZE: 3,
+  // Duels: how long a challenge stays open before it lapses unanswered.
+  DUEL_EXPIRY_HOURS: 24,
+  DUEL_MIN_WAGER_CR: 1,
+  DUEL_MAX_WAGER_CR: 100_000,
 } as const;

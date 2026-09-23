@@ -15,6 +15,7 @@ import {
   Menu,
   Repeat,
   Shield,
+  Swords,
   TrainFront,
   Trophy,
   User,
@@ -30,6 +31,7 @@ const PRIMARY_TABS = [
   { href: "/collection", label: "Collection", icon: Folder },
   { href: "/market", label: "Marché", icon: ArrowLeftRight },
   { href: "/trades", label: "Échanges", icon: Repeat },
+  { href: "/duels", label: "Duels", icon: Swords },
   { href: "/profile", label: "Profil", icon: User },
 ];
 

@@ -45,6 +45,8 @@ export const ACQUISITION_LABELS: Record<string, string> = {
   ADMIN_GRANT: "Don administrateur",
   MISSION_REWARD: "Récompense de mission",
   ACHIEVEMENT_REWARD: "Récompense de haut fait",
+  FOUNDER_GRANT: "Carte fondateurs",
+  CRAFT: "Fusion",
 };
 
 export const TRADE_STATUS_LABELS: Record<string, string> = {
@@ -54,6 +56,20 @@ export const TRADE_STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Annulé",
   EXPIRED: "Expiré",
   COUNTERED: "Contre-offre",
+};
+
+export const DUEL_STATUS_LABELS: Record<string, string> = {
+  PENDING: "En attente",
+  ACCEPTED: "Résolu",
+  DECLINED: "Refusé",
+  CANCELLED: "Annulé",
+  EXPIRED: "Expiré",
+};
+
+export const DUEL_STAT_LABELS: Record<string, string> = {
+  POWER: "Puissance",
+  RELIABILITY: "Fiabilité",
+  CHARM: "Charme",
 };
 
 export const NOTIFICATION_LABELS: Record<string, string> = {
@@ -69,6 +85,11 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   LEVEL_UP: "Niveau supérieur",
   CREDITS_EARNED: "Crédits reçus",
   SERIES_COMPLETED: "Série complétée",
+  DUEL_RECEIVED: "Défi reçu",
+  DUEL_RESOLVED: "Duel résolu",
+  DUEL_DECLINED: "Défi refusé",
+  DUEL_CANCELLED: "Duel annulé",
+  DUEL_EXPIRED: "Défi expiré",
   SYSTEM: "Notification système",
 };
 
@@ -95,6 +116,17 @@ export function notificationMessage(type: string, payload: Record<string, unknow
       return typeof payload.seriesName === "string"
         ? `Série complétée : ${payload.seriesName} !`
         : NOTIFICATION_LABELS[type]!;
+    case "DUEL_RECEIVED":
+      return typeof payload.wagerCr === "number"
+        ? `Défi de duel reçu — ${payload.wagerCr} CR en jeu`
+        : NOTIFICATION_LABELS[type]!;
+    case "DUEL_RESOLVED": {
+      const stat = typeof payload.stat === "string" ? DUEL_STAT_LABELS[payload.stat] ?? payload.stat : null;
+      if (!stat) return NOTIFICATION_LABELS[type]!;
+      return payload.winnerId
+        ? `Duel résolu sur ${stat} — un vainqueur repart avec ${payload.wagerCr as number} CR`
+        : `Duel résolu sur ${stat} — égalité, personne ne gagne le pari`;
+    }
     case "SYSTEM":
       return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;
     default:

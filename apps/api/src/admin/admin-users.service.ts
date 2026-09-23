@@ -117,6 +117,10 @@ export class AdminUsersService {
     await tx.tradeItem.deleteMany({ where: { cardInstanceId: { in: ownedIds } } });
     await tx.trade.deleteMany({ where: { OR: [{ initiatorId: userId }, { recipientId: userId }] } });
 
+    await tx.duel.deleteMany({
+      where: { OR: [{ challengerCardInstanceId: { in: ownedIds } }, { opponentCardInstanceId: { in: ownedIds } }] },
+    });
+
     await tx.boosterPull.deleteMany({ where: { cardInstanceId: { in: ownedIds } } });
     await tx.cardInstance.deleteMany({ where: { id: { in: ownedIds } } });
 
@@ -186,6 +190,13 @@ export class AdminUsersService {
 
     await this.prisma.$transaction(async (tx) => {
       await this.purgeCardInstances(tx, targetUserId);
+      // Covers duels referencing this user directly (as challenger,
+      // opponent or winner) that purgeCardInstances' card-id-scoped
+      // cleanup wouldn't catch — e.g. a duel fought with a card since
+      // traded away to someone else.
+      await tx.duel.deleteMany({
+        where: { OR: [{ challengerId: targetUserId }, { opponentId: targetUserId }, { winnerId: targetUserId }] },
+      });
       await tx.boosterOpening.deleteMany({ where: { userId: targetUserId } });
       await tx.userMission.deleteMany({ where: { userId: targetUserId } });
       await tx.userAchievement.deleteMany({ where: { userId: targetUserId } });

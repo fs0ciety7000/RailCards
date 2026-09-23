@@ -245,6 +245,32 @@ export interface Trade {
   items: TradeItem[];
 }
 
+export type DuelStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED";
+export type DuelStat = "POWER" | "RELIABILITY" | "CHARM";
+
+export interface Duel {
+  id: string;
+  challengerId: string;
+  challenger: { username: string; displayName: string };
+  opponentId: string;
+  opponent: { username: string; displayName: string };
+  challengerCardInstanceId: string;
+  challengerCardInstance: CardInstance;
+  opponentCardInstanceId: string | null;
+  opponentCardInstance: CardInstance | null;
+  wagerCr: number;
+  status: DuelStatus;
+  stat: DuelStat | null;
+  challengerValue: number | null;
+  opponentValue: number | null;
+  winnerId: string | null;
+  winner: { username: string; displayName: string } | null;
+  message: string | null;
+  expiresAt: string;
+  respondedAt: string | null;
+  createdAt: string;
+}
+
 export type MissionGoalType =
   | "OPEN_BOOSTER"
   | "COLLECT_UNIQUE_CARDS"
@@ -314,6 +340,11 @@ export type NotificationType =
   | "LEVEL_UP"
   | "CREDITS_EARNED"
   | "SERIES_COMPLETED"
+  | "DUEL_RECEIVED"
+  | "DUEL_RESOLVED"
+  | "DUEL_DECLINED"
+  | "DUEL_CANCELLED"
+  | "DUEL_EXPIRED"
   | "SYSTEM";
 
 export interface AppNotification {

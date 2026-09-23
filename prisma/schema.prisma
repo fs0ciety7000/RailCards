@@ -48,6 +48,9 @@ model User {
   boosterOpenings       BoosterOpening[]
   tradesInitiated       Trade[]             @relation("TradeInitiator")
   tradesReceived        Trade[]             @relation("TradeRecipient")
+  duelsChallenged       Duel[]              @relation("DuelChallenger")
+  duelsOpposed          Duel[]              @relation("DuelOpponent")
+  duelsWon              Duel[]              @relation("DuelWinner")
   marketListings        MarketListing[]
   marketPurchases       MarketTransaction[] @relation("MarketBuyer")
   marketSales           MarketTransaction[] @relation("MarketSeller")
@@ -260,6 +263,8 @@ model CardInstance {
   boosterPull      BoosterPull?
   tradeItems       TradeItem[]
   marketListings   MarketListing[]
+  duelsAsChallenger Duel[] @relation("DuelChallengerCard")
+  duelsAsOpponent   Duel[] @relation("DuelOpponentCard")
 
   @@index([ownerId])
   @@index([cardDefinitionId])
@@ -378,6 +383,8 @@ enum WalletTransactionType {
   TRADE_CR_TRANSFER
   ADMIN_ADJUSTMENT
   COMPENSATION
+  DUEL_WAGER
+  DUEL_PAYOUT
 }
 
 model Wallet {
@@ -466,6 +473,51 @@ model TradeItem {
 
   @@index([tradeId])
   @@index([cardInstanceId])
+}
+
+enum DuelStat {
+  POWER
+  RELIABILITY
+  CHARM
+}
+
+enum DuelStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
+// A friendly wager between two players' combat-stat cards. Cards are never
+// staked or transferred — only the CR wager moves, and only once the duel
+// actually resolves (see DuelsService.accept), so a challenge nobody ever
+// answers never leaves money in limbo.
+model Duel {
+  id                       String        @id @default(uuid())
+  challengerId             String
+  challenger               User          @relation("DuelChallenger", fields: [challengerId], references: [id])
+  challengerCardInstanceId String
+  challengerCardInstance   CardInstance  @relation("DuelChallengerCard", fields: [challengerCardInstanceId], references: [id])
+  opponentId               String
+  opponent                 User          @relation("DuelOpponent", fields: [opponentId], references: [id])
+  opponentCardInstanceId   String?
+  opponentCardInstance     CardInstance? @relation("DuelOpponentCard", fields: [opponentCardInstanceId], references: [id])
+  wagerCr                  Int
+  status                   DuelStatus    @default(PENDING)
+  stat                     DuelStat?
+  challengerValue          Int?
+  opponentValue            Int?
+  winnerId                 String?
+  winner                   User?         @relation("DuelWinner", fields: [winnerId], references: [id])
+  message                  String?
+  expiresAt                DateTime
+  respondedAt              DateTime?
+  createdAt                DateTime      @default(now())
+
+  @@index([challengerId])
+  @@index([opponentId])
+  @@index([status])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -674,6 +726,11 @@ enum NotificationType {
   LEVEL_UP
   CREDITS_EARNED
   SERIES_COMPLETED
+  DUEL_RECEIVED
+  DUEL_RESOLVED
+  DUEL_DECLINED
+  DUEL_CANCELLED
+  DUEL_EXPIRED
   SYSTEM
 }
 

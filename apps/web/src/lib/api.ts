@@ -271,6 +271,19 @@ export const tradesApi = {
   cancel: (id: string) => request<T.Trade>(`/trades/${id}/cancel`, { method: "POST" }),
 };
 
+// ── Duels ────────────────────────────────────────────────────────────────
+
+export const duelsApi = {
+  create: (input: { opponentUsername: string; cardInstanceId: string; wagerCr: number; message?: string }) =>
+    request<T.Duel>("/duels", { method: "POST", body: input }),
+  list: (direction: "sent" | "received" | "all" = "all", status?: string) =>
+    request<T.Duel[]>(`/duels${qs({ direction, status })}`),
+  getById: (id: string) => request<T.Duel>(`/duels/${id}`),
+  accept: (id: string, cardInstanceId: string) => request<T.Duel>(`/duels/${id}/accept`, { method: "POST", body: { cardInstanceId } }),
+  decline: (id: string) => request<{ declined: boolean }>(`/duels/${id}/decline`, { method: "POST" }),
+  cancel: (id: string) => request<{ cancelled: boolean }>(`/duels/${id}/cancel`, { method: "POST" }),
+};
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const usersApi = {
