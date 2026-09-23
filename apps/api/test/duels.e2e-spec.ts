@@ -280,4 +280,28 @@ describe("Duels: wager a card's combat stat against another player (e2e, real Po
       .set("Authorization", `Bearer ${adminToken}`)
       .expect(200);
   });
+
+  it("lets an admin cascade-delete a card definition that was staked in a resolved duel", async () => {
+    const cardId = await createCard({ power: 55, reliability: 55, charm: 55 });
+    const challenger = await registerUser(app, adminToken, "duelcarddel");
+    const opponent = await registerUser(app, adminToken, "duelcarddel2");
+    const challengerInstance = await grant(challenger.user.id, cardId);
+    const opponentInstance = await grant(opponent.user.id, cardId);
+
+    const duel = await request(app.getHttpServer())
+      .post("/api/v1/duels")
+      .set("Authorization", `Bearer ${challenger.accessToken}`)
+      .send({ opponentUsername: opponent.username, cardInstanceId: challengerInstance, wagerCr: 5 })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/api/v1/duels/${duel.body.id}/accept`)
+      .set("Authorization", `Bearer ${opponent.accessToken}`)
+      .send({ cardInstanceId: opponentInstance })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/admin/cards/${cardId}?cascade=true`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+  });
 });

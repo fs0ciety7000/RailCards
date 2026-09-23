@@ -154,6 +154,9 @@ export class CatalogService {
           await tx.marketListing.deleteMany({ where: { id: { in: listingIds } } });
         }
         await tx.tradeItem.deleteMany({ where: { cardInstanceId: { in: instanceIds } } });
+        await tx.duel.deleteMany({
+          where: { OR: [{ challengerCardInstanceId: { in: instanceIds } }, { opponentCardInstanceId: { in: instanceIds } }] },
+        });
       }
 
       // Every booster pull for this card is tied via cardDefinitionId
