@@ -4,13 +4,17 @@ import type { Response } from "express";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { GuildsService } from "./guilds.service";
-import { CreateGuildDto } from "./dto/guild.dto";
+import { GuildChatService } from "./guild-chat.service";
+import { CreateGuildDto, PostGuildMessageDto } from "./dto/guild.dto";
 
 @ApiTags("guilds")
 @ApiBearerAuth()
 @Controller({ path: "guilds", version: "1" })
 export class GuildsController {
-  constructor(private readonly guilds: GuildsService) {}
+  constructor(
+    private readonly guilds: GuildsService,
+    private readonly guildChat: GuildChatService,
+  ) {}
 
   @Post()
   async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateGuildDto) {
@@ -78,5 +82,15 @@ export class GuildsController {
   @Delete(":id")
   async disband(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return this.guilds.disband(user.id, id);
+  }
+
+  @Get(":id/messages")
+  async listMessages(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Query("limit") limit = "50") {
+    return this.guildChat.list(user.id, id, Number(limit) || 50);
+  }
+
+  @Post(":id/messages")
+  async postMessage(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() dto: PostGuildMessageDto) {
+    return this.guildChat.post(user.id, id, dto.body);
   }
 }

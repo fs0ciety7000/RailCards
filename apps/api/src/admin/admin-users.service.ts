@@ -223,6 +223,8 @@ export class AdminUsersService {
       });
       await tx.wantedListing.deleteMany({ where: { posterId: targetUserId } });
       await tx.userQuestProgress.deleteMany({ where: { userId: targetUserId } });
+      await tx.seasonPoint.deleteMany({ where: { userId: targetUserId } });
+      await tx.guildMessage.deleteMany({ where: { authorId: targetUserId } });
       await tx.boosterOpening.deleteMany({ where: { userId: targetUserId } });
       await tx.userMission.deleteMany({ where: { userId: targetUserId } });
       await tx.userAchievement.deleteMany({ where: { userId: targetUserId } });

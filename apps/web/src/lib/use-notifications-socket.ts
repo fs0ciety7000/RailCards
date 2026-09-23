@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "./auth-store";
 import { useToast } from "@railcards/ui";
 import { notificationMessage } from "./format";
-import type { AppNotification } from "./types";
+import type { AppNotification, GuildMessage } from "./types";
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:4000";
 
@@ -35,6 +35,15 @@ export function useNotificationsSocket() {
           tone: "info",
           title: notificationMessage(notification.type, notification.payload),
         });
+      });
+      // Guild chat: appended straight into the messages cache (no toast —
+      // a chat message isn't a notification, and the chat panel itself is
+      // the "unread" surface). A no-op if that guild's chat isn't mounted,
+      // since it'll fetch fresh data itself when it next mounts.
+      socket.on("guild-message", (message: GuildMessage) => {
+        queryClient.setQueryData<GuildMessage[]>(["guilds", "messages", message.guildId], (old) =>
+          old && !old.some((m) => m.id === message.id) ? [...old, message] : old,
+        );
       });
     } catch {
       // socket layer is a nice-to-have; polling covers this if it fails

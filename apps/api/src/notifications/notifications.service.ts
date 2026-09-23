@@ -44,4 +44,9 @@ export class NotificationsService {
   async markAllRead(userId: string) {
     await this.prisma.notification.updateMany({ where: { userId, readAt: null }, data: { readAt: new Date() } });
   }
+
+  /** Realtime-only fan-out (no Notification row) for ephemeral events like a guild chat message. */
+  broadcastToUsers(userIds: string[], event: string, payload: unknown) {
+    this.realtime?.pushToUsers(userIds, event, payload);
+  }
 }

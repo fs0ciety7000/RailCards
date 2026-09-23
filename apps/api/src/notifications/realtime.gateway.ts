@@ -64,4 +64,17 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
   pushNotification(userId: string, notification: unknown) {
     this.server?.to(`user:${userId}`).emit("notification", notification);
   }
+
+  /**
+   * Fans an event out to several users' personal rooms at once — e.g. a
+   * guild chat message to every current member. Reuses the same per-user
+   * rooms `pushNotification` already relies on rather than introducing
+   * guild-scoped rooms, so guild membership changes need no join/leave
+   * bookkeeping on the socket itself.
+   */
+  pushToUsers(userIds: string[], event: string, payload: unknown) {
+    for (const userId of userIds) {
+      this.server?.to(`user:${userId}`).emit(event, payload);
+    }
+  }
 }

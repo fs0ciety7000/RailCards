@@ -4,10 +4,11 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, ArrowUpCircle, Crown, LogOut, ShieldMinus, ShieldPlus, Sparkles, UserMinus, Users } from "lucide-react";
-import { Badge, Button, Card, CardBody, ConfirmDialog, ErrorState, Skeleton, useToast } from "@railcards/ui";
+import { Badge, Button, Card, CardBody, ConfirmDialog, ErrorState, Skeleton, Tabs, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { Avatar } from "@/components/Avatar";
+import { GuildChat } from "@/components/GuildChat";
 import { usersApi, guildsApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
@@ -151,6 +152,7 @@ function GuildDetailContent() {
   const queryClient = useQueryClient();
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [disbandOpen, setDisbandOpen] = useState(false);
+  const [tab, setTab] = useState<"members" | "chat">("members");
 
   const meQuery = useQuery({ queryKey: ["me"], queryFn: usersApi.me });
   const guildQuery = useQuery({ queryKey: ["guilds", "detail", params.id], queryFn: () => guildsApi.getById(params.id) });
@@ -278,11 +280,32 @@ function GuildDetailContent() {
         )}
       </div>
 
-      <div className="mt-6 space-y-2">
-        {guild.members.map((member) => (
-          <MemberRow key={member.userId} member={member} viewerRole={viewerRole} viewerUserId={meQuery.data?.id} guildId={guild.id} />
-        ))}
+      <div className="mt-6">
+        <Tabs
+          tabs={[
+            { id: "members", label: `Membres (${guild.memberCount})` },
+            { id: "chat", label: "Discussion" },
+          ]}
+          activeId={tab}
+          onChange={(id) => setTab(id as "members" | "chat")}
+        />
       </div>
+
+      {tab === "members" ? (
+        <div className="mt-4 space-y-2">
+          {guild.members.map((member) => (
+            <MemberRow key={member.userId} member={member} viewerRole={viewerRole} viewerUserId={meQuery.data?.id} guildId={guild.id} />
+          ))}
+        </div>
+      ) : isMember ? (
+        <div className="mt-4">
+          <GuildChat guildId={guild.id} viewerUsername={meQuery.data?.username} />
+        </div>
+      ) : (
+        <div className="mt-4">
+          <ErrorState title="Réservé aux membres" description="Rejoignez la guilde pour accéder à la discussion." />
+        </div>
+      )}
 
       <ConfirmDialog
         open={leaveOpen}

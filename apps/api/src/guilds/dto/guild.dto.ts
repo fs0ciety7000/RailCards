@@ -18,3 +18,10 @@ export class CreateGuildDto {
   @MaxLength(280)
   description?: string;
 }
+
+export class PostGuildMessageDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  body!: string;
+}
