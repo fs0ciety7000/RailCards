@@ -46,10 +46,33 @@ export class MarketService {
       if (reserveResult.count === 0) {
         throw new ConflictException("This card is not available to list (already listed, traded, or not yours)");
       }
-      return tx.marketListing.create({
+      const created = await tx.marketListing.create({
         data: { sellerId, cardInstanceId, priceCr, feeBps, status: "ACTIVE", listingType, auctionEndsAt },
         include: LISTING_INCLUDE,
       });
+
+      // Alert anyone with an open "wanted" post for this exact card — the
+      // one thing about it a wanted listing can't already tell them is
+      // that a copy just went up for sale, right now, for this price.
+      const wanters = await tx.wantedListing.findMany({
+        where: {
+          cardDefinitionId: created.cardInstance.cardDefinitionId,
+          status: "OPEN",
+          posterId: { not: sellerId },
+        },
+        select: { posterId: true },
+      });
+      for (const { posterId } of wanters) {
+        await this.notifications.create(tx, posterId, "WANTED_CARD_LISTED", {
+          listingId: created.id,
+          cardDefinitionId: created.cardInstance.cardDefinitionId,
+          cardName: created.cardInstance.cardDefinition.name,
+          priceCr: created.priceCr,
+          listingType: created.listingType,
+        });
+      }
+
+      return created;
     });
   }
 
