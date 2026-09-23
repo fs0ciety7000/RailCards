@@ -20,6 +20,7 @@ import { SeasonsService } from "../seasons/seasons.service";
 import { GuildWarsService } from "../guild-wars/guild-wars.service";
 import { SeasonPassService } from "../season-pass/season-pass.service";
 import { ProfileBannersService } from "../profile-banners/profile-banners.service";
+import { ProfileTitlesService } from "../profile-titles/profile-titles.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -53,6 +54,7 @@ import {
   UpdateSeasonPassTierDto,
 } from "./dto/admin.dto";
 import { CreateProfileBannerDto } from "../profile-banners/dto/profile-banner.dto";
+import { CreateProfileTitleDto } from "../profile-titles/dto/profile-title.dto";
 
 @ApiTags("admin")
 @ApiBearerAuth()
@@ -78,6 +80,7 @@ export class AdminController {
     private readonly guildWars: GuildWarsService,
     private readonly seasonPass: SeasonPassService,
     private readonly profileBanners: ProfileBannersService,
+    private readonly profileTitles: ProfileTitlesService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -233,6 +236,7 @@ export class AdminController {
   @Post("achievements")
   async createAchievement(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateAchievementDto) {
     if (dto.rewardBannerId) await this.profileBanners.requireExists(dto.rewardBannerId);
+    if (dto.rewardTitleId) await this.profileTitles.requireExists(dto.rewardTitleId);
     const achievement = await this.missions.createAchievement(dto);
     await this.auditLog.record(admin.id, "achievement.create", "Achievement", achievement.id, { code: achievement.code });
     return achievement;
@@ -241,6 +245,7 @@ export class AdminController {
   @Patch("achievements/:id")
   async updateAchievement(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateAchievementDto) {
     if (dto.rewardBannerId) await this.profileBanners.requireExists(dto.rewardBannerId);
+    if (dto.rewardTitleId) await this.profileTitles.requireExists(dto.rewardTitleId);
     const achievement = await this.missions.updateAchievement(id, dto);
     await this.auditLog.record(admin.id, "achievement.update", "Achievement", id, dto);
     return achievement;
@@ -257,6 +262,19 @@ export class AdminController {
     const banner = await this.profileBanners.createForAdmin(dto);
     await this.auditLog.record(admin.id, "profile-banner.create", "ProfileBanner", banner.id, { slug: banner.slug });
     return banner;
+  }
+
+  // ── Profile titles (cosmetic catalog) ───────────────────────────────
+  @Get("profile-titles")
+  async listProfileTitles() {
+    return this.profileTitles.listCatalog();
+  }
+
+  @Post("profile-titles")
+  async createProfileTitle(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateProfileTitleDto) {
+    const title = await this.profileTitles.createForAdmin(dto);
+    await this.auditLog.record(admin.id, "profile-title.create", "ProfileTitle", title.id, { slug: title.slug });
+    return title;
   }
 
   // ── Seasonal quests ────────────────────────────────────────────────

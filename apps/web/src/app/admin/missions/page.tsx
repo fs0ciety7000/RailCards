@@ -9,11 +9,13 @@ import {
   createAchievementSchema,
   createMissionSchema,
   createProfileBannerSchema,
+  createProfileTitleSchema,
   updateAchievementSchema,
   updateMissionSchema,
   type CreateAchievementInput,
   type CreateMissionInput,
   type CreateProfileBannerInput,
+  type CreateProfileTitleInput,
   type UpdateAchievementInput,
   type UpdateMissionInput,
 } from "@railcards/contracts";
@@ -23,7 +25,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { adminApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { MISSION_GOAL_TYPE_LABELS } from "@/lib/format";
-import type { Achievement, Mission, ProfileBanner } from "@/lib/types";
+import type { Achievement, Mission, ProfileBanner, ProfileTitle } from "@/lib/types";
 
 const GOAL_TYPES = Object.keys(MISSION_GOAL_TYPE_LABELS);
 
@@ -61,6 +63,23 @@ function RewardBannerField<T extends FieldValues>({ id, register }: { id: string
         {bannersQuery.data?.map((b) => (
           <option key={b.id} value={b.id}>
             {b.name}
+          </option>
+        ))}
+      </Select>
+    </FieldGroup>
+  );
+}
+
+function RewardTitleField<T extends FieldValues>({ id, register }: { id: string; register: UseFormRegister<T> }) {
+  const titlesQuery = useQuery({ queryKey: ["admin", "profile-titles"], queryFn: adminApi.listProfileTitles });
+  return (
+    <FieldGroup>
+      <Label htmlFor={id}>Titre débloqué (optionnel)</Label>
+      <Select id={id} {...register("rewardTitleId" as Path<T>)}>
+        <option value="">Aucun</option>
+        {titlesQuery.data?.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.label}
           </option>
         ))}
       </Select>
@@ -323,7 +342,8 @@ function CreateAchievementForm() {
   } = useForm<CreateAchievementInput>({ resolver: zodResolver(createAchievementSchema), defaultValues: { goalType: "OPEN_BOOSTER" } });
 
   const createMutation = useMutation({
-    mutationFn: (values: CreateAchievementInput) => adminApi.createAchievement({ ...values, rewardBannerId: values.rewardBannerId || undefined }),
+    mutationFn: (values: CreateAchievementInput) =>
+      adminApi.createAchievement({ ...values, rewardBannerId: values.rewardBannerId || undefined, rewardTitleId: values.rewardTitleId || undefined }),
     onSuccess: () => {
       toast.show({ tone: "success", title: "Haut fait créé" });
       reset();
@@ -367,6 +387,7 @@ function CreateAchievementForm() {
             <Input id="a-rewardXp" type="number" min={0} {...register("rewardXp")} />
           </FieldGroup>
           <RewardBannerField id="a-rewardBannerId" register={register} />
+          <RewardTitleField id="a-rewardTitleId" register={register} />
           <div className="sm:col-span-2">
             <Button type="submit" icon={<Plus className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
               Créer le haut fait
@@ -398,6 +419,7 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
       rewardCr: achievement.rewardCr,
       rewardXp: achievement.rewardXp,
       rewardBannerId: achievement.rewardBannerId ?? "",
+      rewardTitleId: achievement.rewardTitleId ?? "",
       isActive: achievement.isActive,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -405,7 +427,11 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
 
   const updateMutation = useMutation({
     mutationFn: (values: UpdateAchievementInput) =>
-      adminApi.updateAchievement(achievement!.id, { ...values, rewardBannerId: values.rewardBannerId || undefined }),
+      adminApi.updateAchievement(achievement!.id, {
+        ...values,
+        rewardBannerId: values.rewardBannerId || undefined,
+        rewardTitleId: values.rewardTitleId || undefined,
+      }),
     onSuccess: () => {
       toast.show({ tone: "success", title: "Haut fait mis à jour" });
       void queryClient.invalidateQueries({ queryKey: ["admin", "achievements"] });
@@ -463,6 +489,7 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
             <Input id="ea-rewardXp" type="number" min={0} {...register("rewardXp")} />
           </FieldGroup>
           <RewardBannerField id="ea-rewardBannerId" register={register} />
+          <RewardTitleField id="ea-rewardTitleId" register={register} />
           <FieldGroup className="sm:col-span-2 mb-0">
             <label className="flex items-center gap-2 text-sm text-white/80">
               <input type="checkbox" className="h-4 w-4 rounded border-white/30 accent-[var(--color-rc-accent)]" {...register("isActive")} />
@@ -640,18 +667,96 @@ function ProfileBannersList() {
   );
 }
 
+function CreateProfileTitleForm() {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateProfileTitleInput>({ resolver: zodResolver(createProfileTitleSchema) });
+
+  const createMutation = useMutation({
+    mutationFn: (values: CreateProfileTitleInput) => adminApi.createProfileTitle(values),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Titre créé" });
+      reset();
+      void queryClient.invalidateQueries({ queryKey: ["admin", "profile-titles"] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Création impossible", description: getErrorMessage(err) }),
+  });
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-3 font-semibold text-white">Créer un titre</h2>
+        <p className="mb-3 text-sm text-white/50">
+          Débloqué en l&apos;attachant à un haut fait (champ « Titre débloqué » dans l&apos;onglet Hauts faits).
+        </p>
+        <form onSubmit={handleSubmit((v) => createMutation.mutate(v))} noValidate className="grid gap-3 sm:grid-cols-2">
+          <FieldGroup>
+            <Label htmlFor="t-slug">Slug</Label>
+            <Input id="t-slug" invalid={!!errors.slug} {...register("slug")} placeholder="veteran-saison-1" />
+            <FieldError>{errors.slug?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="t-label">Libellé affiché</Label>
+            <Input id="t-label" invalid={!!errors.label} {...register("label")} placeholder="Vétéran de la saison" />
+            <FieldError>{errors.label?.message}</FieldError>
+          </FieldGroup>
+          <div className="sm:col-span-2">
+            <Button type="submit" icon={<Plus className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
+              Créer le titre
+            </Button>
+          </div>
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+function ProfileTitlesList() {
+  const titlesQuery = useQuery({ queryKey: ["admin", "profile-titles"], queryFn: adminApi.listProfileTitles });
+
+  if (titlesQuery.isLoading) return <Skeleton className="h-32 w-full" />;
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-3 font-semibold text-white">Tous les titres</h2>
+        {!titlesQuery.data?.length ? (
+          <p className="text-sm text-white/50">Aucun titre créé pour l&apos;instant.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {titlesQuery.data.map((t: ProfileTitle) => (
+              <div key={t.id} className="flex items-center justify-between rounded-lg border border-rc-border px-3 py-2">
+                <div>
+                  <p className="font-medium text-white">{t.label}</p>
+                  <p className="text-xs text-white/50">{t.slug}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function AdminMissionsPage() {
   const [tab, setTab] = useState("missions");
 
   return (
     <AdminShell>
       <PageHeader title="Missions & hauts faits" description="Créez et gérez les missions quotidiennes et les hauts faits." />
-      <div className="mb-4 max-w-md">
+      <div className="mb-4 max-w-xl">
         <Tabs
           tabs={[
             { id: "missions", label: "Missions" },
             { id: "achievements", label: "Hauts faits" },
             { id: "banners", label: "Bannières" },
+            { id: "titles", label: "Titres" },
           ]}
           activeId={tab}
           onChange={setTab}
@@ -667,10 +772,15 @@ export default function AdminMissionsPage() {
           <CreateAchievementForm />
           <AchievementsList />
         </div>
-      ) : (
+      ) : tab === "banners" ? (
         <div className="space-y-4">
           <CreateProfileBannerForm />
           <ProfileBannersList />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <CreateProfileTitleForm />
+          <ProfileTitlesList />
         </div>
       )}
     </AdminShell>

@@ -77,6 +77,7 @@ model User {
   friendshipsReceived  Friendship[]           @relation("FriendshipAddressee")
   seasonPassClaims     SeasonPassClaim[]
   unlockedBanners      UserProfileBanner[]
+  unlockedTitles       UserProfileTitle[]
 
   @@index([status])
 }
@@ -94,6 +95,8 @@ model UserProfile {
   lastFreeBoosterAt DateTime?
   activeBannerId    String?
   activeBanner      ProfileBanner? @relation(fields: [activeBannerId], references: [id], onDelete: SetNull)
+  activeTitleId     String?
+  activeTitle       ProfileTitle?  @relation(fields: [activeTitleId], references: [id], onDelete: SetNull)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 }
@@ -127,6 +130,33 @@ model UserProfileBanner {
   unlockedAt DateTime      @default(now())
 
   @@unique([userId, bannerId])
+}
+
+/**
+ * Cosmetic title catalog, displayed under a player's username (e.g.
+ * "Vétéran de la saison"). Same unlock model as ProfileBanner: granted
+ * via an achievement's optional rewardTitleId, kept forever once unlocked.
+ */
+model ProfileTitle {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  label     String
+  createdAt DateTime @default(now())
+
+  unlockedBy       UserProfileTitle[]
+  activeForProfile UserProfile[]
+  rewardedBy       Achievement[]
+}
+
+model UserProfileTitle {
+  id         String       @id @default(uuid())
+  userId     String
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  titleId    String
+  title      ProfileTitle @relation(fields: [titleId], references: [id], onDelete: Cascade)
+  unlockedAt DateTime     @default(now())
+
+  @@unique([userId, titleId])
 }
 
 model Session {
@@ -762,6 +792,8 @@ model Achievement {
   rewardXp       Int             @default(0)
   rewardBannerId String?
   rewardBanner   ProfileBanner?  @relation(fields: [rewardBannerId], references: [id], onDelete: SetNull)
+  rewardTitleId  String?
+  rewardTitle    ProfileTitle?   @relation(fields: [rewardTitleId], references: [id], onDelete: SetNull)
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

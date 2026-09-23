@@ -31,6 +31,8 @@ export interface Me {
   favoriteCards: CardDefinition[];
   activeBanner: ProfileBanner | null;
   unlockedBanners: ProfileBanner[];
+  activeTitle: ProfileTitle | null;
+  unlockedTitles: ProfileTitle[];
 }
 
 export interface PublicProfile {
@@ -47,6 +49,7 @@ export interface PublicProfile {
   totalSeriesCount: number;
   favoriteCards: CardDefinition[];
   activeBanner: ProfileBanner | null;
+  activeTitle: ProfileTitle | null;
 }
 
 export interface ProfileBanner {
@@ -56,6 +59,12 @@ export interface ProfileBanner {
   colorFrom: string;
   colorTo: string;
   icon: string;
+}
+
+export interface ProfileTitle {
+  id: string;
+  slug: string;
+  label: string;
 }
 
 export type LeaderboardSort = "xp" | "cards" | "albums";
@@ -506,6 +515,7 @@ export interface Achievement {
   rewardCr: number;
   rewardXp: number;
   rewardBannerId: string | null;
+  rewardTitleId: string | null;
   isActive: boolean;
 }
 

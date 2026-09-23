@@ -168,6 +168,7 @@ export const createAchievementSchema = z.object({
   code: z.string().min(2).max(80),
   ...missionBaseFields,
   rewardBannerId: z.string().uuid().optional().or(z.literal("")),
+  rewardTitleId: z.string().uuid().optional().or(z.literal("")),
 });
 export type CreateAchievementInput = z.infer<typeof createAchievementSchema>;
 
@@ -178,6 +179,7 @@ export const updateAchievementSchema = z.object({
   goalType: missionBaseFields.goalType.optional(),
   goalCount: missionBaseFields.goalCount.optional(),
   rewardBannerId: z.string().uuid().optional().or(z.literal("")),
+  rewardTitleId: z.string().uuid().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
 });
 export type UpdateAchievementInput = z.infer<typeof updateAchievementSchema>;
@@ -190,6 +192,12 @@ export const createProfileBannerSchema = z.object({
   icon: z.string().min(1).max(40),
 });
 export type CreateProfileBannerInput = z.infer<typeof createProfileBannerSchema>;
+
+export const createProfileTitleSchema = z.object({
+  slug: z.string().min(2).max(60),
+  label: z.string().min(2).max(80),
+});
+export type CreateProfileTitleInput = z.infer<typeof createProfileTitleSchema>;
 
 export const questStepSchema = z.object({
   order: z.coerce.number().int().min(1),

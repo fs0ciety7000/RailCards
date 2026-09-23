@@ -402,6 +402,13 @@ export const profileBannersApi = {
     request<{ unlocked: T.ProfileBanner[]; active: T.ProfileBanner | null }>("/profile-banners/active", { method: "POST", body: { bannerId } }),
 };
 
+export const profileTitlesApi = {
+  catalog: () => request<T.ProfileTitle[]>("/profile-titles"),
+  mine: () => request<{ unlocked: T.ProfileTitle[]; active: T.ProfileTitle | null }>("/profile-titles/mine"),
+  setActive: (titleId: string | null) =>
+    request<{ unlocked: T.ProfileTitle[]; active: T.ProfileTitle | null }>("/profile-titles/active", { method: "POST", body: { titleId } }),
+};
+
 // ── Leaderboard ──────────────────────────────────────────────────────────
 
 export const leaderboardApi = {
@@ -522,6 +529,10 @@ export const adminApi = {
   listProfileBanners: () => request<T.ProfileBanner[]>("/admin/profile-banners"),
   createProfileBanner: (input: { slug: string; name: string; colorFrom: string; colorTo: string; icon: string }) =>
     request<T.ProfileBanner>("/admin/profile-banners", { method: "POST", body: input }),
+
+  listProfileTitles: () => request<T.ProfileTitle[]>("/admin/profile-titles"),
+  createProfileTitle: (input: { slug: string; label: string }) =>
+    request<T.ProfileTitle>("/admin/profile-titles", { method: "POST", body: input }),
 
   listQuests: () => request<T.AdminQuest[]>("/admin/quests"),
   createQuest: (input: unknown) => request<T.AdminQuest>("/admin/quests", { method: "POST", body: input }),

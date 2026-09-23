@@ -4,6 +4,7 @@ import { CollectionService } from "../collection/collection.service";
 import { GradesService } from "../grades/grades.service";
 import { FavoritesService } from "./favorites.service";
 import { ProfileBannersService } from "../profile-banners/profile-banners.service";
+import { ProfileTitlesService } from "../profile-titles/profile-titles.service";
 import { levelForXp, xpToNextLevel } from "@railcards/game-domain";
 import type { UpdateMeDto } from "./dto/update-me.dto";
 
@@ -15,6 +16,7 @@ export class UsersService {
     private readonly grades: GradesService,
     private readonly favorites: FavoritesService,
     private readonly profileBanners: ProfileBannersService,
+    private readonly profileTitles: ProfileTitlesService,
   ) {}
 
   async getMe(userId: string) {
@@ -95,6 +97,7 @@ export class UsersService {
     const level = levelForXp(user.profile?.xp ?? 0);
     const favoriteCards = await this.favorites.list(user.id);
     const activeBanner = await this.profileBanners.getActiveBanner(user.id);
+    const activeTitle = await this.profileTitles.getActiveTitle(user.id);
     return {
       username: user.username,
       displayName: user.displayName,
@@ -109,6 +112,7 @@ export class UsersService {
       totalSeriesCount: seriesCount,
       favoriteCards,
       activeBanner,
+      activeTitle,
     };
   }
 
@@ -141,6 +145,7 @@ export class UsersService {
     const progress = xpToNextLevel(xp);
     const favoriteCards = await this.favorites.list(user.id);
     const banners = await this.profileBanners.mine(user.id);
+    const titles = await this.profileTitles.mine(user.id);
     return {
       id: user.id,
       email: user.email,
@@ -159,6 +164,8 @@ export class UsersService {
       favoriteCards,
       activeBanner: banners.active,
       unlockedBanners: banners.unlocked,
+      activeTitle: titles.active,
+      unlockedTitles: titles.unlocked,
     };
   }
 }

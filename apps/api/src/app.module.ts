@@ -35,6 +35,7 @@ import { FriendsModule } from "./friends/friends.module";
 import { SeasonPassModule } from "./season-pass/season-pass.module";
 import { CardVariantsModule } from "./card-variants/card-variants.module";
 import { ProfileBannersModule } from "./profile-banners/profile-banners.module";
+import { ProfileTitlesModule } from "./profile-titles/profile-titles.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -71,6 +72,7 @@ import { HealthController } from "./health.controller";
     SeasonPassModule,
     CardVariantsModule,
     ProfileBannersModule,
+    ProfileTitlesModule,
   ],
   controllers: [HealthController],
   providers: [

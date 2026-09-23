@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Flag, Lock, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
+import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Flag, Lock, Tag, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
 import { changePasswordSchema, type ChangePasswordInput } from "@railcards/contracts";
 import { Badge, Button, Card, CardBody, Dialog, EmptyState, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -15,11 +15,11 @@ import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { CardArt } from "@/components/CardTile";
-import { ApiError, authApi, collectionApi, profileBannersApi, usersApi } from "@/lib/api";
+import { ApiError, authApi, collectionApi, profileBannersApi, profileTitlesApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
 import { useAuthStore } from "@/lib/auth-store";
-import type { CardDefinition, ProfileBanner } from "@/lib/types";
+import type { CardDefinition, ProfileBanner, ProfileTitle } from "@/lib/types";
 
 const MAX_FAVORITES = 5;
 
@@ -391,6 +391,72 @@ function BannersSection({ isOwn }: { isOwn: boolean }) {
   );
 }
 
+function TitleChip({ title, selected, onClick, loading }: { title: ProfileTitle; selected: boolean; onClick: () => void; loading: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        selected ? "border-rc-accent bg-rc-accent/10 text-white" : "border-rc-border text-white/70 hover:border-white/30"
+      }`}
+    >
+      {title.label}
+    </button>
+  );
+}
+
+function TitlesSection({ isOwn }: { isOwn: boolean }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const params = useParams<{ username: string }>();
+  const minePreQuery = useQuery({ queryKey: ["profile-titles", "mine"], queryFn: profileTitlesApi.mine, enabled: isOwn });
+
+  const setActiveMutation = useMutation({
+    mutationFn: (titleId: string | null) => profileTitlesApi.setActive(titleId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["profile-titles", "mine"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["users", "profile", params.username] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  if (!isOwn) return null;
+  if (minePreQuery.isLoading) return <Skeleton className="mt-4 h-20 w-full" />;
+  const unlocked = minePreQuery.data?.unlocked ?? [];
+  if (unlocked.length === 0) return null;
+
+  const activeId = minePreQuery.data?.active?.id ?? null;
+
+  return (
+    <Card className="mt-4">
+      <CardBody>
+        <h2 className="mb-3 flex items-center gap-1.5 font-semibold text-white">
+          <Tag className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+          Titres débloqués
+        </h2>
+        <div className="flex flex-wrap gap-2">
+          {unlocked.map((title) => (
+            <TitleChip
+              key={title.id}
+              title={title}
+              selected={title.id === activeId}
+              loading={setActiveMutation.isPending}
+              onClick={() => setActiveMutation.mutate(title.id)}
+            />
+          ))}
+        </div>
+        {activeId && (
+          <Button size="sm" variant="ghost" className="mt-3" disabled={setActiveMutation.isPending} onClick={() => setActiveMutation.mutate(null)}>
+            Retirer le titre actif
+          </Button>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 function ProfileContent() {
   const params = useParams<{ username: string }>();
   const toast = useToast();
@@ -459,6 +525,7 @@ function ProfileContent() {
           <div>
             <p className="text-xl font-bold tracking-tight text-white">{profile.displayName}</p>
             <p className="text-sm text-white/50">@{profile.username}</p>
+            {profile.activeTitle && <p className="mt-0.5 text-xs font-medium italic text-rc-accent">— {profile.activeTitle.label} —</p>}
           </div>
           <BioSection bio={profile.bio} isOwn={isOwn} username={profile.username} />
           <div className="flex items-center gap-2">
@@ -493,6 +560,7 @@ function ProfileContent() {
 
       <FavoritesSection favoriteCards={profile.favoriteCards} isOwn={isOwn} />
       <BannersSection isOwn={isOwn} />
+      <TitlesSection isOwn={isOwn} />
 
       {isOwn && meQuery.data && (
         <Card className="mt-4">

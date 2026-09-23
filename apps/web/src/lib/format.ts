@@ -133,10 +133,13 @@ export function notificationMessage(type: string, payload: Record<string, unknow
   switch (type) {
     case "MISSION_COMPLETED":
       return typeof payload.title === "string" ? `Mission complétée : ${payload.title}` : NOTIFICATION_LABELS[type]!;
-    case "ACHIEVEMENT_UNLOCKED":
-      return typeof payload.title === "string"
-        ? `Haut fait débloqué : ${payload.title}${typeof payload.rewardBannerName === "string" && payload.rewardBannerName ? ` — bannière « ${payload.rewardBannerName} » débloquée` : ""}`
-        : NOTIFICATION_LABELS[type]!;
+    case "ACHIEVEMENT_UNLOCKED": {
+      if (typeof payload.title !== "string") return NOTIFICATION_LABELS[type]!;
+      const extras: string[] = [];
+      if (typeof payload.rewardBannerName === "string" && payload.rewardBannerName) extras.push(`bannière « ${payload.rewardBannerName} »`);
+      if (typeof payload.rewardTitleLabel === "string" && payload.rewardTitleLabel) extras.push(`titre « ${payload.rewardTitleLabel} »`);
+      return `Haut fait débloqué : ${payload.title}${extras.length > 0 ? ` — ${extras.join(" et ")} débloqué${extras.length > 1 ? "s" : ""}` : ""}`;
+    }
     case "LEVEL_UP":
       return typeof payload.newLevel === "number"
         ? `Niveau ${payload.newLevel} atteint${typeof payload.newGrade === "string" && payload.newGrade ? ` — ${payload.newGrade}` : ""} !`

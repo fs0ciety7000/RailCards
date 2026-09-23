@@ -7,11 +7,22 @@ import { SeasonsModule } from "../seasons/seasons.module";
 import { GuildWarsModule } from "../guild-wars/guild-wars.module";
 import { GuildsModule } from "../guilds/guilds.module";
 import { ProfileBannersModule } from "../profile-banners/profile-banners.module";
+import { ProfileTitlesModule } from "../profile-titles/profile-titles.module";
 import { MissionsService } from "./missions.service";
 import { MissionsController } from "./missions.controller";
 
 @Module({
-  imports: [EconomyModule, GradesModule, NotificationsModule, EventsModule, SeasonsModule, GuildWarsModule, GuildsModule, ProfileBannersModule],
+  imports: [
+    EconomyModule,
+    GradesModule,
+    NotificationsModule,
+    EventsModule,
+    SeasonsModule,
+    GuildWarsModule,
+    GuildsModule,
+    ProfileBannersModule,
+    ProfileTitlesModule,
+  ],
   controllers: [MissionsController],
   providers: [MissionsService],
   exports: [MissionsService],
