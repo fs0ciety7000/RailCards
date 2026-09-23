@@ -2,7 +2,10 @@
 export const GAME_CONSTANTS = {
   WELCOME_BONUS_CR: 500,
   DAILY_REWARD_BASE_CR: 20,
-  DAILY_REWARD_STREAK_BONUS_CR: 5, // added per consecutive day, capped
+  DAILY_REWARD_BASE_XP: 15,
+  // Streak multiplier: +20% per consecutive day beyond the first, capped —
+  // e.g. a 7-day streak grants 1 + 6*0.2 = 2.2x the base CR and XP.
+  DAILY_REWARD_STREAK_MULTIPLIER_STEP: 0.2,
   DAILY_REWARD_STREAK_CAP_DAYS: 7,
   DEFAULT_MARKET_FEE_BPS: 500, // 5%
   TRADE_DEFAULT_EXPIRY_HOURS: 48,

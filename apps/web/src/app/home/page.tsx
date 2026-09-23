@@ -37,10 +37,14 @@ function HomeContent() {
       toast.show({
         tone: "success",
         title: "Récompense quotidienne récupérée",
-        description: `+${res.rewardCr} CR · série de ${res.streak} jour(s)`,
+        description: `+${res.rewardCr} CR, +${res.rewardXp} XP · série de ${res.streak} jour(s) (×${res.multiplier.toFixed(1)})`,
       });
+      if (res.leveledUp) {
+        toast.show({ tone: "info", title: "Niveau supérieur !", description: `Vous êtes maintenant ${res.newGrade} (niveau ${res.newLevel}).` });
+      }
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["seasons"] });
     },
     onError: (err) => toast.show({ tone: "error", title: "Impossible de réclamer", description: getErrorMessage(err) }),
   });
@@ -97,7 +101,14 @@ function HomeContent() {
                 </p>
               ) : (
                 <div className="mt-2.5 flex items-center justify-between gap-2">
-                  <p className="text-sm text-white/70">Série actuelle : {dailyRewardQuery.data?.currentStreak ?? 0} jour(s)</p>
+                  <div>
+                    <p className="text-sm text-white/70">Série actuelle : {dailyRewardQuery.data?.currentStreak ?? 0} jour(s)</p>
+                    {(dailyRewardQuery.data?.nextMultiplier ?? 1) > 1 && (
+                      <p className="mt-0.5 text-xs font-semibold text-rc-accent">
+                        Multiplicateur ×{dailyRewardQuery.data!.nextMultiplier.toFixed(1)} aujourd&apos;hui
+                      </p>
+                    )}
+                  </div>
                   <Button size="sm" onClick={() => claimDailyReward.mutate()} loading={claimDailyReward.isPending}>
                     Réclamer
                   </Button>
