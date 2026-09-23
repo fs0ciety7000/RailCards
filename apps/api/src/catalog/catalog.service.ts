@@ -159,10 +159,12 @@ export class CatalogService {
         });
       }
 
-      // Every booster pull for this card is tied via cardDefinitionId
-      // directly, whether or not its instance still exists above.
+      // Every booster pull and wanted listing for this card is tied via
+      // cardDefinitionId directly, whether or not its instance still
+      // exists above.
       await tx.boosterPull.deleteMany({ where: { cardDefinitionId: id } });
       await tx.boosterPoolEntry.deleteMany({ where: { cardDefinitionId: id } });
+      await tx.wantedListing.deleteMany({ where: { cardDefinitionId: id } });
 
       if (instanceIds.length > 0) {
         await tx.cardInstance.deleteMany({ where: { id: { in: instanceIds } } });

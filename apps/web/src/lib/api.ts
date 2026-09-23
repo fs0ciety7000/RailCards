@@ -284,6 +284,18 @@ export const duelsApi = {
   cancel: (id: string) => request<{ cancelled: boolean }>(`/duels/${id}/cancel`, { method: "POST" }),
 };
 
+// ── Wanted listings ─────────────────────────────────────────────────────
+
+export const wantedApi = {
+  create: (input: { cardDefinitionId: string; note?: string }) =>
+    request<T.WantedListing>("/wanted", { method: "POST", body: input }),
+  list: (params: { page?: number; pageSize?: number; cardDefinitionId?: string; search?: string } = {}) =>
+    request<T.Paginated<T.WantedListing>>(`/wanted${qs(params)}`),
+  mine: () => request<T.WantedListing[]>("/wanted/mine"),
+  fulfill: (id: string) => request<T.WantedListing>(`/wanted/${id}/fulfill`, { method: "POST" }),
+  cancel: (id: string) => request<T.WantedListing>(`/wanted/${id}/cancel`, { method: "POST" }),
+};
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const usersApi = {

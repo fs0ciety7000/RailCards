@@ -51,6 +51,7 @@ model User {
   duelsChallenged       Duel[]              @relation("DuelChallenger")
   duelsOpposed          Duel[]              @relation("DuelOpponent")
   duelsWon              Duel[]              @relation("DuelWinner")
+  wantedListings        WantedListing[]
   marketListings        MarketListing[]
   marketPurchases       MarketTransaction[] @relation("MarketBuyer")
   marketSales           MarketTransaction[] @relation("MarketSeller")
@@ -198,6 +199,7 @@ model CardDefinition {
   poolEntries      BoosterPoolEntry[]
   pulls            BoosterPull[]
   favoritedBy      FavoriteCard[]
+  wantedListings   WantedListing[]
 
   @@index([seriesId])
   @@index([rarityId])
@@ -518,6 +520,33 @@ model Duel {
   @@index([challengerId])
   @@index([opponentId])
   @@index([status])
+}
+
+enum WantedListingStatus {
+  OPEN
+  FULFILLED
+  CANCELLED
+}
+
+// A public "wanted" board: a player posts the card they're after (not a
+// specific instance — anyone's copy qualifies) and what they'd give for
+// it, in free text. Fulfilling one is a normal trade proposed by whoever
+// answers it; this model is discovery only, not itself a trade contract,
+// so the poster marks it fulfilled by hand once a trade closes the loop.
+model WantedListing {
+  id               String              @id @default(uuid())
+  posterId         String
+  poster           User                @relation(fields: [posterId], references: [id])
+  cardDefinitionId String
+  cardDefinition   CardDefinition      @relation(fields: [cardDefinitionId], references: [id])
+  note             String?
+  status           WantedListingStatus @default(OPEN)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([posterId])
+  @@index([status])
+  @@index([cardDefinitionId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────

@@ -271,6 +271,20 @@ export interface Duel {
   createdAt: string;
 }
 
+export type WantedListingStatus = "OPEN" | "FULFILLED" | "CANCELLED";
+
+export interface WantedListing {
+  id: string;
+  posterId: string;
+  poster: { username: string; displayName: string };
+  cardDefinitionId: string;
+  cardDefinition: CardDefinition;
+  note: string | null;
+  status: WantedListingStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type MissionGoalType =
   | "OPEN_BOOSTER"
   | "COLLECT_UNIQUE_CARDS"

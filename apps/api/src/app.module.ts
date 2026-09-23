@@ -23,6 +23,7 @@ import { LeaderboardModule } from "./leaderboard/leaderboard.module";
 import { GradesModule } from "./grades/grades.module";
 import { CraftModule } from "./craft/craft.module";
 import { DuelsModule } from "./duels/duels.module";
+import { WantedListingsModule } from "./wanted-listings/wanted-listings.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -47,6 +48,7 @@ import { HealthController } from "./health.controller";
     GradesModule,
     CraftModule,
     DuelsModule,
+    WantedListingsModule,
   ],
   controllers: [HealthController],
   providers: [
