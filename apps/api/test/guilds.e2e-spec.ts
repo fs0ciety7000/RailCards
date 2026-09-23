@@ -1,5 +1,7 @@
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
+import { randomUUID } from "node:crypto";
+import { GAME_CONSTANTS, guildMaxMembers } from "@railcards/game-domain";
 import { createTestApp } from "./utils/test-app";
 import { loginAdmin, registerUser } from "./utils/fixtures";
 
@@ -280,5 +282,81 @@ describe("Guilds: small player-run groups (e2e, real Postgres)", () => {
       .get(`/api/v1/guilds/${soloGuild.body.id}`)
       .set("Authorization", `Bearer ${adminToken}`)
       .expect(404);
+  });
+
+  async function createLoginMission(rewardXp: number) {
+    const code = `guild-level-test-${randomUUID().slice(0, 8)}`;
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/admin/missions")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ code, title: "Se connecter", description: "…", goalType: "LOGIN", goalCount: 1, rewardCr: 0, rewardXp })
+      .expect(201);
+    return res.body.id as string;
+  }
+
+  async function earnAndClaimXp(email: string, token: string, rewardXp: number) {
+    const missionId = await createLoginMission(rewardXp);
+    // The mission didn't exist yet at registration time, so its LOGIN
+    // progress needs a fresh login to record.
+    await request(app.getHttpServer()).post("/api/v1/auth/login").send({ email, password: "Abcdef1234" }).expect(201);
+    const missions = await request(app.getHttpServer()).get("/api/v1/missions").set("Authorization", `Bearer ${token}`).expect(200);
+    const target = missions.body.find((m: { mission: { id: string } }) => m.mission.id === missionId);
+    await request(app.getHttpServer()).post(`/api/v1/missions/${target.userMissionId}/claim`).set("Authorization", `Bearer ${token}`).expect(201);
+  }
+
+  async function balanceOf(token: string) {
+    const res = await request(app.getHttpServer()).get("/api/v1/wallet").set("Authorization", `Bearer ${token}`).expect(200);
+    return res.body.balance as number;
+  }
+
+  it("levels up the guild's own permanent XP pool from member activity, unlocking extra slots and paying every member once", async () => {
+    const leader = await registerUser(app, adminToken, "guildlvl9");
+    const member = await registerUser(app, adminToken, "guildlvlmember9");
+
+    const guild = await request(app.getHttpServer())
+      .post("/api/v1/guilds")
+      .set("Authorization", `Bearer ${leader.accessToken}`)
+      .send({ name: `Guilde Niveau ${Date.now()}`, tag: uniqueTag("LA") })
+      .expect(201);
+    expect(guild.body.xp).toBe(0);
+    expect(guild.body.level).toBe(1);
+    expect(guild.body.maxMembers).toBe(GAME_CONSTANTS.GUILD_MAX_MEMBERS);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/guilds/${guild.body.id}/join`)
+      .set("Authorization", `Bearer ${member.accessToken}`)
+      .expect(201);
+
+    const balanceBeforeLeader = await balanceOf(leader.accessToken);
+    const balanceBeforeMember = await balanceOf(member.accessToken);
+
+    // xpThresholdForLevel(6) = 100 * (5*6/2) = 1500 — enough to jump the
+    // guild from level 1 straight to level 6 in one claim, crossing several
+    // level-up thresholds at once so the "only the final level pays out"
+    // behavior (mirroring the player level-up notification) gets exercised.
+    await earnAndClaimXp(leader.email, leader.accessToken, 1500);
+
+    const afterLevelUp = await request(app.getHttpServer())
+      .get(`/api/v1/guilds/${guild.body.id}`)
+      .set("Authorization", `Bearer ${leader.accessToken}`)
+      .expect(200);
+    expect(afterLevelUp.body.xp).toBe(1500);
+    expect(afterLevelUp.body.level).toBe(6);
+    expect(afterLevelUp.body.maxMembers).toBe(
+      guildMaxMembers(6, GAME_CONSTANTS.GUILD_MAX_MEMBERS, GAME_CONSTANTS.GUILD_LEVEL_SLOTS_TIER_SIZE, GAME_CONSTANTS.GUILD_LEVEL_MAX_EXTRA_SLOTS),
+    );
+    expect(afterLevelUp.body.maxMembers).toBeGreaterThan(GAME_CONSTANTS.GUILD_MAX_MEMBERS);
+
+    // Every current member — not just the one who earned the XP — is paid
+    // exactly once for the level-up, regardless of how many thresholds were crossed.
+    expect(await balanceOf(leader.accessToken)).toBe(balanceBeforeLeader + GAME_CONSTANTS.GUILD_LEVEL_UP_REWARD_CR_PER_MEMBER);
+    expect(await balanceOf(member.accessToken)).toBe(balanceBeforeMember + GAME_CONSTANTS.GUILD_LEVEL_UP_REWARD_CR_PER_MEMBER);
+  });
+
+  it("doesn't level up a player's guild XP when they aren't in a guild", async () => {
+    const solo = await registerUser(app, adminToken, "guildlvlsolo9");
+    await earnAndClaimXp(solo.email, solo.accessToken, 500);
+    // No assertion beyond "this doesn't throw" — grantBonusXp's guild bump
+    // is a documented no-op when the player has no guild membership.
   });
 });

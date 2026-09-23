@@ -49,6 +49,16 @@ export const GRADES: ReadonlyArray<{ minLevel: number; title: string }> = [
   { minLevel: 95, title: "Légende du rail" },
 ];
 
+/**
+ * Effective member cap for a guild at a given level: the base cap plus one
+ * extra slot per GUILD_LEVEL_SLOTS_TIER_SIZE levels, capped at
+ * GUILD_LEVEL_MAX_EXTRA_SLOTS extra slots total.
+ */
+export function guildMaxMembers(level: number, baseMax: number, slotsTierSize: number, maxExtraSlots: number): number {
+  const extraSlots = Math.min(maxExtraSlots, Math.floor((level - 1) / slotsTierSize));
+  return baseMax + extraSlots;
+}
+
 export function gradeForLevel(level: number): string {
   let title = GRADES[0]!.title;
   for (const grade of GRADES) {

@@ -1,10 +1,10 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@railcards/database";
-import { GAME_CONSTANTS } from "@railcards/game-domain";
-import { levelForXp } from "@railcards/game-domain";
+import { GAME_CONSTANTS, guildMaxMembers, levelForXp, xpToNextLevel } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { GradesService } from "../grades/grades.service";
+import { WalletService } from "../economy/wallet.service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -31,6 +31,7 @@ export class GuildsService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly grades: GradesService,
+    private readonly wallet: WalletService,
   ) {}
 
   private present(guild: Prisma.GuildGetPayload<{ include: typeof GUILD_INCLUDE }>) {
@@ -42,6 +43,10 @@ export class GuildsService {
       leaderId: guild.leaderId,
       leader: guild.leader,
       createdAt: guild.createdAt,
+      xp: guild.xp,
+      level: guild.level,
+      xpProgress: { xpIntoLevel: xpToNextLevel(guild.xp).xpIntoLevel, xpForNextLevel: xpToNextLevel(guild.xp).xpForNextLevel },
+      maxMembers: guildMaxMembers(guild.level, GAME_CONSTANTS.GUILD_MAX_MEMBERS, GAME_CONSTANTS.GUILD_LEVEL_SLOTS_TIER_SIZE, GAME_CONSTANTS.GUILD_LEVEL_MAX_EXTRA_SLOTS),
       memberCount: guild.members.length,
       members: guild.members.map((m) => {
         const xp = m.user.profile?.xp ?? 0;
@@ -122,7 +127,8 @@ export class GuildsService {
 
     const guild = await this.prisma.guild.findUnique({ where: { id: guildId }, include: { _count: { select: { members: true } } } });
     if (!guild) throw new NotFoundException("Guild not found");
-    if (guild._count.members >= GAME_CONSTANTS.GUILD_MAX_MEMBERS) {
+    const maxMembers = guildMaxMembers(guild.level, GAME_CONSTANTS.GUILD_MAX_MEMBERS, GAME_CONSTANTS.GUILD_LEVEL_SLOTS_TIER_SIZE, GAME_CONSTANTS.GUILD_LEVEL_MAX_EXTRA_SLOTS);
+    if (guild._count.members >= maxMembers) {
       throw new ConflictException("This guild is full");
     }
 
@@ -132,7 +138,7 @@ export class GuildsService {
       const stillFree = await tx.guildMember.findUnique({ where: { userId } });
       if (stillFree) throw new ConflictException("You're already in a guild — leave it first.");
       const memberCount = await tx.guildMember.count({ where: { guildId } });
-      if (memberCount >= GAME_CONSTANTS.GUILD_MAX_MEMBERS) throw new ConflictException("This guild is full");
+      if (memberCount >= maxMembers) throw new ConflictException("This guild is full");
       await tx.guildMember.create({ data: { guildId, userId, role: "MEMBER" } });
     });
     return this.getById(guildId);
@@ -275,5 +281,47 @@ export class GuildsService {
       LIMIT ${limit}
     `;
     return rows.map((row, index) => ({ rank: index + 1, ...row }));
+  }
+
+  /**
+   * Adds `amount` to `userId`'s guild's own permanent XP pool, inside the
+   * caller's transaction — called alongside SeasonsService.bumpPoints and
+   * GuildWarsService.bumpPoints from the same grantBonusXp helper, so a
+   * guild levels up from the same actions that feed the seasonal
+   * leaderboard and guild wars. Unlike those two, this never resets: it's
+   * the guild's own permanent progression. A level-up pays every current
+   * member a flat CR reward and unlocks extra member slots. A no-op when
+   * the player isn't in a guild.
+   */
+  async bumpXp(tx: Tx, userId: string, amount: number): Promise<void> {
+    if (amount <= 0) return;
+    const membership = await tx.guildMember.findUnique({ where: { userId } });
+    if (!membership) return;
+
+    const guild = await tx.guild.findUniqueOrThrow({ where: { id: membership.guildId } });
+    const newXp = guild.xp + amount;
+    const newLevel = levelForXp(newXp);
+    await tx.guild.update({ where: { id: guild.id }, data: { xp: newXp, level: newLevel } });
+
+    if (newLevel <= guild.level) return;
+
+    const members = await tx.guildMember.findMany({ where: { guildId: guild.id } });
+    const rewardCr = GAME_CONSTANTS.GUILD_LEVEL_UP_REWARD_CR_PER_MEMBER;
+    for (const member of members) {
+      await this.wallet.credit(tx, {
+        userId: member.userId,
+        amount: rewardCr,
+        type: "GUILD_LEVEL_UP_REWARD",
+        referenceType: "Guild",
+        referenceId: guild.id,
+        idempotencyKey: `guild-levelup-${guild.id}-${newLevel}-${member.userId}`,
+      });
+      await this.notifications.create(tx, member.userId, "GUILD_LEVELED_UP", {
+        guildId: guild.id,
+        guildName: guild.name,
+        newLevel,
+        rewardCr,
+      });
+    }
   }
 }

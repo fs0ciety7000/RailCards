@@ -1,0 +1,9 @@
+-- AlterEnum
+ALTER TYPE "NotificationType" ADD VALUE 'GUILD_LEVELED_UP';
+
+-- AlterEnum
+ALTER TYPE "WalletTransactionType" ADD VALUE 'GUILD_LEVEL_UP_REWARD';
+
+-- AlterTable
+ALTER TABLE "Guild" ADD COLUMN     "level" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "xp" INTEGER NOT NULL DEFAULT 0;

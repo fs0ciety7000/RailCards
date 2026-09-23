@@ -363,6 +363,10 @@ export interface Guild {
   leaderId: string;
   leader: { username: string; displayName: string };
   createdAt: string;
+  xp: number;
+  level: number;
+  xpProgress: { xpIntoLevel: number; xpForNextLevel: number };
+  maxMembers: number;
   memberCount: number;
   members: GuildMemberEntry[];
 }
@@ -522,6 +526,7 @@ export type NotificationType =
   | "GUILD_DEMOTED"
   | "GUILD_LEADERSHIP_TRANSFERRED"
   | "GUILD_DISBANDED"
+  | "GUILD_LEVELED_UP"
   | "QUEST_STEP_COMPLETED"
   | "QUEST_COMPLETED"
   | "WANTED_CARD_LISTED"

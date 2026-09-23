@@ -406,6 +406,7 @@ enum WalletTransactionType {
   QUEST_REWARD
   GUILD_WAR_REWARD
   SEASON_PASS_REWARD
+  GUILD_LEVEL_UP_REWARD
 }
 
 model Wallet {
@@ -961,6 +962,11 @@ model Guild {
   leaderId    String
   leader      User     @relation("GuildLeader", fields: [leaderId], references: [id])
   createdAt   DateTime @default(now())
+  // The guild's own permanent, never-resetting XP pool and level — see
+  // GuildsService.bumpXp. Independent of the season-scoped GuildWarPoint
+  // tally and of the live-computed "total member XP" leaderboard.
+  xp          Int      @default(0)
+  level       Int      @default(1)
 
   members   GuildMember[]
   messages  GuildMessage[]
@@ -1071,6 +1077,7 @@ enum NotificationType {
   FRIEND_REQUEST_ACCEPTED
   FRIEND_REQUEST_DECLINED
   SEASON_PASS_REWARD
+  GUILD_LEVELED_UP
   SYSTEM
 }
 

@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUpCircle, Crown, LogOut, Radio, ShieldMinus, ShieldPlus, Sparkles, UserMinus, Users } from "lucide-react";
-import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, ErrorState, Skeleton, Tabs, useToast } from "@railcards/ui";
+import { ArrowLeft, ArrowUpCircle, Crown, LogOut, Radio, ShieldMinus, ShieldPlus, Sparkles, TrendingUp, UserMinus, Users } from "lucide-react";
+import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, ErrorState, ProgressBar, Skeleton, Tabs, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { Avatar } from "@/components/Avatar";
@@ -281,11 +281,26 @@ function GuildDetailContent() {
               Chef @{guild.leader.username} · fondée le {formatDate(guild.createdAt)}
             </p>
             {guild.description && <p className="mt-2 text-sm text-white/70">{guild.description}</p>}
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-white/50">
-              <Users className="h-3.5 w-3.5" aria-hidden="true" />
-              {guild.memberCount} membre(s)
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/50">
+              <span className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                {guild.memberCount} / {guild.maxMembers} membre(s)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" />
+                Niveau {guild.level}
+              </span>
+            </div>
           </div>
+        </CardBody>
+      </Card>
+
+      <Card className="mt-3">
+        <CardBody>
+          <ProgressBar value={guild.xpProgress.xpIntoLevel} max={guild.xpProgress.xpForNextLevel} label={`Progression vers le niveau ${guild.level + 1}`} />
+          <p className="mt-2 text-xs text-white/50">
+            {guild.xp} XP cumulée · chaque niveau supplémentaire débloque des places de membre et récompense tous les membres en CR.
+          </p>
         </CardBody>
       </Card>
 

@@ -102,6 +102,7 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   GUILD_DEMOTED: "Vous n'êtes plus officier",
   GUILD_LEADERSHIP_TRANSFERRED: "Vous êtes maintenant chef de guilde",
   GUILD_DISBANDED: "Votre guilde a été dissoute",
+  GUILD_LEVELED_UP: "Votre guilde a gagné un niveau",
   QUEST_STEP_COMPLETED: "Étape de quête terminée",
   QUEST_COMPLETED: "Quête saisonnière terminée",
   WANTED_CARD_LISTED: "Une carte que vous recherchez est en vente",
@@ -182,6 +183,12 @@ export function notificationMessage(type: string, payload: Record<string, unknow
     case "GUILD_WAR_REWARD":
       return typeof payload.rank === "number" && typeof payload.rewardCr === "number" && typeof payload.guildName === "string"
         ? `${payload.guildName} termine ${payload.rank === 1 ? "1ère" : `${payload.rank}e`} de la guerre de guildes — +${payload.rewardCr} CR`
+        : NOTIFICATION_LABELS[type]!;
+    case "GUILD_LEVELED_UP":
+      return typeof payload.newLevel === "number" && typeof payload.guildName === "string"
+        ? `${payload.guildName} atteint le niveau ${payload.newLevel}${
+            typeof payload.rewardCr === "number" && payload.rewardCr > 0 ? ` — +${payload.rewardCr} CR pour chaque membre` : ""
+          }`
         : NOTIFICATION_LABELS[type]!;
     case "FRIEND_REQUEST_RECEIVED":
       return typeof payload.displayName === "string" ? `${payload.displayName} vous a envoyé une demande d'ami` : NOTIFICATION_LABELS[type]!;

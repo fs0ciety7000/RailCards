@@ -23,11 +23,13 @@ function GuildCard({ guild }: { guild: Guild }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold text-white">{guild.name}</p>
-            <p className="truncate text-xs text-white/50">Chef @{guild.leader.username}</p>
+            <p className="truncate text-xs text-white/50">
+              Chef @{guild.leader.username} · niveau {guild.level}
+            </p>
           </div>
           <Badge className="flex shrink-0 items-center gap-1">
             <Users className="h-3 w-3" aria-hidden="true" />
-            {guild.memberCount}
+            {guild.memberCount}/{guild.maxMembers}
           </Badge>
         </CardBody>
       </Card>

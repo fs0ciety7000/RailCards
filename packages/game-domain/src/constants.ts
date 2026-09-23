@@ -43,6 +43,15 @@ export const GAME_CONSTANTS = {
   GUILD_TAG_MIN_LENGTH: 2,
   GUILD_TAG_MAX_LENGTH: 5,
   GUILD_MAX_MEMBERS: 30,
+  // Guild leveling: the guild's own permanent, never-resetting XP pool (the
+  // same bonus-eligible XP mission/achievement/quest claims already grant
+  // to season points and guild-war points, bumped once more here). Every
+  // GUILD_LEVEL_SLOTS_TIER_SIZE levels unlocks one extra member slot, up to
+  // GUILD_LEVEL_MAX_EXTRA_SLOTS, and each level-up pays every current
+  // member a flat CR reward.
+  GUILD_LEVEL_SLOTS_TIER_SIZE: 5,
+  GUILD_LEVEL_MAX_EXTRA_SLOTS: 10,
+  GUILD_LEVEL_UP_REWARD_CR_PER_MEMBER: 25,
   // Guild wars: CR paid to every member of the top-3 guild when a war
   // period ends, scaled down by rank.
   GUILD_WAR_REWARD_CR_RANK_1: 500,

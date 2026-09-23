@@ -7,6 +7,7 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { EventsService } from "../events/events.service";
 import { SeasonsService } from "../seasons/seasons.service";
 import { GuildWarsService } from "../guild-wars/guild-wars.service";
+import { GuildsService } from "../guilds/guilds.service";
 import { grantXp, type LevelUpInfo } from "../missions/missions.service";
 
 type Tx = Prisma.TransactionClient;
@@ -21,9 +22,10 @@ export class QuestsService {
     private readonly events: EventsService,
     private readonly seasons: SeasonsService,
     private readonly guildWars: GuildWarsService,
+    private readonly guilds: GuildsService,
   ) {}
 
-  /** Same event-multiplier + season-points + guild-war bonus as MissionsService.grantBonusXp — see there for why. */
+  /** Same event-multiplier + season-points + guild-war + guild-level bonus as MissionsService.grantBonusXp — see there for why. */
   private async grantBonusXp(tx: Tx, userId: string, baseXp: number): Promise<LevelUpInfo> {
     if (baseXp <= 0) return { leveledUp: false, newLevel: 0, newGrade: "" };
     const multiplierBps = await this.events.getActiveXpMultiplierBps(tx);
@@ -31,6 +33,7 @@ export class QuestsService {
     const levelUp = await grantXp(tx, userId, effectiveXp, (l) => this.grades.gradeForLevel(l));
     await this.seasons.bumpPoints(tx, userId, effectiveXp);
     await this.guildWars.bumpPoints(tx, userId, effectiveXp);
+    await this.guilds.bumpXp(tx, userId, effectiveXp);
     return levelUp;
   }
 
