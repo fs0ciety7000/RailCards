@@ -243,7 +243,7 @@ function NewTradeForm() {
                   onBlur={() => setSuggestionsOpen(false)}
                 />
                 {suggestionsOpen && suggestions.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-rc-border bg-rc-surface shadow-lg">
+                  <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-rc-border bg-rc-night-lighter shadow-lg">
                     {suggestions.map((s) => (
                       <li key={s.username}>
                         <button
