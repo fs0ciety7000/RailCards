@@ -44,6 +44,12 @@ export class MarketController {
     return this.market.getListingById(id);
   }
 
+  @Get("price-history/:cardDefinitionId")
+  async priceHistory(@Param("cardDefinitionId") cardDefinitionId: string, @Query("days") days = "30") {
+    const d = Math.min(180, Math.max(1, Number(days) || 30));
+    return this.market.priceHistory(cardDefinitionId, d);
+  }
+
   @Post("listings")
   async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateListingDto) {
     return this.market.createListing(user.id, dto.cardInstanceId, dto.priceCr, dto.listingType, dto.durationHours);

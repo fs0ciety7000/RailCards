@@ -28,6 +28,7 @@ import { marketApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDateTime, formatTimeLeft } from "@/lib/format";
 import { CombatStatsPanel, parseCombatStats } from "@/components/CombatStatsPanel";
+import { PriceHistoryChart } from "@/components/PriceHistoryChart";
 
 function ListingDetailContent() {
   const params = useParams<{ id: string }>();
@@ -43,6 +44,12 @@ function ListingDetailContent() {
     queryKey: ["market", "listing", params.id],
     queryFn: () => marketApi.listingById(params.id),
     refetchInterval: 10_000,
+  });
+  const cardDefinitionId = listingQuery.data?.cardInstance.cardDefinitionId;
+  const priceHistoryQuery = useQuery({
+    queryKey: ["market", "price-history", cardDefinitionId],
+    queryFn: () => marketApi.priceHistory(cardDefinitionId!, 30),
+    enabled: !!cardDefinitionId,
   });
 
   const buyMutation = useMutation({
@@ -196,6 +203,17 @@ function ListingDetailContent() {
           )}
           {isAuction && listing.status === "ACTIVE" && listing.auctionEndsAt && (
             <p className="text-xs text-white/50">{isExpired ? "Enchère terminée" : `Se termine dans ${formatTimeLeft(listing.auctionEndsAt)}`}</p>
+          )}
+        </CardBody>
+      </Card>
+
+      <Card className="mt-4">
+        <CardBody>
+          <p className="mb-3 text-sm font-semibold text-white">Historique des prix (30 jours)</p>
+          {priceHistoryQuery.isLoading ? (
+            <Skeleton className="h-[140px] w-full" />
+          ) : (
+            <PriceHistoryChart points={priceHistoryQuery.data ?? []} />
           )}
         </CardBody>
       </Card>

@@ -379,4 +379,31 @@ export class MarketService {
     ]);
     return { items, total };
   }
+
+  /**
+   * Daily price buckets for a card definition over the trailing `days`
+   * window — every completed sale (fixed-price buys and settled auctions
+   * alike, since both land a MarketTransaction row), grouped by calendar
+   * day. Empty days are simply absent rather than zero-filled; the
+   * frontend chart only plots days that actually had a sale.
+   */
+  async priceHistory(cardDefinitionId: string, days: number) {
+    return this.prisma.$queryRaw<
+      { day: Date; salesCount: number; avgPriceCr: number; minPriceCr: number; maxPriceCr: number }[]
+    >`
+      SELECT
+        date_trunc('day', mt."createdAt")::date AS day,
+        COUNT(*)::int AS "salesCount",
+        ROUND(AVG(mt."priceCr"))::int AS "avgPriceCr",
+        MIN(mt."priceCr")::int AS "minPriceCr",
+        MAX(mt."priceCr")::int AS "maxPriceCr"
+      FROM "MarketTransaction" mt
+      JOIN "MarketListing" ml ON ml.id = mt."listingId"
+      JOIN "CardInstance" ci ON ci.id = ml."cardInstanceId"
+      WHERE ci."cardDefinitionId" = ${cardDefinitionId}
+        AND mt."createdAt" >= now() - (${days} || ' days')::interval
+      GROUP BY day
+      ORDER BY day ASC
+    `;
+  }
 }
