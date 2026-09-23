@@ -396,6 +396,11 @@ export type ActivityEvent =
   | { type: "SERIES_COMPLETED"; occurredAt: string; player: PublicUserRef; seriesName: string }
   | { type: "RARE_PULL"; occurredAt: string; player: PublicUserRef; cardName: string; rarity: ActivityRarity };
 
+export type GuildActivityEvent =
+  | ActivityEvent
+  | { type: "GUILD_MEMBER_JOINED"; occurredAt: string; member: PublicUserRef }
+  | { type: "QUEST_STEP_COMPLETED"; occurredAt: string; member: PublicUserRef; questTitle: string; stepTitle: string };
+
 export interface Friend {
   friendshipId: string;
   friendSince: string | null;

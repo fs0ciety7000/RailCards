@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
-type PublicUser = { username: string; displayName: string };
+export type PublicUser = { username: string; displayName: string };
 type RarityInfo = { code: string; label: string; colorHex: string };
 
 interface MarketSaleEvent {

@@ -333,6 +333,7 @@ export const guildsApi = {
   disband: (id: string) => request<{ disbanded: boolean }>(`/guilds/${id}`, { method: "DELETE" }),
   messages: (id: string, limit = 50) => request<T.GuildMessage[]>(`/guilds/${id}/messages${qs({ limit })}`),
   postMessage: (id: string, body: string) => request<T.GuildMessage>(`/guilds/${id}/messages`, { method: "POST", body: { body } }),
+  activity: (id: string, limit = 30) => request<T.GuildActivityEvent[]>(`/guilds/${id}/activity${qs({ limit })}`),
 };
 
 // ── Seasonal quests ──────────────────────────────────────────────────────

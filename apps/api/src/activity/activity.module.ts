@@ -7,5 +7,6 @@ import { ActivityController } from "./activity.controller";
   imports: [FriendsModule],
   controllers: [ActivityController],
   providers: [ActivityService],
+  exports: [ActivityService],
 })
 export class ActivityModule {}

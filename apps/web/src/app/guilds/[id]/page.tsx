@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUpCircle, Crown, LogOut, ShieldMinus, ShieldPlus, Sparkles, UserMinus, Users } from "lucide-react";
-import { Badge, Button, Card, CardBody, ConfirmDialog, ErrorState, Skeleton, Tabs, useToast } from "@railcards/ui";
+import { ArrowLeft, ArrowUpCircle, Crown, LogOut, Radio, ShieldMinus, ShieldPlus, Sparkles, UserMinus, Users } from "lucide-react";
+import { Badge, Button, Card, CardBody, ConfirmDialog, EmptyState, ErrorState, Skeleton, Tabs, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { Avatar } from "@/components/Avatar";
 import { GuildChat } from "@/components/GuildChat";
+import { ActivityEventRow } from "@/components/ActivityEventRow";
+import { Stagger, StaggerItem } from "@/components/Stagger";
 import { usersApi, guildsApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
@@ -145,6 +147,36 @@ function MemberRow({
   );
 }
 
+function GuildActivityFeed({ guildId }: { guildId: string }) {
+  const feedQuery = useQuery({ queryKey: ["guilds", "activity", guildId], queryFn: () => guildsApi.activity(guildId, 50) });
+
+  if (feedQuery.isLoading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full" />
+        ))}
+      </div>
+    );
+  }
+  if (feedQuery.isError) {
+    return <ErrorState description={getErrorMessage(feedQuery.error)} />;
+  }
+  if (feedQuery.data!.length === 0) {
+    return <EmptyState icon={<Radio />} title="Aucune activité récente" description="Les ventes, arrivées et quêtes des membres apparaîtront ici." />;
+  }
+
+  return (
+    <Stagger className="space-y-2">
+      {feedQuery.data!.map((event, i) => (
+        <StaggerItem key={i}>
+          <ActivityEventRow event={event} />
+        </StaggerItem>
+      ))}
+    </Stagger>
+  );
+}
+
 function GuildDetailContent() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -152,7 +184,7 @@ function GuildDetailContent() {
   const queryClient = useQueryClient();
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [disbandOpen, setDisbandOpen] = useState(false);
-  const [tab, setTab] = useState<"members" | "chat">("members");
+  const [tab, setTab] = useState<"members" | "chat" | "activity">("members");
 
   const meQuery = useQuery({ queryKey: ["me"], queryFn: usersApi.me });
   const guildQuery = useQuery({ queryKey: ["guilds", "detail", params.id], queryFn: () => guildsApi.getById(params.id) });
@@ -285,9 +317,10 @@ function GuildDetailContent() {
           tabs={[
             { id: "members", label: `Membres (${guild.memberCount})` },
             { id: "chat", label: "Discussion" },
+            { id: "activity", label: "Activité" },
           ]}
           activeId={tab}
-          onChange={(id) => setTab(id as "members" | "chat")}
+          onChange={(id) => setTab(id as "members" | "chat" | "activity")}
         />
       </div>
 
@@ -297,13 +330,17 @@ function GuildDetailContent() {
             <MemberRow key={member.userId} member={member} viewerRole={viewerRole} viewerUserId={meQuery.data?.id} guildId={guild.id} />
           ))}
         </div>
-      ) : isMember ? (
+      ) : !isMember ? (
+        <div className="mt-4">
+          <ErrorState title="Réservé aux membres" description={`Rejoignez la guilde pour accéder à ${tab === "chat" ? "la discussion" : "l'activité"}.`} />
+        </div>
+      ) : tab === "chat" ? (
         <div className="mt-4">
           <GuildChat guildId={guild.id} viewerUsername={meQuery.data?.username} />
         </div>
       ) : (
         <div className="mt-4">
-          <ErrorState title="Réservé aux membres" description="Rejoignez la guilde pour accéder à la discussion." />
+          <GuildActivityFeed guildId={guild.id} />
         </div>
       )}
 

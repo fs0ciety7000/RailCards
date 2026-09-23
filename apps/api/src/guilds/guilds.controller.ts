@@ -5,6 +5,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { GuildsService } from "./guilds.service";
 import { GuildChatService } from "./guild-chat.service";
+import { GuildActivityService } from "./guild-activity.service";
 import { CreateGuildDto, PostGuildMessageDto } from "./dto/guild.dto";
 
 @ApiTags("guilds")
@@ -14,6 +15,7 @@ export class GuildsController {
   constructor(
     private readonly guilds: GuildsService,
     private readonly guildChat: GuildChatService,
+    private readonly guildActivity: GuildActivityService,
   ) {}
 
   @Post()
@@ -92,5 +94,11 @@ export class GuildsController {
   @Post(":id/messages")
   async postMessage(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() dto: PostGuildMessageDto) {
     return this.guildChat.post(user.id, id, dto.body);
+  }
+
+  @Get(":id/activity")
+  async activity(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Query("limit") limit = "30") {
+    const l = Math.min(100, Math.max(1, Number(limit) || 30));
+    return this.guildActivity.getFeed(user.id, id, l);
   }
 }
