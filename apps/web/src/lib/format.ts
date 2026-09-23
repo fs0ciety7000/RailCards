@@ -106,6 +106,9 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   QUEST_COMPLETED: "Quête saisonnière terminée",
   WANTED_CARD_LISTED: "Une carte que vous recherchez est en vente",
   GUILD_WAR_REWARD: "Récompense de guerre de guildes",
+  FRIEND_REQUEST_RECEIVED: "Nouvelle demande d'ami",
+  FRIEND_REQUEST_ACCEPTED: "Demande d'ami acceptée",
+  FRIEND_REQUEST_DECLINED: "Demande d'ami refusée",
   MISSION_COMPLETED: "Mission complétée",
   ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
   LEVEL_UP: "Niveau supérieur",
@@ -177,6 +180,12 @@ export function notificationMessage(type: string, payload: Record<string, unknow
       return typeof payload.rank === "number" && typeof payload.rewardCr === "number" && typeof payload.guildName === "string"
         ? `${payload.guildName} termine ${payload.rank === 1 ? "1ère" : `${payload.rank}e`} de la guerre de guildes — +${payload.rewardCr} CR`
         : NOTIFICATION_LABELS[type]!;
+    case "FRIEND_REQUEST_RECEIVED":
+      return typeof payload.displayName === "string" ? `${payload.displayName} vous a envoyé une demande d'ami` : NOTIFICATION_LABELS[type]!;
+    case "FRIEND_REQUEST_ACCEPTED":
+      return typeof payload.displayName === "string" ? `${payload.displayName} a accepté votre demande d'ami` : NOTIFICATION_LABELS[type]!;
+    case "FRIEND_REQUEST_DECLINED":
+      return typeof payload.displayName === "string" ? `${payload.displayName} a refusé votre demande d'ami` : NOTIFICATION_LABELS[type]!;
     case "SYSTEM":
       return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;
     default:

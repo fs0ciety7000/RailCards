@@ -22,6 +22,7 @@ import {
   TrainFront,
   Trophy,
   User,
+  UserPlus,
   Users,
   Wallet,
 } from "lucide-react";
@@ -44,6 +45,7 @@ const SECONDARY_LINKS = [
   { href: "/missions", label: "Missions & hauts faits", icon: Trophy },
   { href: "/quests", label: "Quête saisonnière", icon: BookOpen },
   { href: "/guilds", label: "Guildes", icon: Users },
+  { href: "/friends", label: "Amis", icon: UserPlus },
   { href: "/wanted", label: "Petites annonces", icon: ClipboardList },
   { href: "/activity", label: "Fil d'activité", icon: Radio },
   { href: "/leaderboard", label: "Classement", icon: Crown },

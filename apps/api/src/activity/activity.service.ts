@@ -51,6 +51,21 @@ export type ActivityEvent =
   | SeriesCompletedEvent
   | RareBoosterPullEvent;
 
+/** Every username a participant in this event — what a friends-only filter checks membership against. */
+function eventUsernames(event: ActivityEvent): string[] {
+  switch (event.type) {
+    case "MARKET_SALE":
+      return [event.buyer.username, event.seller.username];
+    case "TRADE_COMPLETED":
+      return [event.initiator.username, event.recipient.username];
+    case "DUEL_RESOLVED":
+      return [event.winner.username, event.loser.username];
+    case "SERIES_COMPLETED":
+    case "RARE_PULL":
+      return [event.player.username];
+  }
+}
+
 const PUBLIC_USER_SELECT = { username: true, displayName: true } as const;
 // Players who've hidden their profile stay out of the public feed, same as
 // the leaderboard — this is a network activity board, not a private log.
@@ -63,7 +78,17 @@ const RARE_PULL_MIN_ORDER = 5;
 export class ActivityService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getFeed(limit: number): Promise<ActivityEvent[]> {
+  /**
+   * `onlyUsernames`, when given, restricts the feed to events where at
+   * least one participant is in that set — the "amis" tab on the activity
+   * feed, backed by the caller's accepted friends rather than a separate
+   * feed query.
+   */
+  async getFeed(limit: number, onlyUsernames?: Set<string>): Promise<ActivityEvent[]> {
+    // A friends filter drops most events after the fact, so pull a deeper
+    // window per source than an unfiltered feed needs, or a small friend
+    // group could see an emptier feed than actually exists.
+    const perSourceLimit = onlyUsernames ? Math.min(200, limit * 5) : limit;
     const [sales, trades, duels, seriesCompletions, rarePulls] = await Promise.all([
       this.prisma.marketTransaction.findMany({
         where: { buyer: PUBLIC_PROFILE_FILTER, seller: PUBLIC_PROFILE_FILTER },
@@ -73,13 +98,13 @@ export class ActivityService {
           listing: { include: { cardInstance: { include: { cardDefinition: { include: { rarity: true } } } } } },
         },
         orderBy: { createdAt: "desc" },
-        take: limit,
+        take: perSourceLimit,
       }),
       this.prisma.trade.findMany({
         where: { status: "ACCEPTED", initiator: PUBLIC_PROFILE_FILTER, recipient: PUBLIC_PROFILE_FILTER },
         include: { initiator: { select: PUBLIC_USER_SELECT }, recipient: { select: PUBLIC_USER_SELECT } },
         orderBy: { respondedAt: "desc" },
-        take: limit,
+        take: perSourceLimit,
       }),
       this.prisma.duel.findMany({
         where: {
@@ -90,13 +115,13 @@ export class ActivityService {
         },
         include: { challenger: { select: PUBLIC_USER_SELECT }, opponent: { select: PUBLIC_USER_SELECT } },
         orderBy: { respondedAt: "desc" },
-        take: limit,
+        take: perSourceLimit,
       }),
       this.prisma.userSeriesCompletion.findMany({
         where: { user: PUBLIC_PROFILE_FILTER },
         include: { user: { select: PUBLIC_USER_SELECT }, series: { select: { name: true } } },
         orderBy: { completedAt: "desc" },
-        take: limit,
+        take: perSourceLimit,
       }),
       this.prisma.boosterPull.findMany({
         where: { rarity: { order: { gte: RARE_PULL_MIN_ORDER } }, cardInstance: { owner: PUBLIC_PROFILE_FILTER } },
@@ -106,7 +131,7 @@ export class ActivityService {
           cardInstance: { include: { owner: { select: PUBLIC_USER_SELECT } } },
         },
         orderBy: { cardInstance: { acquiredAt: "desc" } },
-        take: limit,
+        take: perSourceLimit,
       }),
     ]);
 
@@ -162,7 +187,8 @@ export class ActivityService {
       ),
     ];
 
-    events.sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
-    return events.slice(0, limit);
+    const filtered = onlyUsernames ? events.filter((e) => eventUsernames(e).some((u) => onlyUsernames.has(u))) : events;
+    filtered.sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime());
+    return filtered.slice(0, limit);
   }
 }

@@ -73,6 +73,8 @@ model User {
   guildMessages         GuildMessage[]
   questProgress         UserQuestProgress[]
   seasonPoints          SeasonPoint[]
+  friendshipsRequested  Friendship[]           @relation("FriendshipRequester")
+  friendshipsReceived   Friendship[]           @relation("FriendshipAddressee")
 
   @@index([status])
 }
@@ -1022,7 +1024,35 @@ enum NotificationType {
   QUEST_COMPLETED
   WANTED_CARD_LISTED
   GUILD_WAR_REWARD
+  FRIEND_REQUEST_RECEIVED
+  FRIEND_REQUEST_ACCEPTED
+  FRIEND_REQUEST_DECLINED
   SYSTEM
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+}
+
+// A friend relationship starts as one PENDING row (requester -> addressee)
+// and transitions to ACCEPTED in place — never a second row — so the
+// @@unique below is enough to stop duplicate/competing requests between the
+// same two players. Symmetric membership (either side is "the friend of the
+// other") is resolved in code, not by a second mirrored row.
+model Friendship {
+  id          String           @id @default(uuid())
+  requesterId String
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id])
+  addresseeId String
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id])
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
 }
 
 model Notification {

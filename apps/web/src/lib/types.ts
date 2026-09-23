@@ -394,6 +394,21 @@ export type ActivityEvent =
   | { type: "SERIES_COMPLETED"; occurredAt: string; player: PublicUserRef; seriesName: string }
   | { type: "RARE_PULL"; occurredAt: string; player: PublicUserRef; cardName: string; rarity: ActivityRarity };
 
+export interface Friend {
+  friendshipId: string;
+  friendSince: string | null;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: UserRole;
+}
+
+export interface FriendRequest {
+  id: string;
+  createdAt: string;
+  user: { username: string; displayName: string; avatarUrl: string | null; role: UserRole };
+}
+
 export type MissionGoalType =
   | "OPEN_BOOSTER"
   | "COLLECT_UNIQUE_CARDS"
@@ -471,6 +486,9 @@ export type NotificationType =
   | "QUEST_COMPLETED"
   | "WANTED_CARD_LISTED"
   | "GUILD_WAR_REWARD"
+  | "FRIEND_REQUEST_RECEIVED"
+  | "FRIEND_REQUEST_ACCEPTED"
+  | "FRIEND_REQUEST_DECLINED"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"

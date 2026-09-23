@@ -388,7 +388,18 @@ export const leaderboardApi = {
 // ── Activity feed ────────────────────────────────────────────────────────
 
 export const activityApi = {
-  feed: (limit = 30) => request<T.ActivityEvent[]>(`/activity${qs({ limit })}`),
+  feed: (limit = 30, scope: "all" | "friends" = "all") => request<T.ActivityEvent[]>(`/activity${qs({ limit, scope: scope === "friends" ? scope : undefined })}`),
+};
+
+// ── Friends ──────────────────────────────────────────────────────────────
+
+export const friendsApi = {
+  list: () => request<T.Friend[]>("/friends"),
+  requests: (direction: "incoming" | "outgoing") => request<T.FriendRequest[]>(`/friends/requests${qs({ direction })}`),
+  send: (username: string) => request<{ id: string; status: string }>("/friends/requests", { method: "POST", body: { username } }),
+  accept: (id: string) => request<{ id: string; status: string }>(`/friends/requests/${id}/accept`, { method: "POST" }),
+  declineOrCancel: (id: string) => request<{ removed: boolean }>(`/friends/requests/${id}`, { method: "DELETE" }),
+  remove: (friendshipId: string) => request<{ removed: boolean }>(`/friends/${friendshipId}`, { method: "DELETE" }),
 };
 
 // ── Missions & achievements ─────────────────────────────────────────────

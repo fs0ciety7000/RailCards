@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftRight, Award, Radio, Repeat, Sparkles, Swords } from "lucide-react";
-import { Card, CardBody, CrAmount, EmptyState, ErrorState, RarityBadge, Skeleton } from "@railcards/ui";
+import { Card, CardBody, CrAmount, EmptyState, ErrorState, RarityBadge, Skeleton, Tabs } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -62,11 +63,27 @@ function EventLine({ event }: { event: ActivityEvent }) {
 }
 
 function ActivityContent() {
-  const feedQuery = useQuery({ queryKey: ["activity"], queryFn: () => activityApi.feed(50), refetchInterval: 30_000 });
+  const [scope, setScope] = useState<"all" | "friends">("all");
+  const feedQuery = useQuery({
+    queryKey: ["activity", scope],
+    queryFn: () => activityApi.feed(50, scope),
+    refetchInterval: 30_000,
+  });
 
   return (
     <div>
       <PageHeader title="Fil d'activité" description="Les derniers faits marquants du réseau, en temps réel." />
+
+      <div className="mb-4">
+        <Tabs
+          tabs={[
+            { id: "all", label: "Tout le réseau" },
+            { id: "friends", label: "Amis" },
+          ]}
+          activeId={scope}
+          onChange={(id) => setScope(id as "all" | "friends")}
+        />
+      </div>
 
       {feedQuery.isLoading ? (
         <div className="space-y-2">
@@ -77,7 +94,11 @@ function ActivityContent() {
       ) : feedQuery.isError ? (
         <ErrorState description={getErrorMessage(feedQuery.error)} />
       ) : feedQuery.data!.length === 0 ? (
-        <EmptyState icon={<Radio />} title="Rien à signaler" description="Le réseau est calme pour l'instant." />
+        <EmptyState
+          icon={<Radio />}
+          title="Rien à signaler"
+          description={scope === "friends" ? "Aucune activité récente chez vos amis. Ajoutez-en depuis la page Amis." : "Le réseau est calme pour l'instant."}
+        />
       ) : (
         <Stagger className="space-y-2">
           {feedQuery.data!.map((event, i) => {
