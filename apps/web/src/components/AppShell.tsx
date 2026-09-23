@@ -14,6 +14,7 @@ import {
   Home,
   LogOut,
   Menu,
+  Radio,
   Repeat,
   Shield,
   Swords,
@@ -39,6 +40,7 @@ const PRIMARY_TABS = [
 const SECONDARY_LINKS = [
   { href: "/missions", label: "Missions & hauts faits", icon: Trophy },
   { href: "/wanted", label: "Petites annonces", icon: ClipboardList },
+  { href: "/activity", label: "Fil d'activité", icon: Radio },
   { href: "/leaderboard", label: "Classement", icon: Crown },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/boosters/history", label: "Historique boosters", icon: Repeat },

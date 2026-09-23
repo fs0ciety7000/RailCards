@@ -320,6 +320,12 @@ export const leaderboardApi = {
     request<T.LeaderboardEntry[]>(`/leaderboard${qs({ limit, sortBy })}`),
 };
 
+// ── Activity feed ────────────────────────────────────────────────────────
+
+export const activityApi = {
+  feed: (limit = 30) => request<T.ActivityEvent[]>(`/activity${qs({ limit })}`),
+};
+
 // ── Missions & achievements ─────────────────────────────────────────────
 
 export const missionsApi = {

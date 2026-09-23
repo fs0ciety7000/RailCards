@@ -285,6 +285,16 @@ export interface WantedListing {
   updatedAt: string;
 }
 
+type PublicUserRef = { username: string; displayName: string };
+type ActivityRarity = { code: string; label: string; colorHex: string };
+
+export type ActivityEvent =
+  | { type: "MARKET_SALE"; occurredAt: string; buyer: PublicUserRef; seller: PublicUserRef; cardName: string; rarity: ActivityRarity; priceCr: number }
+  | { type: "TRADE_COMPLETED"; occurredAt: string; initiator: PublicUserRef; recipient: PublicUserRef }
+  | { type: "DUEL_RESOLVED"; occurredAt: string; winner: PublicUserRef; loser: PublicUserRef; wagerCr: number }
+  | { type: "SERIES_COMPLETED"; occurredAt: string; player: PublicUserRef; seriesName: string }
+  | { type: "RARE_PULL"; occurredAt: string; player: PublicUserRef; cardName: string; rarity: ActivityRarity };
+
 export type MissionGoalType =
   | "OPEN_BOOSTER"
   | "COLLECT_UNIQUE_CARDS"
