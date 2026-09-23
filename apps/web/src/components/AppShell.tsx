@@ -21,6 +21,7 @@ import {
   TrainFront,
   Trophy,
   User,
+  Users,
   Wallet,
 } from "lucide-react";
 import { cn, CrAmount } from "@railcards/ui";
@@ -39,6 +40,7 @@ const PRIMARY_TABS = [
 
 const SECONDARY_LINKS = [
   { href: "/missions", label: "Missions & hauts faits", icon: Trophy },
+  { href: "/guilds", label: "Guildes", icon: Users },
   { href: "/wanted", label: "Petites annonces", icon: ClipboardList },
   { href: "/activity", label: "Fil d'activité", icon: Radio },
   { href: "/leaderboard", label: "Classement", icon: Crown },

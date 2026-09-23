@@ -292,6 +292,42 @@ export interface WantedListing {
   updatedAt: string;
 }
 
+export type GuildRole = "LEADER" | "OFFICER" | "MEMBER";
+
+export interface GuildMemberEntry {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: GuildRole;
+  joinedAt: string;
+  xp: number;
+  level: number;
+  grade: string;
+}
+
+export interface Guild {
+  id: string;
+  name: string;
+  tag: string;
+  description: string | null;
+  leaderId: string;
+  leader: { username: string; displayName: string };
+  createdAt: string;
+  memberCount: number;
+  members: GuildMemberEntry[];
+}
+
+export interface GuildLeaderboardEntry {
+  rank: number;
+  id: string;
+  name: string;
+  tag: string;
+  memberCount: number;
+  totalXp: number;
+  totalUniqueCards: number;
+}
+
 type PublicUserRef = { username: string; displayName: string };
 type ActivityRarity = { code: string; label: string; colorHex: string };
 
@@ -370,6 +406,11 @@ export type NotificationType =
   | "AUCTION_NEW_BID"
   | "AUCTION_WON"
   | "AUCTION_ENDED_NO_BIDS"
+  | "GUILD_KICKED"
+  | "GUILD_PROMOTED"
+  | "GUILD_DEMOTED"
+  | "GUILD_LEADERSHIP_TRANSFERRED"
+  | "GUILD_DISBANDED"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"

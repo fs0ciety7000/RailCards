@@ -4,6 +4,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { MissionsService } from "../missions/missions.service";
+import { GuildsService } from "../guilds/guilds.service";
 
 @Injectable()
 export class AdminUsersService {
@@ -12,6 +13,7 @@ export class AdminUsersService {
     private readonly wallet: WalletService,
     private readonly notifications: NotificationsService,
     private readonly missions: MissionsService,
+    private readonly guilds: GuildsService,
   ) {}
 
   async list(search: string | undefined, page: number, pageSize: number) {
@@ -209,6 +211,9 @@ export class AdminUsersService {
 
     await this.prisma.$transaction(async (tx) => {
       await this.purgeCardInstances(tx, targetUserId);
+      // Hands off guild leadership (or disbands a solo guild) before the
+      // account row disappears, so Guild.leaderId never dangles.
+      await this.guilds.leaveOnAccountDeletion(tx, targetUserId);
       // Covers duels referencing this user directly (as challenger,
       // opponent or winner) that purgeCardInstances' card-id-scoped
       // cleanup wouldn't catch — e.g. a duel fought with a card since

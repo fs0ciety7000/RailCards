@@ -25,6 +25,7 @@ import { CraftModule } from "./craft/craft.module";
 import { DuelsModule } from "./duels/duels.module";
 import { WantedListingsModule } from "./wanted-listings/wanted-listings.module";
 import { ActivityModule } from "./activity/activity.module";
+import { GuildsModule } from "./guilds/guilds.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -51,6 +52,7 @@ import { HealthController } from "./health.controller";
     DuelsModule,
     WantedListingsModule,
     ActivityModule,
+    GuildsModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -68,6 +68,8 @@ model User {
   passwordResetTokens   PasswordResetToken[]
   favoriteCards         FavoriteCard[]
   seriesCompletions     UserSeriesCompletion[]
+  guildsLed             Guild[]                @relation("GuildLeader")
+  guildMembership       GuildMember?
 
   @@index([status])
 }
@@ -776,6 +778,47 @@ model Event {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Guilds
+// ─────────────────────────────────────────────────────────────────────────
+
+enum GuildRole {
+  LEADER
+  OFFICER
+  MEMBER
+}
+
+// A small player-run group. Membership is exclusive — GuildMember.userId is
+// unique, so a player is in at most one guild at a time. Leaving/kicking/
+// disbanding all go through GuildsService rather than a DB cascade, since
+// a departing leader needs leadership handed to someone else first (or the
+// guild disbanded if they were the last member).
+model Guild {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  tag         String   @unique
+  description String?
+  leaderId    String
+  leader      User     @relation("GuildLeader", fields: [leaderId], references: [id])
+  createdAt   DateTime @default(now())
+
+  members GuildMember[]
+
+  @@index([leaderId])
+}
+
+model GuildMember {
+  id       String    @id @default(uuid())
+  guildId  String
+  guild    Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  userId   String    @unique
+  user     User      @relation(fields: [userId], references: [id])
+  role     GuildRole @default(MEMBER)
+  joinedAt DateTime  @default(now())
+
+  @@index([guildId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Social / Moderation / Audit
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -801,6 +844,11 @@ enum NotificationType {
   AUCTION_NEW_BID
   AUCTION_WON
   AUCTION_ENDED_NO_BIDS
+  GUILD_KICKED
+  GUILD_PROMOTED
+  GUILD_DEMOTED
+  GUILD_LEADERSHIP_TRANSFERRED
+  GUILD_DISBANDED
   SYSTEM
 }
 

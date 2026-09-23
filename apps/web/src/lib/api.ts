@@ -304,6 +304,26 @@ export const wantedApi = {
   cancel: (id: string) => request<T.WantedListing>(`/wanted/${id}/cancel`, { method: "POST" }),
 };
 
+// ── Guilds ───────────────────────────────────────────────────────────────
+
+export const guildsApi = {
+  list: (params: { search?: string; page?: number; pageSize?: number } = {}) =>
+    request<T.Paginated<T.Guild>>(`/guilds${qs(params)}`),
+  leaderboard: (limit = 50) => request<T.GuildLeaderboardEntry[]>(`/guilds/leaderboard${qs({ limit })}`),
+  mine: () => request<T.Guild | null>("/guilds/mine"),
+  getById: (id: string) => request<T.Guild>(`/guilds/${id}`),
+  create: (input: { name: string; tag: string; description?: string }) =>
+    request<T.Guild>("/guilds", { method: "POST", body: input }),
+  join: (id: string) => request<T.Guild>(`/guilds/${id}/join`, { method: "POST" }),
+  leave: () => request<{ left: boolean }>("/guilds/leave", { method: "POST" }),
+  kick: (id: string, userId: string) => request<T.Guild>(`/guilds/${id}/members/${userId}/kick`, { method: "POST" }),
+  promote: (id: string, userId: string) => request<T.Guild>(`/guilds/${id}/members/${userId}/promote`, { method: "POST" }),
+  demote: (id: string, userId: string) => request<T.Guild>(`/guilds/${id}/members/${userId}/demote`, { method: "POST" }),
+  transferLeadership: (id: string, userId: string) =>
+    request<T.Guild>(`/guilds/${id}/members/${userId}/transfer-leadership`, { method: "POST" }),
+  disband: (id: string) => request<{ disbanded: boolean }>(`/guilds/${id}`, { method: "DELETE" }),
+};
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const usersApi = {
