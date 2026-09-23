@@ -102,6 +102,8 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   GUILD_DEMOTED: "Vous n'êtes plus officier",
   GUILD_LEADERSHIP_TRANSFERRED: "Vous êtes maintenant chef de guilde",
   GUILD_DISBANDED: "Votre guilde a été dissoute",
+  QUEST_STEP_COMPLETED: "Étape de quête terminée",
+  QUEST_COMPLETED: "Quête saisonnière terminée",
   MISSION_COMPLETED: "Mission complétée",
   ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
   LEVEL_UP: "Niveau supérieur",
@@ -161,6 +163,10 @@ export function notificationMessage(type: string, payload: Record<string, unknow
       return typeof payload.priceCr === "number"
         ? `Enchère remportée pour ${payload.priceCr} CR`
         : NOTIFICATION_LABELS[type]!;
+    case "QUEST_STEP_COMPLETED":
+      return typeof payload.title === "string" ? `Étape terminée : ${payload.title}` : NOTIFICATION_LABELS[type]!;
+    case "QUEST_COMPLETED":
+      return typeof payload.title === "string" ? `Quête terminée : ${payload.title} !` : NOTIFICATION_LABELS[type]!;
     case "SYSTEM":
       return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;
     default:

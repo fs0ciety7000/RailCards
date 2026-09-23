@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Query, Res } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import type { Response } from "express";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { GuildsService } from "./guilds.service";
@@ -29,9 +30,14 @@ export class GuildsController {
     return this.guilds.leaderboard(Math.min(100, Math.max(1, Number(limit) || 50)));
   }
 
+  // NestJS treats a returned `null` the same as `undefined` and sends an
+  // empty body instead of JSON "null" — breaking `Guild | null` as a
+  // contract. Bypassing the automatic response handling with a raw @Res()
+  // is what actually gets a literal `null` onto the wire.
   @Get("mine")
-  async mine(@CurrentUser() user: AuthenticatedUser) {
-    return this.guilds.mine(user.id);
+  async mine(@CurrentUser() user: AuthenticatedUser, @Res() res: Response) {
+    const guild = await this.guilds.mine(user.id);
+    res.json(guild);
   }
 
   @Get(":id")

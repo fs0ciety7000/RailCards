@@ -95,6 +95,46 @@ export class MissionsService {
         },
       });
     }
+
+    await this.recordQuestProgress(tx, userId, goalType, incrementBy);
+  }
+
+  /**
+   * Advances the single ACTIVE seasonal quest's current step for this
+   * player, if that step's goal matches. Steps clear strictly in order —
+   * "current" is the first one this player hasn't completed yet — so
+   * progress toward a later step never accrues early. No-ops silently if
+   * there's no active quest, or the active quest's current step doesn't
+   * care about this goalType.
+   */
+  private async recordQuestProgress(tx: Tx, userId: string, goalType: MissionGoalType, incrementBy: number): Promise<void> {
+    const quest = await tx.seasonalQuest.findFirst({
+      where: { status: "ACTIVE" },
+      include: { steps: { orderBy: { order: "asc" } } },
+    });
+    if (!quest || quest.steps.length === 0) return;
+
+    const userProgress = await tx.userQuestProgress.findMany({
+      where: { userId, questStepId: { in: quest.steps.map((s) => s.id) } },
+    });
+    const progressByStepId = new Map(userProgress.map((p) => [p.questStepId, p]));
+
+    const currentStep = quest.steps.find((s) => !progressByStepId.get(s.id)?.completedAt);
+    if (!currentStep || currentStep.goalType !== goalType) return;
+
+    const existing = progressByStepId.get(currentStep.id);
+    const newProgress = Math.min((existing?.progress ?? 0) + incrementBy, currentStep.goalCount);
+    const nowCompleted = !existing?.completedAt && newProgress >= currentStep.goalCount;
+    await tx.userQuestProgress.upsert({
+      where: { userId_questStepId: { userId, questStepId: currentStep.id } },
+      update: { progress: newProgress, completedAt: nowCompleted ? new Date() : existing?.completedAt },
+      create: {
+        userId,
+        questStepId: currentStep.id,
+        progress: newProgress,
+        completedAt: nowCompleted ? new Date() : null,
+      },
+    });
   }
 
   /**

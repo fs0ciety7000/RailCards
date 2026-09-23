@@ -222,6 +222,7 @@ export class AdminUsersService {
         where: { OR: [{ challengerId: targetUserId }, { opponentId: targetUserId }, { winnerId: targetUserId }] },
       });
       await tx.wantedListing.deleteMany({ where: { posterId: targetUserId } });
+      await tx.userQuestProgress.deleteMany({ where: { userId: targetUserId } });
       await tx.boosterOpening.deleteMany({ where: { userId: targetUserId } });
       await tx.userMission.deleteMany({ where: { userId: targetUserId } });
       await tx.userAchievement.deleteMany({ where: { userId: targetUserId } });

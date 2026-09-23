@@ -70,6 +70,7 @@ model User {
   seriesCompletions     UserSeriesCompletion[]
   guildsLed             Guild[]                @relation("GuildLeader")
   guildMembership       GuildMember?
+  questProgress         UserQuestProgress[]
 
   @@index([status])
 }
@@ -393,6 +394,7 @@ enum WalletTransactionType {
   DUEL_PAYOUT
   AUCTION_BID_HOLD
   AUCTION_BID_REFUND
+  QUEST_REWARD
 }
 
 model Wallet {
@@ -777,6 +779,63 @@ model Event {
   updatedAt     DateTime @updatedAt
 }
 
+enum QuestStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// A seasonal narrative questline: an ordered chain of steps players clear
+// one at a time. Each step reuses MissionGoalType for its goal, so the same
+// MissionsService.recordProgress() call sites already wired at every action
+// (booster opened, trade completed, card sold, ...) drive quest progress
+// too — no new instrumentation needed anywhere else. At most one quest is
+// ACTIVE at a time (enforced in QuestsService, not the DB); authoring a new
+// one is all-or-nothing, so a season is never half-written mid-play.
+model SeasonalQuest {
+  id          String      @id @default(uuid())
+  slug        String      @unique
+  title       String
+  description String
+  status      QuestStatus @default(ACTIVE)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  steps QuestStep[]
+}
+
+model QuestStep {
+  id        String        @id @default(uuid())
+  questId   String
+  quest     SeasonalQuest @relation(fields: [questId], references: [id], onDelete: Cascade)
+  order     Int
+  title     String
+  narrative String
+  goalType  MissionGoalType
+  goalCount Int
+  rewardCr  Int           @default(0)
+  rewardXp  Int           @default(0)
+
+  progress UserQuestProgress[]
+
+  @@unique([questId, order])
+}
+
+model UserQuestProgress {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  questStepId String
+  questStep   QuestStep @relation(fields: [questStepId], references: [id], onDelete: Cascade)
+  progress    Int       @default(0)
+  completedAt DateTime?
+  claimedAt   DateTime?
+
+  @@unique([userId, questStepId])
+  @@index([userId])
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Guilds
 // ─────────────────────────────────────────────────────────────────────────
@@ -849,6 +908,8 @@ enum NotificationType {
   GUILD_DEMOTED
   GUILD_LEADERSHIP_TRANSFERRED
   GUILD_DISBANDED
+  QUEST_STEP_COMPLETED
+  QUEST_COMPLETED
   SYSTEM
 }
 

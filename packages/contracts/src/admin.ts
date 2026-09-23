@@ -180,6 +180,24 @@ export const updateAchievementSchema = z.object({
 });
 export type UpdateAchievementInput = z.infer<typeof updateAchievementSchema>;
 
+export const questStepSchema = z.object({
+  order: z.coerce.number().int().min(1),
+  title: z.string().min(2).max(120),
+  narrative: z.string().min(1),
+  goalType: missionGoalTypeSchema,
+  goalCount: z.coerce.number().int().min(1),
+  rewardCr: z.coerce.number().int().min(0).optional(),
+  rewardXp: z.coerce.number().int().min(0).optional(),
+});
+
+export const createQuestSchema = z.object({
+  slug: z.string().min(2).max(80),
+  title: z.string().min(2).max(120),
+  description: z.string().min(1),
+  steps: z.array(questStepSchema).min(1, "Ajoutez au moins une étape"),
+});
+export type CreateQuestInput = z.infer<typeof createQuestSchema>;
+
 export const createGradeSchema = z.object({
   minLevel: z.coerce.number().int().min(1).max(1000),
   title: z.string().min(1).max(80),

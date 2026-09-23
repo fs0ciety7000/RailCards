@@ -173,6 +173,26 @@ export class UpdateAchievementDto {
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
+export class CreateQuestStepDto {
+  @IsInt() @Min(1) order!: number;
+  @IsString() @MinLength(2) @MaxLength(120) title!: string;
+  @IsString() @MinLength(1) narrative!: string;
+  @IsIn(MISSION_GOAL_TYPES) goalType!: MissionGoalType;
+  @IsInt() @Min(1) goalCount!: number;
+  @IsOptional() @IsInt() @Min(0) rewardCr?: number;
+  @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+}
+
+export class CreateQuestDto {
+  @IsString() @MinLength(2) @MaxLength(80) slug!: string;
+  @IsString() @MinLength(2) @MaxLength(120) title!: string;
+  @IsString() description!: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateQuestStepDto)
+  steps!: CreateQuestStepDto[];
+}
+
 export class CreateGradeDto {
   @IsInt() @Min(1) @Max(1000) minLevel!: number;
   @IsString() @MinLength(1) @MaxLength(80) title!: string;

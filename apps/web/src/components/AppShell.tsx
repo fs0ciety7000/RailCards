@@ -8,6 +8,7 @@ import { motion } from "motion/react";
 import {
   ArrowLeftRight,
   Bell,
+  BookOpen,
   ClipboardList,
   Crown,
   Folder,
@@ -40,6 +41,7 @@ const PRIMARY_TABS = [
 
 const SECONDARY_LINKS = [
   { href: "/missions", label: "Missions & hauts faits", icon: Trophy },
+  { href: "/quests", label: "Quête saisonnière", icon: BookOpen },
   { href: "/guilds", label: "Guildes", icon: Users },
   { href: "/wanted", label: "Petites annonces", icon: ClipboardList },
   { href: "/activity", label: "Fil d'activité", icon: Radio },

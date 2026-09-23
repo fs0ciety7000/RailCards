@@ -12,6 +12,7 @@ const ADMIN_TABS = [
   { href: "/admin/series", label: "Séries" },
   { href: "/admin/boosters", label: "Boosters" },
   { href: "/admin/missions", label: "Missions" },
+  { href: "/admin/quests", label: "Quêtes" },
   { href: "/admin/grades", label: "Rangs" },
   { href: "/admin/invitations", label: "Invitations" },
   { href: "/admin/users", label: "Utilisateurs" },

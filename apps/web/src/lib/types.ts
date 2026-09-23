@@ -278,6 +278,53 @@ export interface Duel {
   createdAt: string;
 }
 
+export type QuestStatus = "ACTIVE" | "ARCHIVED";
+
+export interface QuestStepEntry {
+  id: string;
+  order: number;
+  title: string;
+  narrative: string;
+  goalType: MissionGoalType;
+  goalCount: number;
+  rewardCr: number;
+  rewardXp: number;
+  progress: number;
+  completedAt: string | null;
+  claimedAt: string | null;
+}
+
+export interface ActiveQuest {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  steps: QuestStepEntry[];
+}
+
+export interface AdminQuestStep {
+  id: string;
+  order: number;
+  title: string;
+  narrative: string;
+  goalType: MissionGoalType;
+  goalCount: number;
+  rewardCr: number;
+  rewardXp: number;
+}
+
+export interface AdminQuest {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  status: QuestStatus;
+  createdAt: string;
+  steps: AdminQuestStep[];
+}
+
 export type WantedListingStatus = "OPEN" | "FULFILLED" | "CANCELLED";
 
 export interface WantedListing {
@@ -411,6 +458,8 @@ export type NotificationType =
   | "GUILD_DEMOTED"
   | "GUILD_LEADERSHIP_TRANSFERRED"
   | "GUILD_DISBANDED"
+  | "QUEST_STEP_COMPLETED"
+  | "QUEST_COMPLETED"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"

@@ -324,6 +324,13 @@ export const guildsApi = {
   disband: (id: string) => request<{ disbanded: boolean }>(`/guilds/${id}`, { method: "DELETE" }),
 };
 
+// ── Seasonal quests ──────────────────────────────────────────────────────
+
+export const questsApi = {
+  active: () => request<T.ActiveQuest | null>("/quests/active"),
+  claimStep: (stepId: string) => request<unknown>(`/quests/steps/${stepId}/claim`, { method: "POST" }),
+};
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const usersApi = {
@@ -436,6 +443,10 @@ export const adminApi = {
   createAchievement: (input: unknown) => request<T.Achievement>("/admin/achievements", { method: "POST", body: input }),
   updateAchievement: (id: string, input: unknown) =>
     request<T.Achievement>(`/admin/achievements/${id}`, { method: "PATCH", body: input }),
+
+  listQuests: () => request<T.AdminQuest[]>("/admin/quests"),
+  createQuest: (input: unknown) => request<T.AdminQuest>("/admin/quests", { method: "POST", body: input }),
+  archiveQuest: (id: string) => request<T.AdminQuest>(`/admin/quests/${id}/archive`, { method: "PATCH" }),
 
   listGrades: () => request<T.Grade[]>("/admin/grades"),
   createGrade: (input: unknown) => request<T.Grade>("/admin/grades", { method: "POST", body: input }),

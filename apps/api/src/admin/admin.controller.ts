@@ -12,6 +12,7 @@ import { BoostersService } from "../boosters/boosters.service";
 import { StorageService } from "../storage/storage.service";
 import { MissionsService } from "../missions/missions.service";
 import { GradesService } from "../grades/grades.service";
+import { QuestsService } from "../quests/quests.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -25,6 +26,7 @@ import {
   CreateGradeDto,
   CreateInvitationDto,
   CreateMissionDto,
+  CreateQuestDto,
   CreateSeriesDto,
   GrantCardDto,
   PublishPoolVersionDto,
@@ -54,6 +56,7 @@ export class AdminController {
     private readonly storage: StorageService,
     private readonly missions: MissionsService,
     private readonly grades: GradesService,
+    private readonly quests: QuestsService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -218,6 +221,26 @@ export class AdminController {
     const achievement = await this.missions.updateAchievement(id, dto);
     await this.auditLog.record(admin.id, "achievement.update", "Achievement", id, dto);
     return achievement;
+  }
+
+  // ── Seasonal quests ────────────────────────────────────────────────
+  @Get("quests")
+  async listQuests() {
+    return this.quests.listAllForAdmin();
+  }
+
+  @Post("quests")
+  async createQuest(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateQuestDto) {
+    const quest = await this.quests.create(dto);
+    await this.auditLog.record(admin.id, "quest.create", "SeasonalQuest", quest.id, { slug: quest.slug, stepCount: quest.steps.length });
+    return quest;
+  }
+
+  @Patch("quests/:id/archive")
+  async archiveQuest(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string) {
+    const quest = await this.quests.archive(id);
+    await this.auditLog.record(admin.id, "quest.archive", "SeasonalQuest", id, {});
+    return quest;
   }
 
   // ── Grades (profile ranks) ────────────────────────────────────────
