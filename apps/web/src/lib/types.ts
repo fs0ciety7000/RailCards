@@ -205,6 +205,8 @@ export interface FreeBoosterStatus {
 
 export type MarketListingStatus = "ACTIVE" | "SOLD" | "CANCELLED";
 
+export type MarketListingType = "FIXED" | "AUCTION";
+
 export interface MarketListing {
   id: string;
   sellerId: string;
@@ -214,6 +216,11 @@ export interface MarketListing {
   priceCr: number;
   feeBps: number;
   status: MarketListingStatus;
+  listingType: MarketListingType;
+  auctionEndsAt: string | null;
+  currentBidCr: number | null;
+  currentBidderId: string | null;
+  currentBidder: { username: string; displayName: string } | null;
   createdAt: string;
   soldAt: string | null;
   cancelledAt: string | null;
@@ -359,6 +366,10 @@ export type NotificationType =
   | "TRADE_COUNTERED"
   | "TRADE_EXPIRED"
   | "MARKET_SOLD"
+  | "AUCTION_OUTBID"
+  | "AUCTION_NEW_BID"
+  | "AUCTION_WON"
+  | "AUCTION_ENDED_NO_BIDS"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"

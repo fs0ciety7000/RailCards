@@ -1,3 +1,16 @@
+/** Compact "2j 4h", "3h 12m", "45m", "Terminée" style countdown for auction end times. */
+export function formatTimeLeft(iso: string): string {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return "Terminée";
+  const totalMinutes = Math.floor(ms / 60_000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}j ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export function formatDate(iso: string): string {
   try {
     return new Date(iso).toLocaleDateString("fr-BE", { day: "2-digit", month: "short", year: "numeric" });
@@ -80,6 +93,10 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   TRADE_COUNTERED: "Contre-offre reçue",
   TRADE_EXPIRED: "Un échange a expiré",
   MARKET_SOLD: "Une de vos cartes a été vendue",
+  AUCTION_OUTBID: "Vous avez été surenchéri",
+  AUCTION_NEW_BID: "Nouvelle enchère sur votre annonce",
+  AUCTION_WON: "Vous avez remporté une enchère",
+  AUCTION_ENDED_NO_BIDS: "Votre enchère s'est terminée sans offre",
   MISSION_COMPLETED: "Mission complétée",
   ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
   LEVEL_UP: "Niveau supérieur",
@@ -127,6 +144,18 @@ export function notificationMessage(type: string, payload: Record<string, unknow
         ? `Duel résolu sur ${stat} — un vainqueur repart avec ${payload.wagerCr as number} CR`
         : `Duel résolu sur ${stat} — égalité, personne ne gagne le pari`;
     }
+    case "AUCTION_OUTBID":
+      return typeof payload.newBidCr === "number"
+        ? `Vous avez été surenchéri — nouvelle offre à ${payload.newBidCr} CR`
+        : NOTIFICATION_LABELS[type]!;
+    case "AUCTION_NEW_BID":
+      return typeof payload.amountCr === "number"
+        ? `Nouvelle enchère reçue — ${payload.amountCr} CR`
+        : NOTIFICATION_LABELS[type]!;
+    case "AUCTION_WON":
+      return typeof payload.priceCr === "number"
+        ? `Enchère remportée pour ${payload.priceCr} CR`
+        : NOTIFICATION_LABELS[type]!;
     case "SYSTEM":
       return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;
     default:

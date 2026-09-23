@@ -21,4 +21,8 @@ export const GAME_CONSTANTS = {
   DUEL_EXPIRY_HOURS: 24,
   DUEL_MIN_WAGER_CR: 1,
   DUEL_MAX_WAGER_CR: 100_000,
+  // Market auctions: how long a seller can run one for.
+  AUCTION_MIN_DURATION_HOURS: 1,
+  AUCTION_MAX_DURATION_HOURS: 168, // 7 days
+  AUCTION_DEFAULT_DURATION_HOURS: 24,
 } as const;

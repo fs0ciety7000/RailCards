@@ -112,6 +112,11 @@ export class AdminUsersService {
     await tx.marketTransaction.deleteMany({
       where: { OR: [{ buyerId: userId }, { sellerId: userId }, { listing: listingWhere }] },
     });
+    // Bids this user placed on ANY listing (bidderId), plus all bid history
+    // on listings this call is about to delete outright (listingWhere) —
+    // two different scopes, since a bid the user placed on someone else's
+    // still-live auction must not drag that whole listing into deletion.
+    await tx.marketBid.deleteMany({ where: { OR: [{ bidderId: userId }, { listing: listingWhere }] } });
     await tx.marketListing.deleteMany({ where: listingWhere });
 
     await tx.tradeItem.deleteMany({ where: { cardInstanceId: { in: ownedIds } } });
@@ -180,6 +185,20 @@ export class AdminUsersService {
     if (targetUserId === actingAdminId) throw new BadRequestException("You cannot delete your own account");
     const user = await this.prisma.user.findUnique({ where: { id: targetUserId } });
     if (!user) throw new NotFoundException("User not found");
+
+    // A user who's currently the leading bidder on someone else's still-
+    // running auction can't be safely deleted: refunding/reassigning that
+    // bid mid-auction would need to guess what the seller and other
+    // bidders would want. Simplest safe rule, matching the RESERVED_TRADE/
+    // RESERVED_MARKET card-instance guard below: refuse until it resolves.
+    const leadingAuctions = await this.prisma.marketListing.count({
+      where: { currentBidderId: targetUserId, status: "ACTIVE" },
+    });
+    if (leadingAuctions > 0) {
+      throw new ConflictException(
+        `This account is the leading bidder on ${leadingAuctions} active auction(s) — wait for them to end or settle them first.`,
+      );
+    }
 
     if (user.role === "ADMIN") {
       const otherAdmins = await this.prisma.user.count({ where: { role: "ADMIN", id: { not: targetUserId } } });

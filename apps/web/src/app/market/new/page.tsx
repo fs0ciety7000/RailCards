@@ -29,11 +29,13 @@ function NewListingForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateListingInput>({
     resolver: zodResolver(createListingSchema),
-    defaultValues: { cardInstanceId: preselected, priceCr: 50 },
+    defaultValues: { cardInstanceId: preselected, priceCr: 50, listingType: "FIXED", durationHours: 24 },
   });
+  const listingType = watch("listingType");
 
   const createMutation = useMutation({
     mutationFn: (values: CreateListingInput) => marketApi.create(values),
@@ -83,12 +85,34 @@ function NewListingForm() {
             <FieldError>{errors.cardInstanceId?.message}</FieldError>
           </FieldGroup>
           <FieldGroup>
-            <Label htmlFor="priceCr">Prix (CR)</Label>
+            <Label htmlFor="listingType">Type de vente</Label>
+            <Select id="listingType" invalid={!!errors.listingType} {...register("listingType")}>
+              <option value="FIXED">Prix fixe</option>
+              <option value="AUCTION">Enchère</option>
+            </Select>
+            <FieldError>{errors.listingType?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="priceCr">{listingType === "AUCTION" ? "Mise de départ (CR)" : "Prix (CR)"}</Label>
             <Input id="priceCr" type="number" min={1} invalid={!!errors.priceCr} {...register("priceCr")} />
             <FieldError>{errors.priceCr?.message}</FieldError>
           </FieldGroup>
+          {listingType === "AUCTION" && (
+            <FieldGroup>
+              <Label htmlFor="durationHours">Durée (heures)</Label>
+              <Input
+                id="durationHours"
+                type="number"
+                min={1}
+                max={168}
+                invalid={!!errors.durationHours}
+                {...register("durationHours")}
+              />
+              <FieldError>{errors.durationHours?.message}</FieldError>
+            </FieldGroup>
+          )}
           <Button type="submit" fullWidth loading={isSubmitting || createMutation.isPending}>
-            Publier l&apos;annonce
+            {listingType === "AUCTION" ? "Lancer l'enchère" : "Publier l'annonce"}
           </Button>
         </form>
       </CardBody>

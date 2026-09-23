@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { MarketService } from "./market.service";
-import { CreateListingDto } from "./dto/create-listing.dto";
+import { CreateListingDto, PlaceBidDto } from "./dto/create-listing.dto";
 
 @ApiTags("market")
 @ApiBearerAuth()
@@ -18,11 +18,12 @@ export class MarketController {
     @Query("search") search?: string,
     @Query("seriesId") seriesId?: string,
     @Query("rarity") rarityCode?: string,
+    @Query("listingType") listingType?: "FIXED" | "AUCTION",
     @Query("sort") sort?: "price_asc" | "price_desc" | "recent",
   ) {
     const p = Math.max(1, Number(page) || 1);
     const ps = Math.min(100, Math.max(1, Number(pageSize) || 20));
-    const { items, total } = await this.market.listActive({ page: p, pageSize: ps, search, seriesId, rarityCode, sort });
+    const { items, total } = await this.market.listActive({ page: p, pageSize: ps, search, seriesId, rarityCode, listingType, sort });
     return { items, page: p, pageSize: ps, total, totalPages: Math.ceil(total / ps) };
   }
 
@@ -45,12 +46,22 @@ export class MarketController {
 
   @Post("listings")
   async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateListingDto) {
-    return this.market.createListing(user.id, dto.cardInstanceId, dto.priceCr);
+    return this.market.createListing(user.id, dto.cardInstanceId, dto.priceCr, dto.listingType, dto.durationHours);
   }
 
   @Post("listings/:id/buy")
   async buy(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string) {
     return this.market.buy(user.id, id);
+  }
+
+  @Post("listings/:id/bid")
+  async bid(@CurrentUser() user: AuthenticatedUser, @Param("id") id: string, @Body() dto: PlaceBidDto) {
+    return this.market.placeBid(user.id, id, dto.amountCr);
+  }
+
+  @Post("listings/:id/settle")
+  async settle(@Param("id") id: string) {
+    return this.market.settleExpiredAuction(id);
   }
 
   @Delete("listings/:id")

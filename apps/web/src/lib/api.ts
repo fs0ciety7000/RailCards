@@ -228,13 +228,21 @@ export const marketApi = {
       search?: string;
       seriesId?: string;
       rarity?: string;
+      listingType?: T.MarketListingType;
       sort?: "price_asc" | "price_desc" | "recent";
     } = {},
   ) => request<T.Paginated<T.MarketListing>>(`/market/listings${qs(params)}`),
   listingById: (id: string) => request<T.MarketListing>(`/market/listings/${id}`),
-  create: (input: { cardInstanceId: string; priceCr: number }) =>
-    request<T.MarketListing>("/market/listings", { method: "POST", body: input }),
+  create: (input: {
+    cardInstanceId: string;
+    priceCr: number;
+    listingType?: T.MarketListingType;
+    durationHours?: number;
+  }) => request<T.MarketListing>("/market/listings", { method: "POST", body: input }),
   buy: (id: string) => request<unknown>(`/market/listings/${id}/buy`, { method: "POST" }),
+  bid: (id: string, amountCr: number) =>
+    request<T.MarketListing>(`/market/listings/${id}/bid`, { method: "POST", body: { amountCr } }),
+  settle: (id: string) => request<T.MarketListing>(`/market/listings/${id}/settle`, { method: "POST" }),
   cancel: (id: string) => request<T.MarketListing>(`/market/listings/${id}`, { method: "DELETE" }),
   myTransactions: (params: { page?: number; pageSize?: number } = {}) =>
     request<T.Paginated<unknown>>(`/market/transactions${qs(params)}`),

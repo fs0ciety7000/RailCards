@@ -55,6 +55,8 @@ model User {
   marketListings        MarketListing[]
   marketPurchases       MarketTransaction[] @relation("MarketBuyer")
   marketSales           MarketTransaction[] @relation("MarketSeller")
+  marketBids            MarketBid[]
+  auctionsLeading       MarketListing[]     @relation("MarketCurrentBidder")
   userMissions          UserMission[]
   userAchievements      UserAchievement[]
   notifications         Notification[]
@@ -387,6 +389,8 @@ enum WalletTransactionType {
   COMPENSATION
   DUEL_WAGER
   DUEL_PAYOUT
+  AUCTION_BID_HOLD
+  AUCTION_BID_REFUND
 }
 
 model Wallet {
@@ -559,25 +563,58 @@ enum MarketListingStatus {
   CANCELLED
 }
 
+enum MarketListingType {
+  FIXED
+  AUCTION
+}
+
 model MarketListing {
-  id             String              @id @default(uuid())
-  sellerId       String
-  seller         User                @relation(fields: [sellerId], references: [id])
-  cardInstanceId String
-  cardInstance   CardInstance        @relation(fields: [cardInstanceId], references: [id])
-  priceCr        Int
-  feeBps         Int
-  status         MarketListingStatus @default(ACTIVE)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  soldAt         DateTime?
-  cancelledAt    DateTime?
+  id              String              @id @default(uuid())
+  sellerId        String
+  seller          User                @relation(fields: [sellerId], references: [id])
+  cardInstanceId  String
+  cardInstance    CardInstance        @relation(fields: [cardInstanceId], references: [id])
+  // For FIXED, the buy-it-now price. For AUCTION, the starting price.
+  priceCr         Int
+  feeBps          Int
+  status          MarketListingStatus @default(ACTIVE)
+  listingType     MarketListingType   @default(FIXED)
+  auctionEndsAt   DateTime?
+  // Denormalized cache of the leading bid, kept in lockstep with the
+  // MarketBid history below — lets the listing itself answer "who's
+  // winning and for how much" without an aggregate query, and its
+  // (currentBidCr IS NULL OR currentBidCr < $new) guard is what makes
+  // placing a bid race-safe.
+  currentBidCr    Int?
+  currentBidderId String?
+  currentBidder   User?               @relation("MarketCurrentBidder", fields: [currentBidderId], references: [id])
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  soldAt          DateTime?
+  cancelledAt     DateTime?
 
   transaction MarketTransaction?
+  bids        MarketBid[]
 
   @@index([sellerId])
   @@index([status])
   @@index([cardInstanceId])
+  @@index([currentBidderId])
+}
+
+// Full bid history for an auction — MarketListing.currentBidCr/currentBidderId
+// cache the leading row here for cheap reads.
+model MarketBid {
+  id        String        @id @default(uuid())
+  listingId String
+  listing   MarketListing @relation(fields: [listingId], references: [id])
+  bidderId  String
+  bidder    User          @relation(fields: [bidderId], references: [id])
+  amountCr  Int
+  createdAt DateTime      @default(now())
+
+  @@index([listingId])
+  @@index([bidderId])
 }
 
 model MarketTransaction {
@@ -760,6 +797,10 @@ enum NotificationType {
   DUEL_DECLINED
   DUEL_CANCELLED
   DUEL_EXPIRED
+  AUCTION_OUTBID
+  AUCTION_NEW_BID
+  AUCTION_WON
+  AUCTION_ENDED_NO_BIDS
   SYSTEM
 }
 

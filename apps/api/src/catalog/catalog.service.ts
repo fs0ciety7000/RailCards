@@ -151,6 +151,7 @@ export class CatalogService {
         ).map((l) => l.id);
         if (listingIds.length > 0) {
           await tx.marketTransaction.deleteMany({ where: { listingId: { in: listingIds } } });
+          await tx.marketBid.deleteMany({ where: { listingId: { in: listingIds } } });
           await tx.marketListing.deleteMany({ where: { id: { in: listingIds } } });
         }
         await tx.tradeItem.deleteMany({ where: { cardInstanceId: { in: instanceIds } } });

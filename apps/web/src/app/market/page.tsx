@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeftRight } from "lucide-react";
-import { Button, Card, CardBody, CrAmount, EmptyState, ErrorState, Input, RarityBadge, Select, SkeletonGrid } from "@railcards/ui";
+import { ArrowLeftRight, Gavel } from "lucide-react";
+import { Badge, Button, Card, CardBody, CrAmount, EmptyState, ErrorState, Input, RarityBadge, Select, SkeletonGrid } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -12,6 +12,8 @@ import { CardArt } from "@/components/CardTile";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { catalogApi, marketApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
+import { formatTimeLeft } from "@/lib/format";
+import type { MarketListingType } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
@@ -19,13 +21,22 @@ function MarketContent() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [rarity, setRarity] = useState("");
+  const [listingType, setListingType] = useState<MarketListingType | "">("");
   const [sort, setSort] = useState<"price_asc" | "price_desc" | "recent">("recent");
 
   const raritiesQuery = useQuery({ queryKey: ["rarities"], queryFn: catalogApi.rarities });
   const listingsQuery = useQuery({
-    queryKey: ["market", "listings", { page, search, rarity, sort }],
+    queryKey: ["market", "listings", { page, search, rarity, listingType, sort }],
     queryFn: () =>
-      marketApi.listings({ page, pageSize: PAGE_SIZE, search: search || undefined, rarity: rarity || undefined, sort }),
+      marketApi.listings({
+        page,
+        pageSize: PAGE_SIZE,
+        search: search || undefined,
+        rarity: rarity || undefined,
+        listingType: listingType || undefined,
+        sort,
+      }),
+    refetchInterval: 20_000,
   });
 
   return (
@@ -63,6 +74,19 @@ function MarketContent() {
           ))}
         </Select>
         <Select
+          aria-label="Filtrer par type de vente"
+          value={listingType}
+          onChange={(e) => {
+            setListingType(e.target.value as MarketListingType | "");
+            setPage(1);
+          }}
+          className="w-auto"
+        >
+          <option value="">Prix fixe et enchères</option>
+          <option value="FIXED">Prix fixe</option>
+          <option value="AUCTION">Enchères</option>
+        </Select>
+        <Select
           aria-label="Trier"
           value={sort}
           onChange={(e) => {
@@ -98,15 +122,29 @@ function MarketContent() {
                   <CardArt card={listing.cardInstance.cardDefinition} className="relative aspect-[3/4] w-full" />
                   <div className="mt-2.5 space-y-1">
                     <p className="font-display truncate text-sm font-semibold text-white">{listing.cardInstance.cardDefinition.name}</p>
-                    <RarityBadge
-                      label={listing.cardInstance.cardDefinition.rarity.label}
-                      colorHex={listing.cardInstance.cardDefinition.rarity.colorHex}
-                      size="sm"
-                    />
+                    <div className="flex flex-wrap items-center gap-1">
+                      <RarityBadge
+                        label={listing.cardInstance.cardDefinition.rarity.label}
+                        colorHex={listing.cardInstance.cardDefinition.rarity.colorHex}
+                        size="sm"
+                      />
+                      {listing.listingType === "AUCTION" && (
+                        <Badge tone="accent" className="flex items-center gap-1">
+                          <Gavel className="h-2.5 w-2.5" aria-hidden="true" />
+                          Enchère
+                        </Badge>
+                      )}
+                    </div>
                     <div className="flex items-center justify-between text-xs">
-                      <CrAmount value={listing.priceCr} className="text-rc-accent" />
+                      <CrAmount
+                        value={listing.listingType === "AUCTION" ? (listing.currentBidCr ?? listing.priceCr) : listing.priceCr}
+                        className="text-rc-accent"
+                      />
                       <span className="truncate text-white/40">@{listing.seller.username}</span>
                     </div>
+                    {listing.listingType === "AUCTION" && listing.auctionEndsAt && (
+                      <p className="text-[11px] text-white/40">{formatTimeLeft(listing.auctionEndsAt)}</p>
+                    )}
                   </div>
                 </Link>
               </StaggerItem>
