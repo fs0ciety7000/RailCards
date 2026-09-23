@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Lock, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
+import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Flag, Lock, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
 import { changePasswordSchema, type ChangePasswordInput } from "@railcards/contracts";
 import { Badge, Button, Card, CardBody, Dialog, EmptyState, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -15,11 +15,11 @@ import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { CardArt } from "@/components/CardTile";
-import { ApiError, authApi, collectionApi, usersApi } from "@/lib/api";
+import { ApiError, authApi, collectionApi, profileBannersApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
 import { useAuthStore } from "@/lib/auth-store";
-import type { CardDefinition } from "@/lib/types";
+import type { CardDefinition, ProfileBanner } from "@/lib/types";
 
 const MAX_FAVORITES = 5;
 
@@ -320,6 +320,77 @@ function FavoritesSection({
   );
 }
 
+function BannerSwatch({ banner, selected, onClick, loading }: { banner: ProfileBanner; selected: boolean; onClick: () => void; loading: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        selected ? "border-rc-accent bg-rc-accent/10" : "border-rc-border hover:border-white/30"
+      }`}
+    >
+      <span
+        className="h-6 w-10 shrink-0 rounded-md"
+        style={{ background: `linear-gradient(135deg, ${banner.colorFrom}, ${banner.colorTo})` }}
+        aria-hidden="true"
+      />
+      <span className="min-w-0 truncate font-medium text-white">{banner.name}</span>
+    </button>
+  );
+}
+
+function BannersSection({ isOwn }: { isOwn: boolean }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const params = useParams<{ username: string }>();
+  const minePreQuery = useQuery({ queryKey: ["profile-banners", "mine"], queryFn: profileBannersApi.mine, enabled: isOwn });
+
+  const setActiveMutation = useMutation({
+    mutationFn: (bannerId: string | null) => profileBannersApi.setActive(bannerId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["profile-banners", "mine"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["users", "profile", params.username] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  if (!isOwn) return null;
+  if (minePreQuery.isLoading) return <Skeleton className="mt-4 h-24 w-full" />;
+  const unlocked = minePreQuery.data?.unlocked ?? [];
+  if (unlocked.length === 0) return null;
+
+  const activeId = minePreQuery.data?.active?.id ?? null;
+
+  return (
+    <Card className="mt-4">
+      <CardBody>
+        <h2 className="mb-3 flex items-center gap-1.5 font-semibold text-white">
+          <Flag className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+          Bannières débloquées
+        </h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {unlocked.map((banner) => (
+            <BannerSwatch
+              key={banner.id}
+              banner={banner}
+              selected={banner.id === activeId}
+              loading={setActiveMutation.isPending}
+              onClick={() => setActiveMutation.mutate(banner.id)}
+            />
+          ))}
+        </div>
+        {activeId && (
+          <Button size="sm" variant="ghost" className="mt-3" disabled={setActiveMutation.isPending} onClick={() => setActiveMutation.mutate(null)}>
+            Retirer la bannière active
+          </Button>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 function ProfileContent() {
   const params = useParams<{ username: string }>();
   const toast = useToast();
@@ -365,7 +436,14 @@ function ProfileContent() {
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-11rem)] w-full max-w-md flex-col justify-center">
       <PageHeader title={isOwn ? "Mon profil" : profile.displayName} />
-      <Card>
+      <Card className="overflow-hidden">
+        {profile.activeBanner && (
+          <div
+            className="h-16 w-full"
+            style={{ background: `linear-gradient(135deg, ${profile.activeBanner.colorFrom}, ${profile.activeBanner.colorTo})` }}
+            aria-hidden="true"
+          />
+        )}
         <CardBody className="flex flex-col items-center gap-3 py-10 text-center">
           <motion.div initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
             <Avatar avatarUrl={profile.avatarUrl} displayName={profile.displayName} isAdmin={isAdmin} />
@@ -414,6 +492,7 @@ function ProfileContent() {
       </Card>
 
       <FavoritesSection favoriteCards={profile.favoriteCards} isOwn={isOwn} />
+      <BannersSection isOwn={isOwn} />
 
       {isOwn && meQuery.data && (
         <Card className="mt-4">

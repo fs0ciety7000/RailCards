@@ -393,6 +393,15 @@ export const usersApi = {
     request<{ username: string; displayName: string; avatarUrl: string | null }[]>(`/users/search${qs({ q })}`),
 };
 
+// ── Profile banners ──────────────────────────────────────────────────────
+
+export const profileBannersApi = {
+  catalog: () => request<T.ProfileBanner[]>("/profile-banners"),
+  mine: () => request<{ unlocked: T.ProfileBanner[]; active: T.ProfileBanner | null }>("/profile-banners/mine"),
+  setActive: (bannerId: string | null) =>
+    request<{ unlocked: T.ProfileBanner[]; active: T.ProfileBanner | null }>("/profile-banners/active", { method: "POST", body: { bannerId } }),
+};
+
 // ── Leaderboard ──────────────────────────────────────────────────────────
 
 export const leaderboardApi = {
@@ -509,6 +518,10 @@ export const adminApi = {
   createAchievement: (input: unknown) => request<T.Achievement>("/admin/achievements", { method: "POST", body: input }),
   updateAchievement: (id: string, input: unknown) =>
     request<T.Achievement>(`/admin/achievements/${id}`, { method: "PATCH", body: input }),
+
+  listProfileBanners: () => request<T.ProfileBanner[]>("/admin/profile-banners"),
+  createProfileBanner: (input: { slug: string; name: string; colorFrom: string; colorTo: string; icon: string }) =>
+    request<T.ProfileBanner>("/admin/profile-banners", { method: "POST", body: input }),
 
   listQuests: () => request<T.AdminQuest[]>("/admin/quests"),
   createQuest: (input: unknown) => request<T.AdminQuest>("/admin/quests", { method: "POST", body: input }),

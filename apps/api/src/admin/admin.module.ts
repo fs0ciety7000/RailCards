@@ -13,6 +13,7 @@ import { EventsModule } from "../events/events.module";
 import { SeasonsModule } from "../seasons/seasons.module";
 import { GuildWarsModule } from "../guild-wars/guild-wars.module";
 import { SeasonPassModule } from "../season-pass/season-pass.module";
+import { ProfileBannersModule } from "../profile-banners/profile-banners.module";
 import { AdminController } from "./admin.controller";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
@@ -35,6 +36,7 @@ import { AuditLogService } from "./audit-log.service";
     SeasonsModule,
     GuildWarsModule,
     SeasonPassModule,
+    ProfileBannersModule,
   ],
   controllers: [AdminController],
   providers: [AdminUsersService, InvitationsService, ReportsService, AuditLogService],

@@ -34,6 +34,7 @@ import { GuildWarsModule } from "./guild-wars/guild-wars.module";
 import { FriendsModule } from "./friends/friends.module";
 import { SeasonPassModule } from "./season-pass/season-pass.module";
 import { CardVariantsModule } from "./card-variants/card-variants.module";
+import { ProfileBannersModule } from "./profile-banners/profile-banners.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -69,6 +70,7 @@ import { HealthController } from "./health.controller";
     FriendsModule,
     SeasonPassModule,
     CardVariantsModule,
+    ProfileBannersModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -29,6 +29,8 @@ export interface Me {
   dailyRewardStreak: number;
   walletBalance: number;
   favoriteCards: CardDefinition[];
+  activeBanner: ProfileBanner | null;
+  unlockedBanners: ProfileBanner[];
 }
 
 export interface PublicProfile {
@@ -44,6 +46,16 @@ export interface PublicProfile {
   uniqueCardCount: number;
   totalSeriesCount: number;
   favoriteCards: CardDefinition[];
+  activeBanner: ProfileBanner | null;
+}
+
+export interface ProfileBanner {
+  id: string;
+  slug: string;
+  name: string;
+  colorFrom: string;
+  colorTo: string;
+  icon: string;
 }
 
 export type LeaderboardSort = "xp" | "cards" | "albums";
@@ -493,6 +505,7 @@ export interface Achievement {
   goalCount: number;
   rewardCr: number;
   rewardXp: number;
+  rewardBannerId: string | null;
   isActive: boolean;
 }
 

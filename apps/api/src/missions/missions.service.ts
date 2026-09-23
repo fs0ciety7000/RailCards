@@ -9,6 +9,7 @@ import { EventsService } from "../events/events.service";
 import { SeasonsService } from "../seasons/seasons.service";
 import { GuildWarsService } from "../guild-wars/guild-wars.service";
 import { GuildsService } from "../guilds/guilds.service";
+import { ProfileBannersService } from "../profile-banners/profile-banners.service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -55,6 +56,7 @@ export class MissionsService {
     private readonly seasons: SeasonsService,
     private readonly guildWars: GuildWarsService,
     private readonly guilds: GuildsService,
+    private readonly profileBanners: ProfileBannersService,
   ) {}
 
   /**
@@ -321,6 +323,10 @@ export class MissionsService {
       }
       const levelUp = await this.grantBonusXp(tx, userId, ua.achievement.rewardXp);
 
+      const unlockedBanner = ua.achievement.rewardBannerId
+        ? await this.profileBanners.unlock(tx, userId, ua.achievement.rewardBannerId)
+        : null;
+
       const userAchievement = await tx.userAchievement.update({ where: { id: ua.id }, data: { claimedAt: new Date() } });
 
       await this.notifications.create(tx, userId, "ACHIEVEMENT_UNLOCKED", {
@@ -328,6 +334,7 @@ export class MissionsService {
         title: ua.achievement.title,
         rewardCr: ua.achievement.rewardCr,
         rewardXp: ua.achievement.rewardXp,
+        rewardBannerName: unlockedBanner?.name ?? null,
       });
       if (levelUp.leveledUp) {
         await this.notifications.create(tx, userId, "LEVEL_UP", { newLevel: levelUp.newLevel, newGrade: levelUp.newGrade });

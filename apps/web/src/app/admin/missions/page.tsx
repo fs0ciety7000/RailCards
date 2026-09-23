@@ -8,10 +8,12 @@ import { Pencil, Plus, Power } from "lucide-react";
 import {
   createAchievementSchema,
   createMissionSchema,
+  createProfileBannerSchema,
   updateAchievementSchema,
   updateMissionSchema,
   type CreateAchievementInput,
   type CreateMissionInput,
+  type CreateProfileBannerInput,
   type UpdateAchievementInput,
   type UpdateMissionInput,
 } from "@railcards/contracts";
@@ -21,7 +23,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { adminApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { MISSION_GOAL_TYPE_LABELS } from "@/lib/format";
-import type { Achievement, Mission } from "@/lib/types";
+import type { Achievement, Mission, ProfileBanner } from "@/lib/types";
 
 const GOAL_TYPES = Object.keys(MISSION_GOAL_TYPE_LABELS);
 
@@ -45,6 +47,23 @@ function GoalTypeField<T extends FieldValues>({
         ))}
       </Select>
       <FieldError>{error}</FieldError>
+    </FieldGroup>
+  );
+}
+
+function RewardBannerField<T extends FieldValues>({ id, register }: { id: string; register: UseFormRegister<T> }) {
+  const bannersQuery = useQuery({ queryKey: ["admin", "profile-banners"], queryFn: adminApi.listProfileBanners });
+  return (
+    <FieldGroup>
+      <Label htmlFor={id}>Bannière débloquée (optionnel)</Label>
+      <Select id={id} {...register("rewardBannerId" as Path<T>)}>
+        <option value="">Aucune</option>
+        {bannersQuery.data?.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
+        ))}
+      </Select>
     </FieldGroup>
   );
 }
@@ -304,7 +323,7 @@ function CreateAchievementForm() {
   } = useForm<CreateAchievementInput>({ resolver: zodResolver(createAchievementSchema), defaultValues: { goalType: "OPEN_BOOSTER" } });
 
   const createMutation = useMutation({
-    mutationFn: (values: CreateAchievementInput) => adminApi.createAchievement(values),
+    mutationFn: (values: CreateAchievementInput) => adminApi.createAchievement({ ...values, rewardBannerId: values.rewardBannerId || undefined }),
     onSuccess: () => {
       toast.show({ tone: "success", title: "Haut fait créé" });
       reset();
@@ -347,6 +366,7 @@ function CreateAchievementForm() {
             <Label htmlFor="a-rewardXp">Récompense (XP)</Label>
             <Input id="a-rewardXp" type="number" min={0} {...register("rewardXp")} />
           </FieldGroup>
+          <RewardBannerField id="a-rewardBannerId" register={register} />
           <div className="sm:col-span-2">
             <Button type="submit" icon={<Plus className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
               Créer le haut fait
@@ -377,13 +397,15 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
       goalCount: achievement.goalCount,
       rewardCr: achievement.rewardCr,
       rewardXp: achievement.rewardXp,
+      rewardBannerId: achievement.rewardBannerId ?? "",
       isActive: achievement.isActive,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [achievement?.id]);
 
   const updateMutation = useMutation({
-    mutationFn: (values: UpdateAchievementInput) => adminApi.updateAchievement(achievement!.id, values),
+    mutationFn: (values: UpdateAchievementInput) =>
+      adminApi.updateAchievement(achievement!.id, { ...values, rewardBannerId: values.rewardBannerId || undefined }),
     onSuccess: () => {
       toast.show({ tone: "success", title: "Haut fait mis à jour" });
       void queryClient.invalidateQueries({ queryKey: ["admin", "achievements"] });
@@ -440,6 +462,7 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
             <Label htmlFor="ea-rewardXp">Récompense (XP)</Label>
             <Input id="ea-rewardXp" type="number" min={0} {...register("rewardXp")} />
           </FieldGroup>
+          <RewardBannerField id="ea-rewardBannerId" register={register} />
           <FieldGroup className="sm:col-span-2 mb-0">
             <label className="flex items-center gap-2 text-sm text-white/80">
               <input type="checkbox" className="h-4 w-4 rounded border-white/30 accent-[var(--color-rc-accent)]" {...register("isActive")} />
@@ -520,17 +543,115 @@ function AchievementsList() {
   );
 }
 
+function CreateProfileBannerForm() {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateProfileBannerInput>({ resolver: zodResolver(createProfileBannerSchema) });
+
+  const createMutation = useMutation({
+    mutationFn: (values: CreateProfileBannerInput) => adminApi.createProfileBanner(values),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Bannière créée" });
+      reset();
+      void queryClient.invalidateQueries({ queryKey: ["admin", "profile-banners"] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Création impossible", description: getErrorMessage(err) }),
+  });
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-3 font-semibold text-white">Créer une bannière</h2>
+        <p className="mb-3 text-sm text-white/50">
+          Débloquée en l&apos;attachant à un haut fait (champ « Bannière débloquée » dans l&apos;onglet Hauts faits).
+        </p>
+        <form onSubmit={handleSubmit((v) => createMutation.mutate(v))} noValidate className="grid gap-3 sm:grid-cols-2">
+          <FieldGroup>
+            <Label htmlFor="b-slug">Slug</Label>
+            <Input id="b-slug" invalid={!!errors.slug} {...register("slug")} placeholder="veteran-saison-1" />
+            <FieldError>{errors.slug?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="b-name">Nom</Label>
+            <Input id="b-name" invalid={!!errors.name} {...register("name")} placeholder="Vétéran saison 1" />
+            <FieldError>{errors.name?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="b-colorFrom">Couleur de départ (dégradé)</Label>
+            <Input id="b-colorFrom" invalid={!!errors.colorFrom} {...register("colorFrom")} placeholder="#f59e0b" />
+            <FieldError>{errors.colorFrom?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="b-colorTo">Couleur de fin (dégradé)</Label>
+            <Input id="b-colorTo" invalid={!!errors.colorTo} {...register("colorTo")} placeholder="#ef4444" />
+            <FieldError>{errors.colorTo?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup className="sm:col-span-2">
+            <Label htmlFor="b-icon">Icône (nom lucide-react)</Label>
+            <Input id="b-icon" invalid={!!errors.icon} {...register("icon")} placeholder="flame" />
+            <FieldError>{errors.icon?.message}</FieldError>
+          </FieldGroup>
+          <div className="sm:col-span-2">
+            <Button type="submit" icon={<Plus className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
+              Créer la bannière
+            </Button>
+          </div>
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+function ProfileBannersList() {
+  const bannersQuery = useQuery({ queryKey: ["admin", "profile-banners"], queryFn: adminApi.listProfileBanners });
+
+  if (bannersQuery.isLoading) return <Skeleton className="h-32 w-full" />;
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-3 font-semibold text-white">Toutes les bannières</h2>
+        {!bannersQuery.data?.length ? (
+          <p className="text-sm text-white/50">Aucune bannière créée pour l&apos;instant.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {bannersQuery.data.map((b: ProfileBanner) => (
+              <div
+                key={b.id}
+                className="flex items-center justify-between rounded-lg border border-rc-border px-3 py-2"
+                style={{ background: `linear-gradient(135deg, ${b.colorFrom}22, ${b.colorTo}22)` }}
+              >
+                <div>
+                  <p className="font-medium text-white">{b.name}</p>
+                  <p className="text-xs text-white/50">{b.slug}</p>
+                </div>
+                <Badge>{b.icon}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function AdminMissionsPage() {
   const [tab, setTab] = useState("missions");
 
   return (
     <AdminShell>
       <PageHeader title="Missions & hauts faits" description="Créez et gérez les missions quotidiennes et les hauts faits." />
-      <div className="mb-4 max-w-xs">
+      <div className="mb-4 max-w-md">
         <Tabs
           tabs={[
             { id: "missions", label: "Missions" },
             { id: "achievements", label: "Hauts faits" },
+            { id: "banners", label: "Bannières" },
           ]}
           activeId={tab}
           onChange={setTab}
@@ -541,10 +662,15 @@ export default function AdminMissionsPage() {
           <CreateMissionForm />
           <MissionsList />
         </div>
-      ) : (
+      ) : tab === "achievements" ? (
         <div className="space-y-4">
           <CreateAchievementForm />
           <AchievementsList />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <CreateProfileBannerForm />
+          <ProfileBannersList />
         </div>
       )}
     </AdminShell>

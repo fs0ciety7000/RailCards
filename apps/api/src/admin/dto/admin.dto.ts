@@ -162,6 +162,7 @@ export class CreateAchievementDto {
   @IsInt() @Min(1) goalCount!: number;
   @IsOptional() @IsInt() @Min(0) rewardCr?: number;
   @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+  @IsOptional() @IsUUID() rewardBannerId?: string;
 }
 
 export class UpdateAchievementDto {
@@ -171,6 +172,7 @@ export class UpdateAchievementDto {
   @IsOptional() @IsInt() @Min(1) goalCount?: number;
   @IsOptional() @IsInt() @Min(0) rewardCr?: number;
   @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+  @IsOptional() @IsUUID() rewardBannerId?: string;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 

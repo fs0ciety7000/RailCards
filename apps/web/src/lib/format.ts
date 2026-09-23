@@ -134,7 +134,9 @@ export function notificationMessage(type: string, payload: Record<string, unknow
     case "MISSION_COMPLETED":
       return typeof payload.title === "string" ? `Mission complétée : ${payload.title}` : NOTIFICATION_LABELS[type]!;
     case "ACHIEVEMENT_UNLOCKED":
-      return typeof payload.title === "string" ? `Haut fait débloqué : ${payload.title}` : NOTIFICATION_LABELS[type]!;
+      return typeof payload.title === "string"
+        ? `Haut fait débloqué : ${payload.title}${typeof payload.rewardBannerName === "string" && payload.rewardBannerName ? ` — bannière « ${payload.rewardBannerName} » débloquée` : ""}`
+        : NOTIFICATION_LABELS[type]!;
     case "LEVEL_UP":
       return typeof payload.newLevel === "number"
         ? `Niveau ${payload.newLevel} atteint${typeof payload.newGrade === "string" && payload.newGrade ? ` — ${payload.newGrade}` : ""} !`

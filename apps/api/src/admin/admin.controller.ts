@@ -19,6 +19,7 @@ import { EventsService } from "../events/events.service";
 import { SeasonsService } from "../seasons/seasons.service";
 import { GuildWarsService } from "../guild-wars/guild-wars.service";
 import { SeasonPassService } from "../season-pass/season-pass.service";
+import { ProfileBannersService } from "../profile-banners/profile-banners.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -51,6 +52,7 @@ import {
   CreateSeasonPassTierDto,
   UpdateSeasonPassTierDto,
 } from "./dto/admin.dto";
+import { CreateProfileBannerDto } from "../profile-banners/dto/profile-banner.dto";
 
 @ApiTags("admin")
 @ApiBearerAuth()
@@ -75,6 +77,7 @@ export class AdminController {
     private readonly seasons: SeasonsService,
     private readonly guildWars: GuildWarsService,
     private readonly seasonPass: SeasonPassService,
+    private readonly profileBanners: ProfileBannersService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -229,6 +232,7 @@ export class AdminController {
 
   @Post("achievements")
   async createAchievement(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateAchievementDto) {
+    if (dto.rewardBannerId) await this.profileBanners.requireExists(dto.rewardBannerId);
     const achievement = await this.missions.createAchievement(dto);
     await this.auditLog.record(admin.id, "achievement.create", "Achievement", achievement.id, { code: achievement.code });
     return achievement;
@@ -236,9 +240,23 @@ export class AdminController {
 
   @Patch("achievements/:id")
   async updateAchievement(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateAchievementDto) {
+    if (dto.rewardBannerId) await this.profileBanners.requireExists(dto.rewardBannerId);
     const achievement = await this.missions.updateAchievement(id, dto);
     await this.auditLog.record(admin.id, "achievement.update", "Achievement", id, dto);
     return achievement;
+  }
+
+  // ── Profile banners (cosmetic catalog) ─────────────────────────────
+  @Get("profile-banners")
+  async listProfileBanners() {
+    return this.profileBanners.listCatalog();
+  }
+
+  @Post("profile-banners")
+  async createProfileBanner(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateProfileBannerDto) {
+    const banner = await this.profileBanners.createForAdmin(dto);
+    await this.auditLog.record(admin.id, "profile-banner.create", "ProfileBanner", banner.id, { slug: banner.slug });
+    return banner;
   }
 
   // ── Seasonal quests ────────────────────────────────────────────────

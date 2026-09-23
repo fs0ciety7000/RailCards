@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CollectionService } from "../collection/collection.service";
 import { GradesService } from "../grades/grades.service";
 import { FavoritesService } from "./favorites.service";
+import { ProfileBannersService } from "../profile-banners/profile-banners.service";
 import { levelForXp, xpToNextLevel } from "@railcards/game-domain";
 import type { UpdateMeDto } from "./dto/update-me.dto";
 
@@ -13,6 +14,7 @@ export class UsersService {
     private readonly collection: CollectionService,
     private readonly grades: GradesService,
     private readonly favorites: FavoritesService,
+    private readonly profileBanners: ProfileBannersService,
   ) {}
 
   async getMe(userId: string) {
@@ -92,6 +94,7 @@ export class UsersService {
 
     const level = levelForXp(user.profile?.xp ?? 0);
     const favoriteCards = await this.favorites.list(user.id);
+    const activeBanner = await this.profileBanners.getActiveBanner(user.id);
     return {
       username: user.username,
       displayName: user.displayName,
@@ -105,6 +108,7 @@ export class UsersService {
       uniqueCardCount: uniqueCardCount.length,
       totalSeriesCount: seriesCount,
       favoriteCards,
+      activeBanner,
     };
   }
 
@@ -136,6 +140,7 @@ export class UsersService {
     const xp = user.profile?.xp ?? 0;
     const progress = xpToNextLevel(xp);
     const favoriteCards = await this.favorites.list(user.id);
+    const banners = await this.profileBanners.mine(user.id);
     return {
       id: user.id,
       email: user.email,
@@ -152,6 +157,8 @@ export class UsersService {
       dailyRewardStreak: user.profile?.dailyRewardStreak ?? 0,
       walletBalance: user.wallet?.balance ?? 0,
       favoriteCards,
+      activeBanner: banners.active,
+      unlockedBanners: banners.unlocked,
     };
   }
 }
