@@ -24,6 +24,11 @@ export const GAME_CONSTANTS = {
   // turn one of them into a holo/foil version of the exact same card —
   // cosmetic only, no rarity or stat change.
   CARD_FOIL_RECIPE_SIZE: 3,
+  // Series completion: an automatic CR/XP bonus on top of the completion
+  // badge/notification, scaled by how many cards the series actually has —
+  // a 20-card series is worth more than a 3-card one.
+  SERIES_COMPLETION_REWARD_CR_PER_CARD: 10,
+  SERIES_COMPLETION_REWARD_XP_PER_CARD: 5,
   // Duels: how long a challenge stays open before it lapses unanswered.
   DUEL_EXPIRY_HOURS: 24,
   DUEL_MIN_WAGER_CR: 1,

@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { MissionGoalType, Prisma } from "@railcards/database";
-import { gradeForLevel as defaultGradeForLevel, levelForXp } from "@railcards/game-domain";
+import { GAME_CONSTANTS, gradeForLevel as defaultGradeForLevel, levelForXp } from "@railcards/game-domain";
 import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { GradesService } from "../grades/grades.service";
@@ -198,7 +198,29 @@ export class MissionsService {
       const series = await tx.cardSeries.findUniqueOrThrow({ where: { id: seriesId } });
       await tx.userSeriesCompletion.create({ data: { userId, seriesId } });
       await this.recordProgress(tx, userId, "COMPLETE_SERIES", 1);
-      await this.notifications.create(tx, userId, "SERIES_COMPLETED", { seriesId, seriesName: series.name });
+
+      // An automatic bonus on top of the badge/notification, scaled by the
+      // series' own size — separate from (and stackable with) any
+      // admin-authored COMPLETE_SERIES achievement, which is claimed by
+      // hand instead of paid out instantly here.
+      const rewardCr = totalPublished * GAME_CONSTANTS.SERIES_COMPLETION_REWARD_CR_PER_CARD;
+      const rewardXp = totalPublished * GAME_CONSTANTS.SERIES_COMPLETION_REWARD_XP_PER_CARD;
+      if (rewardCr > 0) {
+        await this.wallet.credit(tx, {
+          userId,
+          amount: rewardCr,
+          type: "SERIES_COMPLETION_REWARD",
+          referenceType: "CardSeries",
+          referenceId: seriesId,
+          idempotencyKey: `series-completion-${seriesId}-${userId}`,
+        });
+      }
+      const levelUp = await this.grantBonusXp(tx, userId, rewardXp);
+
+      await this.notifications.create(tx, userId, "SERIES_COMPLETED", { seriesId, seriesName: series.name, rewardCr, rewardXp });
+      if (levelUp.leveledUp) {
+        await this.notifications.create(tx, userId, "LEVEL_UP", { newLevel: levelUp.newLevel, newGrade: levelUp.newGrade });
+      }
     }
   }
 

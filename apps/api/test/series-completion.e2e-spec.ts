@@ -96,11 +96,19 @@ describe("Series completion (e2e, real Postgres)", () => {
     expect(progress.progress).toBe(0);
     expect(progress.completedAt).toBeNull();
 
+    const beforeCompletion = await request(app.getHttpServer()).get("/api/v1/me").set("Authorization", `Bearer ${accessToken}`).expect(200);
+
     // Owning both completes it exactly once.
     await grant(cards[1]!.id);
     progress = await achievementProgress();
     expect(progress.progress).toBe(1);
     expect(progress.completedAt).not.toBeNull();
+
+    // Completion itself pays an automatic CR/XP bonus, scaled by the
+    // series' 2 published cards — separate from the achievement claim below.
+    const afterCompletion = await request(app.getHttpServer()).get("/api/v1/me").set("Authorization", `Bearer ${accessToken}`).expect(200);
+    expect(afterCompletion.body.walletBalance).toBe(beforeCompletion.body.walletBalance + 2 * 10);
+    expect(afterCompletion.body.xp).toBe(beforeCompletion.body.xp + 2 * 5);
 
     const album = await request(app.getHttpServer())
       .get("/api/v1/collection/album")

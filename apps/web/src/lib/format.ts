@@ -144,7 +144,9 @@ export function notificationMessage(type: string, payload: Record<string, unknow
         : NOTIFICATION_LABELS[type]!;
     case "SERIES_COMPLETED":
       return typeof payload.seriesName === "string"
-        ? `Série complétée : ${payload.seriesName} !`
+        ? `Série complétée : ${payload.seriesName} !${
+            typeof payload.rewardCr === "number" && payload.rewardCr > 0 ? ` +${payload.rewardCr} CR` : ""
+          }${typeof payload.rewardXp === "number" && payload.rewardXp > 0 ? ` +${payload.rewardXp} XP` : ""}`
         : NOTIFICATION_LABELS[type]!;
     case "DUEL_RECEIVED":
       return typeof payload.wagerCr === "number"
