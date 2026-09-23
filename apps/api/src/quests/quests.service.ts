@@ -4,7 +4,11 @@ import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { GradesService } from "../grades/grades.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { EventsService } from "../events/events.service";
+import { SeasonsService } from "../seasons/seasons.service";
 import { grantXp, type LevelUpInfo } from "../missions/missions.service";
+
+type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class QuestsService {
@@ -13,7 +17,19 @@ export class QuestsService {
     private readonly wallet: WalletService,
     private readonly grades: GradesService,
     private readonly notifications: NotificationsService,
+    private readonly events: EventsService,
+    private readonly seasons: SeasonsService,
   ) {}
+
+  /** Same event-multiplier + season-points bonus as MissionsService.grantBonusXp — see there for why. */
+  private async grantBonusXp(tx: Tx, userId: string, baseXp: number): Promise<LevelUpInfo> {
+    if (baseXp <= 0) return { leveledUp: false, newLevel: 0, newGrade: "" };
+    const multiplierBps = await this.events.getActiveXpMultiplierBps(tx);
+    const effectiveXp = Math.round((baseXp * multiplierBps) / 10_000);
+    const levelUp = await grantXp(tx, userId, effectiveXp, (l) => this.grades.gradeForLevel(l));
+    await this.seasons.bumpPoints(tx, userId, effectiveXp);
+    return levelUp;
+  }
 
   /**
    * The single ACTIVE seasonal quest, with this player's progress on every
@@ -81,8 +97,7 @@ export class QuestsService {
           idempotencyKey: `quest-claim-${progress.id}`,
         });
       }
-      const levelUp: LevelUpInfo =
-        step.rewardXp > 0 ? await grantXp(tx, userId, step.rewardXp, (l) => this.grades.gradeForLevel(l)) : { leveledUp: false, newLevel: 0, newGrade: "" };
+      const levelUp = await this.grantBonusXp(tx, userId, step.rewardXp);
 
       const updated = await tx.userQuestProgress.update({ where: { id: progress.id }, data: { claimedAt: new Date() } });
 

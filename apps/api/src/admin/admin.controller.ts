@@ -1,6 +1,7 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiTags } from "@nestjs/swagger";
+import type { Response } from "express";
 import type { CardCategory, CardStatus, Prisma, ReportStatus } from "@railcards/database";
 import type { CardSortBy } from "../catalog/catalog.service";
 import { RolesGuard } from "../common/guards/roles.guard";
@@ -13,6 +14,9 @@ import { StorageService } from "../storage/storage.service";
 import { MissionsService } from "../missions/missions.service";
 import { GradesService } from "../grades/grades.service";
 import { QuestsService } from "../quests/quests.service";
+import { AnnouncementsService } from "../announcements/announcements.service";
+import { EventsService } from "../events/events.service";
+import { SeasonsService } from "../seasons/seasons.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -24,6 +28,7 @@ import {
   CreateBoosterDefinitionDto,
   CreateCardDto,
   CreateGradeDto,
+  CreateEventDto,
   CreateInvitationDto,
   CreateMissionDto,
   CreateQuestDto,
@@ -34,9 +39,12 @@ import {
   UpdateAchievementDto,
   UpdateBoosterDefinitionDto,
   UpdateCardDto,
+  UpdateEventDto,
   UpdateGradeDto,
   UpdateMissionDto,
   UpdateSeriesDto,
+  UpsertAnnouncementDto,
+  StartSeasonDto,
 } from "./dto/admin.dto";
 
 @ApiTags("admin")
@@ -57,6 +65,9 @@ export class AdminController {
     private readonly missions: MissionsService,
     private readonly grades: GradesService,
     private readonly quests: QuestsService,
+    private readonly announcements: AnnouncementsService,
+    private readonly events: EventsService,
+    private readonly seasons: SeasonsService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -241,6 +252,60 @@ export class AdminController {
     const quest = await this.quests.archive(id);
     await this.auditLog.record(admin.id, "quest.archive", "SeasonalQuest", id, {});
     return quest;
+  }
+
+  // ── Site announcement ──────────────────────────────────────────────
+  @Get("announcement")
+  async getAnnouncement(@Res() res: Response) {
+    const announcement = await this.announcements.getForAdmin();
+    res.json(announcement);
+  }
+
+  @Post("announcement")
+  async upsertAnnouncement(@CurrentUser() admin: AuthenticatedUser, @Body() dto: UpsertAnnouncementDto) {
+    const announcement = await this.announcements.upsert(dto.message, dto.isActive);
+    await this.auditLog.record(admin.id, "announcement.upsert", "SiteAnnouncement", announcement.id, { isActive: announcement.isActive });
+    return announcement;
+  }
+
+  // ── Live-ops events ────────────────────────────────────────────────
+  @Get("events")
+  async listEvents() {
+    return this.events.listAllForAdmin();
+  }
+
+  @Post("events")
+  async createEvent(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateEventDto) {
+    const event = await this.events.create(dto);
+    await this.auditLog.record(admin.id, "event.create", "Event", event.id, { slug: event.slug });
+    return event;
+  }
+
+  @Patch("events/:id")
+  async updateEvent(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateEventDto) {
+    const event = await this.events.update(id, dto);
+    await this.auditLog.record(admin.id, "event.update", "Event", id, dto);
+    return event;
+  }
+
+  // ── Seasons (resettable competitive leaderboard) ──────────────────
+  @Get("seasons")
+  async listSeasons() {
+    return this.seasons.listAllForAdmin();
+  }
+
+  @Post("seasons")
+  async startSeason(@CurrentUser() admin: AuthenticatedUser, @Body() dto: StartSeasonDto) {
+    const season = await this.seasons.startNewSeason(dto.name);
+    await this.auditLog.record(admin.id, "season.start", "Season", season.id, { name: season.name });
+    return season;
+  }
+
+  @Post("seasons/end-active")
+  async endActiveSeason(@CurrentUser() admin: AuthenticatedUser) {
+    const season = await this.seasons.endActiveSeason();
+    await this.auditLog.record(admin.id, "season.end", "Season", season.id, {});
+    return season;
   }
 
   // ── Grades (profile ranks) ────────────────────────────────────────

@@ -2,6 +2,7 @@ import { Type } from "class-transformer";
 import {
   IsArray,
   IsBoolean,
+  IsDate,
   IsIn,
   IsInt,
   IsOptional,
@@ -191,6 +192,35 @@ export class CreateQuestDto {
   @ValidateNested({ each: true })
   @Type(() => CreateQuestStepDto)
   steps!: CreateQuestStepDto[];
+}
+
+export class UpsertAnnouncementDto {
+  @IsString() @MinLength(1) @MaxLength(500) message!: string;
+  @IsBoolean() isActive!: boolean;
+}
+
+export class CreateEventDto {
+  @IsString() @MinLength(2) @MaxLength(80) slug!: string;
+  @IsString() @MinLength(2) @MaxLength(120) title!: string;
+  @IsString() @MinLength(1) description!: string;
+  @IsOptional() @IsString() bannerImageUrl?: string;
+  @Type(() => Date) @IsDate() startsAt!: Date;
+  @Type(() => Date) @IsDate() endsAt!: Date;
+  @IsOptional() @IsInt() @Min(10_000) @Max(100_000) xpMultiplierBps?: number;
+}
+
+export class UpdateEventDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(120) title?: string;
+  @IsOptional() @IsString() @MinLength(1) description?: string;
+  @IsOptional() @IsString() bannerImageUrl?: string;
+  @IsOptional() @Type(() => Date) @IsDate() startsAt?: Date;
+  @IsOptional() @Type(() => Date) @IsDate() endsAt?: Date;
+  @IsOptional() @IsInt() @Min(10_000) @Max(100_000) xpMultiplierBps?: number;
+  @IsOptional() @IsBoolean() isActive?: boolean;
+}
+
+export class StartSeasonDto {
+  @IsString() @MinLength(2) @MaxLength(80) name!: string;
 }
 
 export class CreateGradeDto {

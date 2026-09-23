@@ -5,6 +5,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { GradesService } from "../grades/grades.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { EventsService } from "../events/events.service";
+import { SeasonsService } from "../seasons/seasons.service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -47,7 +49,26 @@ export class MissionsService {
     private readonly wallet: WalletService,
     private readonly grades: GradesService,
     private readonly notifications: NotificationsService,
+    private readonly events: EventsService,
+    private readonly seasons: SeasonsService,
   ) {}
+
+  /**
+   * Grants `baseXp`, scaled by whatever live-ops event's XP multiplier is
+   * in effect (10000bps = 1x, e.g. 20000 = "double XP weekend"), and bumps
+   * the same scaled amount onto the player's current-season tally. Shared
+   * by every XP-granting claim (mission, achievement, quest step) so an
+   * event's multiplier and the seasonal leaderboard both "just work"
+   * without each call site re-deriving them.
+   */
+  private async grantBonusXp(tx: Tx, userId: string, baseXp: number): Promise<LevelUpInfo> {
+    if (baseXp <= 0) return { leveledUp: false, newLevel: 0, newGrade: "" };
+    const multiplierBps = await this.events.getActiveXpMultiplierBps(tx);
+    const effectiveXp = Math.round((baseXp * multiplierBps) / 10_000);
+    const levelUp = await grantXp(tx, userId, effectiveXp, (l) => this.grades.gradeForLevel(l));
+    await this.seasons.bumpPoints(tx, userId, effectiveXp);
+    return levelUp;
+  }
 
   /**
    * Advances progress on every active mission/achievement matching
@@ -231,10 +252,7 @@ export class MissionsService {
           idempotencyKey: `mission-claim-${um.id}`,
         });
       }
-      const levelUp: LevelUpInfo =
-        um.mission.rewardXp > 0
-          ? await grantXp(tx, userId, um.mission.rewardXp, (l) => this.grades.gradeForLevel(l))
-          : { leveledUp: false, newLevel: 0, newGrade: "" };
+      const levelUp = await this.grantBonusXp(tx, userId, um.mission.rewardXp);
 
       const userMission = await tx.userMission.update({ where: { id: um.id }, data: { claimedAt: new Date() } });
 
@@ -272,10 +290,7 @@ export class MissionsService {
           idempotencyKey: `achievement-claim-${ua.id}`,
         });
       }
-      const levelUp: LevelUpInfo =
-        ua.achievement.rewardXp > 0
-          ? await grantXp(tx, userId, ua.achievement.rewardXp, (l) => this.grades.gradeForLevel(l))
-          : { leveledUp: false, newLevel: 0, newGrade: "" };
+      const levelUp = await this.grantBonusXp(tx, userId, ua.achievement.rewardXp);
 
       const userAchievement = await tx.userAchievement.update({ where: { id: ua.id }, data: { claimedAt: new Date() } });
 

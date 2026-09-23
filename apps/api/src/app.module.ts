@@ -27,6 +27,9 @@ import { WantedListingsModule } from "./wanted-listings/wanted-listings.module";
 import { ActivityModule } from "./activity/activity.module";
 import { GuildsModule } from "./guilds/guilds.module";
 import { QuestsModule } from "./quests/quests.module";
+import { AnnouncementsModule } from "./announcements/announcements.module";
+import { EventsModule } from "./events/events.module";
+import { SeasonsModule } from "./seasons/seasons.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -55,6 +58,9 @@ import { HealthController } from "./health.controller";
     ActivityModule,
     GuildsModule,
     QuestsModule,
+    AnnouncementsModule,
+    EventsModule,
+    SeasonsModule,
   ],
   controllers: [HealthController],
   providers: [

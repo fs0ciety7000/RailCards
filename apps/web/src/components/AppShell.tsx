@@ -29,6 +29,7 @@ import { cn, CrAmount } from "@railcards/ui";
 import { useAuthStore } from "@/lib/auth-store";
 import { usersApi, notificationsApi, authApi } from "@/lib/api";
 import { useNotificationsSocket } from "@/lib/use-notifications-socket";
+import { LiveBanners } from "@/components/LiveBanners";
 
 const PRIMARY_TABS = [
   { href: "/home", label: "Accueil", icon: Home },
@@ -182,6 +183,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         )}
       </header>
+
+      <LiveBanners />
 
       <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:pb-12 sm:pl-[calc(15rem+1rem)]">{children}</main>
 

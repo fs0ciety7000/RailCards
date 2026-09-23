@@ -246,6 +246,8 @@ export const marketApi = {
   cancel: (id: string) => request<T.MarketListing>(`/market/listings/${id}`, { method: "DELETE" }),
   myTransactions: (params: { page?: number; pageSize?: number } = {}) =>
     request<T.Paginated<unknown>>(`/market/transactions${qs(params)}`),
+  priceHistory: (cardDefinitionId: string, days = 30) =>
+    request<T.PriceHistoryPoint[]>(`/market/price-history/${cardDefinitionId}${qs({ days })}`),
 };
 
 // ── Trading ──────────────────────────────────────────────────────────────
@@ -322,6 +324,8 @@ export const guildsApi = {
   transferLeadership: (id: string, userId: string) =>
     request<T.Guild>(`/guilds/${id}/members/${userId}/transfer-leadership`, { method: "POST" }),
   disband: (id: string) => request<{ disbanded: boolean }>(`/guilds/${id}`, { method: "DELETE" }),
+  messages: (id: string, limit = 50) => request<T.GuildMessage[]>(`/guilds/${id}/messages${qs({ limit })}`),
+  postMessage: (id: string, body: string) => request<T.GuildMessage>(`/guilds/${id}/messages`, { method: "POST", body: { body } }),
 };
 
 // ── Seasonal quests ──────────────────────────────────────────────────────
@@ -329,6 +333,25 @@ export const guildsApi = {
 export const questsApi = {
   active: () => request<T.ActiveQuest | null>("/quests/active"),
   claimStep: (stepId: string) => request<unknown>(`/quests/steps/${stepId}/claim`, { method: "POST" }),
+};
+
+// ── Site announcement ────────────────────────────────────────────────────
+
+export const announcementApi = {
+  active: () => request<T.SiteAnnouncement | null>("/announcement/active"),
+};
+
+// ── Live-ops events ──────────────────────────────────────────────────────
+
+export const eventsApi = {
+  active: () => request<T.LiveEvent | null>("/events/active"),
+};
+
+// ── Seasons (resettable competitive leaderboard) ────────────────────────
+
+export const seasonsApi = {
+  active: () => request<T.Season | null>("/seasons/active"),
+  leaderboard: (limit = 50) => request<T.SeasonLeaderboard>(`/seasons/leaderboard${qs({ limit })}`),
 };
 
 // ── Users ────────────────────────────────────────────────────────────────
@@ -377,9 +400,19 @@ export const walletApi = {
   get: () => request<{ balance: number; currency: "CR" }>("/wallet"),
   transactions: (params: { page?: number; pageSize?: number } = {}) =>
     request<T.Paginated<T.WalletTransaction>>(`/wallet/transactions${qs(params)}`),
-  dailyRewardStatus: () => request<{ claimedToday: boolean; currentStreak: number }>("/wallet/daily-reward"),
+  dailyRewardStatus: () =>
+    request<{ claimedToday: boolean; currentStreak: number; nextMultiplier: number }>("/wallet/daily-reward"),
   claimDailyReward: () =>
-    request<{ rewardCr: number; streak: number; balanceAfter: number }>("/wallet/daily-reward/claim", {
+    request<{
+      rewardCr: number;
+      rewardXp: number;
+      streak: number;
+      multiplier: number;
+      balanceAfter: number;
+      leveledUp: boolean;
+      newLevel: number;
+      newGrade: string;
+    }>("/wallet/daily-reward/claim", {
       method: "POST",
     }),
 };
@@ -447,6 +480,18 @@ export const adminApi = {
   listQuests: () => request<T.AdminQuest[]>("/admin/quests"),
   createQuest: (input: unknown) => request<T.AdminQuest>("/admin/quests", { method: "POST", body: input }),
   archiveQuest: (id: string) => request<T.AdminQuest>(`/admin/quests/${id}/archive`, { method: "PATCH" }),
+
+  getAnnouncement: () => request<T.AdminSiteAnnouncement | null>("/admin/announcement"),
+  upsertAnnouncement: (input: { message: string; isActive: boolean }) =>
+    request<T.AdminSiteAnnouncement>("/admin/announcement", { method: "POST", body: input }),
+
+  listEvents: () => request<T.LiveEvent[]>("/admin/events"),
+  createEvent: (input: unknown) => request<T.LiveEvent>("/admin/events", { method: "POST", body: input }),
+  updateEvent: (id: string, input: unknown) => request<T.LiveEvent>(`/admin/events/${id}`, { method: "PATCH", body: input }),
+
+  listSeasons: () => request<T.Season[]>("/admin/seasons"),
+  startSeason: (name: string) => request<T.Season>("/admin/seasons", { method: "POST", body: { name } }),
+  endActiveSeason: () => request<T.Season>("/admin/seasons/end-active", { method: "POST" }),
 
   listGrades: () => request<T.Grade[]>("/admin/grades"),
   createGrade: (input: unknown) => request<T.Grade>("/admin/grades", { method: "POST", body: input }),

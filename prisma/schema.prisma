@@ -70,7 +70,9 @@ model User {
   seriesCompletions     UserSeriesCompletion[]
   guildsLed             Guild[]                @relation("GuildLeader")
   guildMembership       GuildMember?
+  guildMessages         GuildMessage[]
   questProgress         UserQuestProgress[]
+  seasonPoints          SeasonPoint[]
 
   @@index([status])
 }
@@ -742,6 +744,7 @@ model DailyRewardClaim {
   claimDate    DateTime @db.Date
   streakCount  Int
   rewardCr     Int
+  rewardXp     Int      @default(0)
   createdAt    DateTime @default(now())
 
   @@unique([userId, claimDate])
@@ -763,6 +766,43 @@ model UserSeriesCompletion {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Seasons
+// ─────────────────────────────────────────────────────────────────────────
+
+enum SeasonStatus {
+  ACTIVE
+  ENDED
+}
+
+// A resettable competitive cycle layered on top of the permanent XP/level
+// system: SeasonPoint rows accumulate the same XP a player earns from
+// missions/achievements/quests, scoped to whichever season is ACTIVE at
+// grant time. Ending a season and starting a new one is how the seasonal
+// leaderboard "resets" without touching a player's permanent XP, level, or
+// grade — those are never rolled back.
+model Season {
+  id        String       @id @default(uuid())
+  name      String
+  status    SeasonStatus @default(ACTIVE)
+  startedAt DateTime     @default(now())
+  endedAt   DateTime?
+
+  points SeasonPoint[]
+}
+
+model SeasonPoint {
+  id       String @id @default(uuid())
+  seasonId String
+  season   Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User   @relation(fields: [userId], references: [id])
+  points   Int    @default(0)
+
+  @@unique([seasonId, userId])
+  @@index([seasonId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Live Ops
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -775,8 +815,24 @@ model Event {
   startsAt      DateTime
   endsAt        DateTime
   isActive      Boolean  @default(true)
+  // Basis points applied to every XP grant while the event is live and in
+  // its [startsAt, endsAt] window (10000 = 1x, 20000 = 2x/"double XP").
+  // Same units as MarketListing.feeBps, for the same reason: exact integer
+  // math, no floating-point surprises.
+  xpMultiplierBps Int    @default(10000)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// A single admin-authored site-wide notice shown under the navbar (e.g. a
+// maintenance heads-up). Always exactly one row — `upsert`d in place rather
+// than versioned like SeasonalQuest/Event, since there's nothing to browse
+// historically and no reason to keep old announcements around.
+model SiteAnnouncement {
+  id        String   @id @default("singleton")
+  message   String
+  isActive  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
 }
 
 enum QuestStatus {
@@ -860,7 +916,8 @@ model Guild {
   leader      User     @relation("GuildLeader", fields: [leaderId], references: [id])
   createdAt   DateTime @default(now())
 
-  members GuildMember[]
+  members  GuildMember[]
+  messages GuildMessage[]
 
   @@index([leaderId])
 }
@@ -875,6 +932,22 @@ model GuildMember {
   joinedAt DateTime  @default(now())
 
   @@index([guildId])
+}
+
+// A guild's chat log. Membership is checked at post/read time (not stored
+// per-message), so a message stays visible in history even after its
+// author leaves — same rationale as trade/duel history outliving the cards
+// involved.
+model GuildMessage {
+  id        String   @id @default(uuid())
+  guildId   String
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([guildId, createdAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -910,6 +983,7 @@ enum NotificationType {
   GUILD_DISBANDED
   QUEST_STEP_COMPLETED
   QUEST_COMPLETED
+  WANTED_CARD_LISTED
   SYSTEM
 }
 

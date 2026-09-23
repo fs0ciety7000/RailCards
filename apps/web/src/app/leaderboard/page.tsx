@@ -3,16 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Crown, Layers, Medal, Sparkles } from "lucide-react";
+import { BookOpen, Crown, Layers, Medal, Sparkles, Trophy } from "lucide-react";
 import { Badge, Card, CardBody, EmptyState, ErrorState, Skeleton, Tabs } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { Stagger, StaggerItem } from "@/components/Stagger";
-import { leaderboardApi } from "@/lib/api";
+import { leaderboardApi, seasonsApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
-import type { LeaderboardEntry, LeaderboardSort } from "@/lib/types";
+import { formatDate } from "@/lib/format";
+import type { LeaderboardEntry, LeaderboardSort, SeasonLeaderboardEntry } from "@/lib/types";
 
 const SORT_TABS: { id: LeaderboardSort; label: string }[] = [
   { id: "xp", label: "XP" },
@@ -72,7 +73,33 @@ function LeaderboardRow({ entry, sortBy }: { entry: LeaderboardEntry; sortBy: Le
   );
 }
 
-function LeaderboardContent() {
+function SeasonRow({ entry }: { entry: SeasonLeaderboardEntry }) {
+  return (
+    <Link href={`/profile/${entry.username}`} className="block">
+      <Card className="transition-colors hover:bg-white/[0.04]">
+        <CardBody className="flex items-center gap-3 py-3">
+          <div className="flex w-6 shrink-0 justify-center">
+            <RankBadge rank={entry.rank} />
+          </div>
+          <Avatar avatarUrl={entry.avatarUrl} displayName={entry.displayName} isAdmin={entry.role === "ADMIN"} size={44} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="truncate font-semibold text-white">{entry.displayName}</p>
+              {entry.role === "ADMIN" && <Crown className="h-3.5 w-3.5 shrink-0 text-amber-300" aria-hidden="true" />}
+            </div>
+            <p className="truncate text-xs text-white/50">@{entry.username}</p>
+          </div>
+          <Badge tone="accent" className="flex shrink-0 items-center gap-1">
+            <Trophy className="h-3 w-3" aria-hidden="true" />
+            {entry.points} pts
+          </Badge>
+        </CardBody>
+      </Card>
+    </Link>
+  );
+}
+
+function PermanentLeaderboard() {
   const [sortBy, setSortBy] = useState<LeaderboardSort>("xp");
   const leaderboardQuery = useQuery({
     queryKey: ["leaderboard", sortBy],
@@ -104,6 +131,66 @@ function LeaderboardContent() {
           ))}
         </Stagger>
       )}
+    </div>
+  );
+}
+
+function SeasonLeaderboard() {
+  const seasonQuery = useQuery({ queryKey: ["seasons", "leaderboard"], queryFn: () => seasonsApi.leaderboard(100) });
+
+  if (seasonQuery.isLoading) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-[72px] w-full" />
+        ))}
+      </div>
+    );
+  }
+  if (seasonQuery.isError) {
+    return <ErrorState title="Classement indisponible" description={getErrorMessage(seasonQuery.error)} />;
+  }
+  if (!seasonQuery.data?.season) {
+    return <EmptyState icon={<Trophy />} title="Aucune saison en cours" description="Revenez lors de la prochaine saison compétitive." />;
+  }
+
+  return (
+    <div>
+      <p className="mb-4 text-sm text-white/60">
+        Saison <span className="font-semibold text-white">{seasonQuery.data.season.name}</span> · depuis le{" "}
+        {formatDate(seasonQuery.data.season.startedAt)}
+      </p>
+      {seasonQuery.data.entries.length === 0 ? (
+        <EmptyState icon={<Trophy />} title="Aucun point marqué" description="Soyez le premier à marquer des points cette saison." />
+      ) : (
+        <Stagger className="space-y-2">
+          {seasonQuery.data.entries.map((entry) => (
+            <StaggerItem key={entry.username}>
+              <SeasonRow entry={entry} />
+            </StaggerItem>
+          ))}
+        </Stagger>
+      )}
+    </div>
+  );
+}
+
+function LeaderboardContent() {
+  const [mode, setMode] = useState<"permanent" | "season">("permanent");
+
+  return (
+    <div>
+      <div className="mb-5">
+        <Tabs
+          tabs={[
+            { id: "permanent", label: "Classement général" },
+            { id: "season", label: "Classement saisonnier" },
+          ]}
+          activeId={mode}
+          onChange={(id) => setMode(id as "permanent" | "season")}
+        />
+      </div>
+      {mode === "permanent" ? <PermanentLeaderboard /> : <SeasonLeaderboard />}
     </div>
   );
 }

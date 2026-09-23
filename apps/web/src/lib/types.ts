@@ -375,6 +375,15 @@ export interface GuildLeaderboardEntry {
   totalUniqueCards: number;
 }
 
+export interface GuildMessage {
+  id: string;
+  guildId: string;
+  authorId: string;
+  author: { username: string; displayName: string; avatarUrl: string | null };
+  body: string;
+  createdAt: string;
+}
+
 type PublicUserRef = { username: string; displayName: string };
 type ActivityRarity = { code: string; label: string; colorHex: string };
 
@@ -460,6 +469,7 @@ export type NotificationType =
   | "GUILD_DISBANDED"
   | "QUEST_STEP_COMPLETED"
   | "QUEST_COMPLETED"
+  | "WANTED_CARD_LISTED"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"
@@ -547,4 +557,62 @@ export interface AuditLogEntry {
   targetId: string;
   metadata: unknown;
   createdAt: string;
+}
+
+export interface SiteAnnouncement {
+  message: string;
+  updatedAt: string;
+}
+
+export interface AdminSiteAnnouncement {
+  id: string;
+  message: string;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface LiveEvent {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  bannerImageUrl: string | null;
+  startsAt: string;
+  endsAt: string;
+  isActive: boolean;
+  xpMultiplierBps: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SeasonStatus = "ACTIVE" | "ENDED";
+
+export interface Season {
+  id: string;
+  name: string;
+  status: SeasonStatus;
+  startedAt: string;
+  endedAt: string | null;
+}
+
+export interface SeasonLeaderboardEntry {
+  rank: number;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: UserRole;
+  points: number;
+}
+
+export interface SeasonLeaderboard {
+  season: { id: string; name: string; startedAt: string } | null;
+  entries: SeasonLeaderboardEntry[];
+}
+
+export interface PriceHistoryPoint {
+  day: string;
+  salesCount: number;
+  avgPriceCr: number;
+  minPriceCr: number;
+  maxPriceCr: number;
 }
