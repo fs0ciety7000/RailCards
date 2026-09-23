@@ -1,10 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button, staggerContainer, fadeInUp } from "@railcards/ui";
 import { CardFrame } from "@/components/CardTile";
 import type { BoosterPull } from "@/lib/types";
+
+/**
+ * A burst of small sparks flying outward from the card center on reveal —
+ * richer for higher tiers so a mythic pull visibly outshines a rare one,
+ * not just a bigger blob of the same soft gradient.
+ */
+function RarityBurst({ order, colorHex }: { order: number; colorHex: string }) {
+  const isMythic = order >= 6;
+  const particleCount = isMythic ? 16 : order >= 5 ? 11 : 7;
+  const particles = useMemo(
+    () =>
+      Array.from({ length: particleCount }, (_, i) => {
+        const angle = (i / particleCount) * Math.PI * 2 + Math.random() * 0.5;
+        const distance = 55 + Math.random() * 45;
+        return {
+          x: Math.cos(angle) * distance,
+          y: Math.sin(angle) * distance,
+          delay: Math.random() * 0.18,
+          duration: 0.7 + Math.random() * 0.35,
+          size: isMythic ? 4 + Math.random() * 3 : 3 + Math.random() * 2,
+          color: isMythic ? (i % 2 === 0 ? "#FFD766" : "#4DEAF0") : colorHex,
+        };
+      }),
+    // particleCount and isMythic are derived from `order`, the real dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [order, colorHex],
+  );
+
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-1/2 z-20" aria-hidden="true">
+      {particles.map((p, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full"
+          style={{ width: p.size, height: p.size, marginLeft: -p.size / 2, marginTop: -p.size / 2, background: p.color }}
+          initial={{ x: 0, y: 0, opacity: 1, scale: 0.6 }}
+          animate={{ x: p.x, y: p.y, opacity: 0, scale: 1 }}
+          transition={{ duration: p.duration, delay: p.delay, ease: "easeOut" }}
+        />
+      ))}
+    </span>
+  );
+}
 
 export function BoosterReveal({
   pulls,
@@ -80,6 +123,9 @@ export function BoosterReveal({
                         : `radial-gradient(circle, ${pull.cardDefinition.rarity.colorHex}77, transparent 70%)`,
                   }}
                 />
+              )}
+              {isRevealed && !reduceMotion && pull.cardDefinition.rarity.order >= 4 && (
+                <RarityBurst order={pull.cardDefinition.rarity.order} colorHex={pull.cardDefinition.rarity.colorHex} />
               )}
               <AnimatePresence mode="wait" initial={false}>
                 {isRevealed ? (
