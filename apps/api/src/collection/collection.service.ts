@@ -7,13 +7,15 @@ export class CollectionService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Owned card instances, stacked by (cardDefinitionId, state) — a player
-   * holding 5 copies of the same card in the same state sees one grouped
-   * entry with a count, not 5 separate tiles. The grouping (and its count)
-   * happens in SQL, and pagination applies to the resulting groups, not
-   * the raw instance rows — otherwise duplicates split across a page
-   * boundary would silently stop stacking once a collection outgrew a
-   * single page.
+   * Owned card instances, stacked by (cardDefinitionId, state, isFoil) — a
+   * player holding 5 copies of the same card in the same state sees one
+   * grouped entry with a count, not 5 separate tiles. Foil and non-foil
+   * copies of the same card stack separately, same as two different
+   * rarities would — a foil is a distinct collectible, not an attribute of
+   * the base stack. The grouping (and its count) happens in SQL, and
+   * pagination applies to the resulting groups, not the raw instance rows —
+   * otherwise duplicates split across a page boundary would silently stop
+   * stacking once a collection outgrew a single page.
    */
   async listInventory(
     userId: string,
@@ -36,7 +38,7 @@ export class CollectionService {
       JOIN "CardDefinition" cd ON cd.id = ci."cardDefinitionId"
       JOIN "Rarity" r ON r.id = cd."rarityId"
       WHERE ci."ownerId" = ${userId} ${seriesFilter} ${rarityFilter} ${stateFilter}
-      GROUP BY ci."cardDefinitionId", ci.state
+      GROUP BY ci."cardDefinitionId", ci.state, ci."isFoil"
       ORDER BY MAX(ci."acquiredAt") DESC
       LIMIT ${params.pageSize} OFFSET ${offset}
     `;
@@ -49,7 +51,7 @@ export class CollectionService {
           JOIN "CardDefinition" cd ON cd.id = ci."cardDefinitionId"
           JOIN "Rarity" r ON r.id = cd."rarityId"
           WHERE ci."ownerId" = ${userId} ${seriesFilter} ${rarityFilter} ${stateFilter}
-          GROUP BY ci."cardDefinitionId", ci.state
+          GROUP BY ci."cardDefinitionId", ci.state, ci."isFoil"
         ) t
       `,
       groups.length > 0

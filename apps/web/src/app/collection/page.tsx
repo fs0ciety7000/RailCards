@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Folder, Sparkles } from "lucide-react";
+import { BookOpen, Folder, Gem, Sparkles } from "lucide-react";
 import { Button, EmptyState, ErrorState, Select, SkeletonGrid } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -51,6 +51,11 @@ function CollectionContent() {
             <Link href="/collection/craft">
               <Button variant="outline" size="sm" icon={<Sparkles className="h-4 w-4" aria-hidden="true" />}>
                 Fusion
+              </Button>
+            </Link>
+            <Link href="/collection/foil">
+              <Button variant="outline" size="sm" icon={<Gem className="h-4 w-4" aria-hidden="true" />}>
+                Variantes foil
               </Button>
             </Link>
             <Link href="/collection/album">
@@ -138,6 +143,7 @@ function CollectionContent() {
                   state={instance.state}
                   href={`/collection/${instance.id}`}
                   count={instance.count}
+                  foil={instance.isFoil}
                 />
               </StaggerItem>
             ))}

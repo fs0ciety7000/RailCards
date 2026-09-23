@@ -156,15 +156,19 @@ export function CardFrame({
   card,
   className,
   priority,
+  foil,
 }: {
   card: CardFaceData;
   className?: string;
   priority?: boolean;
+  /** Cosmetic holo/foil variant (CardInstance.isFoil) — reuses the Mythique holo-spin treatment regardless of rarity tier. No stat effect. */
+  foil?: boolean;
 }) {
   const prefersReduced = useReducedMotion();
   const tier = tierOf(card.rarity.order);
   const frame = FRAME_BY_TIER[tier];
   const hex = card.rarity.colorHex;
+  const showHoloSpin = frame.holo || foil;
 
   const rotateX = useMotionValue(0);
   const rotateY = useMotionValue(0);
@@ -213,7 +217,7 @@ export function CardFrame({
             extends past the card body for a soft glow) to the card's own rounded rect —
             without it, the overlay bleeds across the entire page. */}
         <div className={cn("relative h-full w-full overflow-hidden rounded-2xl", frame.thickness)} style={frame.frameStyle(hex)}>
-          {frame.holo && (
+          {showHoloSpin && (
             <div
               aria-hidden="true"
               className="motion-safe:animate-holo-spin pointer-events-none absolute -inset-[60%] opacity-95"
@@ -296,6 +300,14 @@ export function CardFrame({
               <span className="truncate text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: hex }}>
                 {card.rarity.label}
               </span>
+              {foil && (
+                <span
+                  className="ml-auto shrink-0 rounded-full px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-black"
+                  style={{ background: holoConicGradient(hex) }}
+                >
+                  Foil
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -308,16 +320,19 @@ export function CardArt({
   card,
   className,
   priority,
+  foil,
 }: {
   card: CardDefinition;
   className?: string;
   priority?: boolean;
+  foil?: boolean;
 }) {
   return (
     <CardFrame
       card={{ name: card.name, rarity: card.rarity, imageUrl: card.imageUrl }}
       className={className ?? "relative aspect-[3/4] w-full"}
       priority={priority}
+      foil={foil}
     />
   );
 }
@@ -328,6 +343,7 @@ export function CardTile({
   state,
   href,
   count,
+  foil,
 }: {
   instanceId: string;
   card: CardDefinition;
@@ -335,10 +351,11 @@ export function CardTile({
   href?: string;
   /** How many owned copies this tile stacks for (duplicates shown as one tile + a "×N" badge instead of repeating). */
   count?: number;
+  foil?: boolean;
 }) {
   const content = (
     <div className="group relative">
-      <CardArt card={card} className="relative aspect-[3/4] w-full" />
+      <CardArt card={card} className="relative aspect-[3/4] w-full" foil={foil} />
       {count && count > 1 && (
         <span className="pointer-events-none absolute left-1.5 top-9 z-30 rounded-full border border-white/15 bg-black/75 px-2 py-0.5 text-[10.5px] font-bold text-white backdrop-blur-sm">
           ×{count}

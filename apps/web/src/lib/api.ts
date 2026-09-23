@@ -202,6 +202,13 @@ export const craftApi = {
   craft: (cardInstanceIds: string[]) => request<T.CardInstance>("/craft", { method: "POST", body: { cardInstanceIds } }),
 };
 
+// ── Card variants (holo/foil) ────────────────────────────────────────────
+
+export const cardVariantsApi = {
+  foilable: () => request<CraftableGroup[]>("/card-variants/foilable"),
+  foilify: (cardInstanceIds: string[]) => request<T.CardInstance>("/card-variants/foilify", { method: "POST", body: { cardInstanceIds } }),
+};
+
 // ── Boosters ─────────────────────────────────────────────────────────────
 
 export const boostersApi = {

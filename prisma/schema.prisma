@@ -269,6 +269,10 @@ model CardInstance {
   state            CardInstanceState @default(AVAILABLE)
   acquiredVia      AcquisitionSource
   acquiredAt       DateTime          @default(now())
+  // Cosmetic-only holo/foil variant — no stat or rarity effect. Set by
+  // foiling a duplicate group (see CardVariantsService); never by a normal
+  // booster pull.
+  isFoil           Boolean           @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 

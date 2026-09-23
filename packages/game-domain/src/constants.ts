@@ -20,6 +20,10 @@ export const GAME_CONSTANTS = {
   // card at the next rarity tier up. A duplicate sink, and MYTHIC has no
   // tier above it so it can never be a craft input.
   CRAFT_RECIPE_SIZE: 3,
+  // Card variants: sacrifice this many same-card, non-foil duplicates to
+  // turn one of them into a holo/foil version of the exact same card —
+  // cosmetic only, no rarity or stat change.
+  CARD_FOIL_RECIPE_SIZE: 3,
   // Duels: how long a challenge stays open before it lapses unanswered.
   DUEL_EXPIRY_HOURS: 24,
   DUEL_MIN_WAGER_CR: 1,

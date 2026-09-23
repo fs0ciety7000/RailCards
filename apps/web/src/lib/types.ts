@@ -126,6 +126,8 @@ export interface CardInstance {
   state: CardInstanceState;
   acquiredVia: AcquisitionSource;
   acquiredAt: string;
+  /** Cosmetic-only holo/foil variant — no stat or rarity effect. */
+  isFoil: boolean;
   /** Present on grouped listings (e.g. the collection grid): how many owned copies this entry stacks for. */
   count?: number;
 }

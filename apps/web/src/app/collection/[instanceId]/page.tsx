@@ -69,11 +69,12 @@ function CardDetailContent() {
         Retour
       </button>
 
-      <CardArt card={card} className="relative aspect-[3/4] w-full max-w-sm mx-auto" priority />
+      <CardArt card={card} className="relative aspect-[3/4] w-full max-w-sm mx-auto" priority foil={instance.isFoil} />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <RarityBadge label={card.rarity.label} colorHex={card.rarity.colorHex} />
         <Badge>{card.series.name}</Badge>
+        {instance.isFoil && <Badge tone="accent">Foil</Badge>}
         {!instance.isOwnedByRequester && <Badge tone="info">Appartient à @{instance.owner.username}</Badge>}
         {instance.isOwnedByRequester && instance.state !== "AVAILABLE" && (
           <Badge tone="danger">{stateLabel(instance.state)}</Badge>
