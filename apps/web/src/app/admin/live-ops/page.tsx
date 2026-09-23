@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Megaphone, Plus, Power, Sparkles, Swords, Trophy } from "lucide-react";
+import { Megaphone, Pencil, Plus, Power, Sparkles, Swords, Trophy } from "lucide-react";
 import { Badge, Button, Card, CardBody, FieldGroup, Input, Label, Skeleton, Tabs, Textarea, useToast } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -342,12 +342,170 @@ function GuildWarsPanel() {
   );
 }
 
+function EditTierForm({ tier, onDone }: { tier: import("@/lib/types").AdminSeasonPassTier; onDone: () => void }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const [pointsRequired, setPointsRequired] = useState(String(tier.pointsRequired));
+  const [rewardCr, setRewardCr] = useState(String(tier.rewardCr));
+  const [rewardXp, setRewardXp] = useState(String(tier.rewardXp));
+  const [rewardLabel, setRewardLabel] = useState(tier.rewardLabel ?? "");
+
+  const updateMutation = useMutation({
+    mutationFn: () =>
+      adminApi.updateSeasonPassTier(tier.id, {
+        pointsRequired: Number(pointsRequired),
+        rewardCr: Number(rewardCr),
+        rewardXp: Number(rewardXp),
+        rewardLabel: rewardLabel || undefined,
+      }),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Palier mis à jour" });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "season-pass"] });
+      onDone();
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        updateMutation.mutate();
+      }}
+      className="grid gap-2 sm:grid-cols-4"
+    >
+      <Input type="number" min={0} value={pointsRequired} onChange={(e) => setPointsRequired(e.target.value)} placeholder="Points requis" />
+      <Input type="number" min={0} value={rewardCr} onChange={(e) => setRewardCr(e.target.value)} placeholder="Récompense CR" />
+      <Input type="number" min={0} value={rewardXp} onChange={(e) => setRewardXp(e.target.value)} placeholder="Récompense XP" />
+      <Input value={rewardLabel} onChange={(e) => setRewardLabel(e.target.value)} placeholder="Récompense cosmétique" />
+      <div className="flex gap-2 sm:col-span-4">
+        <Button type="submit" size="sm" loading={updateMutation.isPending}>
+          Enregistrer
+        </Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onDone}>
+          Annuler
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function SeasonPassPanel() {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const query = useQuery({ queryKey: ["admin", "season-pass"], queryFn: adminApi.listSeasonPassTiers });
+  const [tier, setTier] = useState("1");
+  const [pointsRequired, setPointsRequired] = useState("");
+  const [rewardCr, setRewardCr] = useState("");
+  const [rewardXp, setRewardXp] = useState("");
+  const [rewardLabel, setRewardLabel] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      adminApi.createSeasonPassTier({
+        tier: Number(tier),
+        pointsRequired: Number(pointsRequired),
+        rewardCr: rewardCr ? Number(rewardCr) : undefined,
+        rewardXp: rewardXp ? Number(rewardXp) : undefined,
+        rewardLabel: rewardLabel || undefined,
+      }),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Palier créé" });
+      setTier((n) => String(Number(n) + 1));
+      setPointsRequired("");
+      setRewardCr("");
+      setRewardXp("");
+      setRewardLabel("");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "season-pass"] });
+      void queryClient.invalidateQueries({ queryKey: ["season-pass"] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  const valid = Number(tier) > 0 && pointsRequired !== "" && Number(pointsRequired) >= 0;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardBody>
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+            <h2 className="font-semibold text-white">Nouveau palier</h2>
+          </div>
+          {query.data?.season ? (
+            <p className="mb-3 text-sm text-white/70">
+              Saison active : <span className="font-semibold text-white">{query.data.season.name}</span>
+            </p>
+          ) : (
+            <p className="mb-3 text-sm text-white/50">Aucune saison active — démarrez-en une dans l&apos;onglet Saisons pour ajouter des paliers.</p>
+          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (valid) createMutation.mutate();
+            }}
+            className="grid gap-2 sm:grid-cols-5"
+          >
+            <Input type="number" min={1} value={tier} onChange={(e) => setTier(e.target.value)} placeholder="N° palier" />
+            <Input type="number" min={0} value={pointsRequired} onChange={(e) => setPointsRequired(e.target.value)} placeholder="Points requis" />
+            <Input type="number" min={0} value={rewardCr} onChange={(e) => setRewardCr(e.target.value)} placeholder="Récompense CR" />
+            <Input type="number" min={0} value={rewardXp} onChange={(e) => setRewardXp(e.target.value)} placeholder="Récompense XP" />
+            <Input value={rewardLabel} onChange={(e) => setRewardLabel(e.target.value)} placeholder="Récompense cosmétique" />
+            <div className="sm:col-span-5">
+              <Button type="submit" icon={<Plus className="h-4 w-4" aria-hidden="true" />} loading={createMutation.isPending} disabled={!valid || !query.data?.season}>
+                Ajouter le palier
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardBody>
+          <h2 className="mb-3 font-semibold text-white">Paliers de la saison active</h2>
+          {query.isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : (
+            <div className="space-y-2">
+              {query.data?.tiers.map((t) => (
+                <div key={t.id} className="rounded-lg border border-white/10 p-3">
+                  {editingId === t.id ? (
+                    <EditTierForm tier={t} onDone={() => setEditingId(null)} />
+                  ) : (
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="font-display font-semibold text-white">
+                          Palier {t.tier} <span className="text-xs font-normal text-white/40">· {t.pointsRequired} pts</span>
+                        </p>
+                        <p className="text-xs text-white/50">
+                          {t.rewardCr > 0 && `${t.rewardCr} CR `}
+                          {t.rewardXp > 0 && `+${t.rewardXp} XP `}
+                          {t.rewardLabel && `· ${t.rewardLabel}`}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="ghost" icon={<Pencil className="h-3.5 w-3.5" aria-hidden="true" />} onClick={() => setEditingId(t.id)}>
+                        Modifier
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {query.data?.tiers.length === 0 && <p className="text-sm text-white/50">Aucun palier créé pour l&apos;instant.</p>}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminLiveOpsPage() {
   const [tab, setTab] = useState("announcement");
 
   return (
     <AdminShell>
-      <PageHeader title="Live Ops" description="Annonce du site, événements XP, classement saisonnier et guerre de guildes." />
+      <PageHeader title="Live Ops" description="Annonce du site, événements XP, classement saisonnier, guerre de guildes et pass de saison." />
       <div className="mb-4 max-w-md">
         <Tabs
           tabs={[
@@ -355,6 +513,7 @@ export default function AdminLiveOpsPage() {
             { id: "events", label: "Événements" },
             { id: "seasons", label: "Saisons" },
             { id: "guild-wars", label: "Guerre de guildes" },
+            { id: "season-pass", label: "Pass de saison" },
           ]}
           activeId={tab}
           onChange={setTab}
@@ -369,6 +528,7 @@ export default function AdminLiveOpsPage() {
       )}
       {tab === "seasons" && <SeasonsPanel />}
       {tab === "guild-wars" && <GuildWarsPanel />}
+      {tab === "season-pass" && <SeasonPassPanel />}
     </AdminShell>
   );
 }

@@ -226,6 +226,7 @@ export class AdminUsersService {
       await tx.seasonPoint.deleteMany({ where: { userId: targetUserId } });
       await tx.guildMessage.deleteMany({ where: { authorId: targetUserId } });
       await tx.friendship.deleteMany({ where: { OR: [{ requesterId: targetUserId }, { addresseeId: targetUserId }] } });
+      await tx.seasonPassClaim.deleteMany({ where: { userId: targetUserId } });
       await tx.boosterOpening.deleteMany({ where: { userId: targetUserId } });
       await tx.userMission.deleteMany({ where: { userId: targetUserId } });
       await tx.userAchievement.deleteMany({ where: { userId: targetUserId } });

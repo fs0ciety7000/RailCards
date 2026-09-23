@@ -409,6 +409,39 @@ export interface FriendRequest {
   user: { username: string; displayName: string; avatarUrl: string | null; role: UserRole };
 }
 
+export interface SeasonPassTier {
+  id: string;
+  tier: number;
+  pointsRequired: number;
+  rewardCr: number;
+  rewardXp: number;
+  rewardLabel: string | null;
+  unlocked: boolean;
+  claimed: boolean;
+}
+
+export interface SeasonPassBoard {
+  season: { id: string; name: string; startedAt: string } | null;
+  points: number;
+  tiers: SeasonPassTier[];
+}
+
+export interface AdminSeasonPassTier {
+  id: string;
+  seasonId: string;
+  tier: number;
+  pointsRequired: number;
+  rewardCr: number;
+  rewardXp: number;
+  rewardLabel: string | null;
+  createdAt: string;
+}
+
+export interface AdminSeasonPassBoard {
+  season: { id: string; name: string; status: SeasonStatus } | null;
+  tiers: AdminSeasonPassTier[];
+}
+
 export type MissionGoalType =
   | "OPEN_BOOSTER"
   | "COLLECT_UNIQUE_CARDS"
@@ -489,6 +522,7 @@ export type NotificationType =
   | "FRIEND_REQUEST_RECEIVED"
   | "FRIEND_REQUEST_ACCEPTED"
   | "FRIEND_REQUEST_DECLINED"
+  | "SEASON_PASS_REWARD"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"

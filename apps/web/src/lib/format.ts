@@ -109,6 +109,7 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   FRIEND_REQUEST_RECEIVED: "Nouvelle demande d'ami",
   FRIEND_REQUEST_ACCEPTED: "Demande d'ami acceptée",
   FRIEND_REQUEST_DECLINED: "Demande d'ami refusée",
+  SEASON_PASS_REWARD: "Récompense du pass de saison",
   MISSION_COMPLETED: "Mission complétée",
   ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
   LEVEL_UP: "Niveau supérieur",
@@ -186,6 +187,10 @@ export function notificationMessage(type: string, payload: Record<string, unknow
       return typeof payload.displayName === "string" ? `${payload.displayName} a accepté votre demande d'ami` : NOTIFICATION_LABELS[type]!;
     case "FRIEND_REQUEST_DECLINED":
       return typeof payload.displayName === "string" ? `${payload.displayName} a refusé votre demande d'ami` : NOTIFICATION_LABELS[type]!;
+    case "SEASON_PASS_REWARD":
+      return typeof payload.tier === "number"
+        ? `Palier ${payload.tier} du pass de saison débloqué${typeof payload.rewardLabel === "string" && payload.rewardLabel ? ` — ${payload.rewardLabel}` : ""}`
+        : NOTIFICATION_LABELS[type]!;
     case "SYSTEM":
       return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;
     default:

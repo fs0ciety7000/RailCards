@@ -227,6 +227,21 @@ export class StartGuildWarDto {
   @IsString() @MinLength(2) @MaxLength(80) name!: string;
 }
 
+export class CreateSeasonPassTierDto {
+  @IsInt() @Min(1) @Max(1000) tier!: number;
+  @IsInt() @Min(0) pointsRequired!: number;
+  @IsOptional() @IsInt() @Min(0) rewardCr?: number;
+  @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+  @IsOptional() @IsString() @MaxLength(120) rewardLabel?: string;
+}
+
+export class UpdateSeasonPassTierDto {
+  @IsOptional() @IsInt() @Min(0) pointsRequired?: number;
+  @IsOptional() @IsInt() @Min(0) rewardCr?: number;
+  @IsOptional() @IsInt() @Min(0) rewardXp?: number;
+  @IsOptional() @IsString() @MaxLength(120) rewardLabel?: string;
+}
+
 export class CreateGradeDto {
   @IsInt() @Min(1) @Max(1000) minLevel!: number;
   @IsString() @MinLength(1) @MaxLength(80) title!: string;

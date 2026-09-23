@@ -18,6 +18,7 @@ import {
   Radio,
   Repeat,
   Shield,
+  Sparkles,
   Swords,
   TrainFront,
   Trophy,
@@ -49,6 +50,7 @@ const SECONDARY_LINKS = [
   { href: "/wanted", label: "Petites annonces", icon: ClipboardList },
   { href: "/activity", label: "Fil d'activité", icon: Radio },
   { href: "/leaderboard", label: "Classement", icon: Crown },
+  { href: "/season-pass", label: "Pass de saison", icon: Sparkles },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/boosters/history", label: "Historique boosters", icon: Repeat },
 ];

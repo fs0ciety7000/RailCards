@@ -75,6 +75,7 @@ model User {
   seasonPoints          SeasonPoint[]
   friendshipsRequested  Friendship[]           @relation("FriendshipRequester")
   friendshipsReceived   Friendship[]           @relation("FriendshipAddressee")
+  seasonPassClaims      SeasonPassClaim[]
 
   @@index([status])
 }
@@ -400,6 +401,7 @@ enum WalletTransactionType {
   AUCTION_BID_REFUND
   QUEST_REWARD
   GUILD_WAR_REWARD
+  SEASON_PASS_REWARD
 }
 
 model Wallet {
@@ -790,7 +792,8 @@ model Season {
   startedAt DateTime     @default(now())
   endedAt   DateTime?
 
-  points SeasonPoint[]
+  points    SeasonPoint[]
+  passTiers SeasonPassTier[]
 }
 
 model SeasonPoint {
@@ -803,6 +806,42 @@ model SeasonPoint {
 
   @@unique([seasonId, userId])
   @@index([seasonId])
+}
+
+// A ladder of milestone rewards over a season's own SeasonPoint tally —
+// authored per season (so each season can offer different rewards), and
+// claimed once each by any player whose tally has reached that tier's
+// threshold. Independent of the permanent XP/level rewards: this is a
+// bonus layered on top, not a replacement.
+model SeasonPassTier {
+  id             String   @id @default(uuid())
+  seasonId       String
+  season         Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  tier           Int
+  pointsRequired Int
+  rewardCr       Int      @default(0)
+  rewardXp       Int      @default(0)
+  // Free-text cosmetic reward (a title, a flourish) — display-only, no
+  // separate cosmetic-item system backs it.
+  rewardLabel    String?
+  createdAt      DateTime @default(now())
+
+  claims SeasonPassClaim[]
+
+  @@unique([seasonId, tier])
+  @@index([seasonId])
+}
+
+model SeasonPassClaim {
+  id        String         @id @default(uuid())
+  tierId    String
+  tier      SeasonPassTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  claimedAt DateTime       @default(now())
+
+  @@unique([tierId, userId])
+  @@index([userId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -1027,6 +1066,7 @@ enum NotificationType {
   FRIEND_REQUEST_RECEIVED
   FRIEND_REQUEST_ACCEPTED
   FRIEND_REQUEST_DECLINED
+  SEASON_PASS_REWARD
   SYSTEM
 }
 

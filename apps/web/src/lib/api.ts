@@ -361,6 +361,13 @@ export const guildWarsApi = {
   leaderboard: (limit = 50) => request<T.GuildWarLeaderboard>(`/guild-wars/leaderboard${qs({ limit })}`),
 };
 
+// ── Season pass (per-season milestone rewards) ───────────────────────────
+
+export const seasonPassApi = {
+  tiers: () => request<T.SeasonPassBoard>("/season-pass/tiers"),
+  claim: (tierId: string) => request<{ id: string; tierId: string; leveledUp: boolean }>(`/season-pass/tiers/${tierId}/claim`, { method: "POST" }),
+};
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const usersApi = {
@@ -514,6 +521,12 @@ export const adminApi = {
   listGuildWars: () => request<T.GuildWarPeriod[]>("/admin/guild-wars"),
   startGuildWar: (name: string) => request<T.GuildWarPeriod>("/admin/guild-wars", { method: "POST", body: { name } }),
   endActiveGuildWar: () => request<T.GuildWarPeriod>("/admin/guild-wars/end-active", { method: "POST" }),
+
+  listSeasonPassTiers: () => request<T.AdminSeasonPassBoard>("/admin/season-pass/tiers"),
+  createSeasonPassTier: (input: { tier: number; pointsRequired: number; rewardCr?: number; rewardXp?: number; rewardLabel?: string }) =>
+    request<T.AdminSeasonPassTier>("/admin/season-pass/tiers", { method: "POST", body: input }),
+  updateSeasonPassTier: (id: string, input: { pointsRequired?: number; rewardCr?: number; rewardXp?: number; rewardLabel?: string }) =>
+    request<T.AdminSeasonPassTier>(`/admin/season-pass/tiers/${id}`, { method: "PATCH", body: input }),
 
   listGrades: () => request<T.Grade[]>("/admin/grades"),
   createGrade: (input: unknown) => request<T.Grade>("/admin/grades", { method: "POST", body: input }),

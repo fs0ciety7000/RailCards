@@ -18,6 +18,7 @@ import { AnnouncementsService } from "../announcements/announcements.service";
 import { EventsService } from "../events/events.service";
 import { SeasonsService } from "../seasons/seasons.service";
 import { GuildWarsService } from "../guild-wars/guild-wars.service";
+import { SeasonPassService } from "../season-pass/season-pass.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -47,6 +48,8 @@ import {
   UpsertAnnouncementDto,
   StartSeasonDto,
   StartGuildWarDto,
+  CreateSeasonPassTierDto,
+  UpdateSeasonPassTierDto,
 } from "./dto/admin.dto";
 
 @ApiTags("admin")
@@ -71,6 +74,7 @@ export class AdminController {
     private readonly events: EventsService,
     private readonly seasons: SeasonsService,
     private readonly guildWars: GuildWarsService,
+    private readonly seasonPass: SeasonPassService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -329,6 +333,26 @@ export class AdminController {
     const period = await this.guildWars.endActivePeriod();
     await this.auditLog.record(admin.id, "guild-war.end", "GuildWarPeriod", period.id, {});
     return period;
+  }
+
+  // ── Season pass (per-season milestone rewards) ─────────────────────
+  @Get("season-pass/tiers")
+  async listSeasonPassTiers() {
+    return this.seasonPass.listForAdmin();
+  }
+
+  @Post("season-pass/tiers")
+  async createSeasonPassTier(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateSeasonPassTierDto) {
+    const t = await this.seasonPass.createTier(dto);
+    await this.auditLog.record(admin.id, "season-pass-tier.create", "SeasonPassTier", t.id, { tier: t.tier });
+    return t;
+  }
+
+  @Patch("season-pass/tiers/:id")
+  async updateSeasonPassTier(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateSeasonPassTierDto) {
+    const t = await this.seasonPass.updateTier(id, dto);
+    await this.auditLog.record(admin.id, "season-pass-tier.update", "SeasonPassTier", id, dto);
+    return t;
   }
 
   // ── Grades (profile ranks) ────────────────────────────────────────
