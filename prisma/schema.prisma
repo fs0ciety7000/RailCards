@@ -397,6 +397,7 @@ enum WalletTransactionType {
   AUCTION_BID_HOLD
   AUCTION_BID_REFUND
   QUEST_REWARD
+  GUILD_WAR_REWARD
 }
 
 model Wallet {
@@ -916,8 +917,9 @@ model Guild {
   leader      User     @relation("GuildLeader", fields: [leaderId], references: [id])
   createdAt   DateTime @default(now())
 
-  members  GuildMember[]
-  messages GuildMessage[]
+  members   GuildMember[]
+  messages  GuildMessage[]
+  warPoints GuildWarPoint[]
 
   @@index([leaderId])
 }
@@ -948,6 +950,41 @@ model GuildMessage {
   createdAt DateTime @default(now())
 
   @@index([guildId, createdAt])
+}
+
+enum GuildWarStatus {
+  ACTIVE
+  ENDED
+}
+
+// A resettable inter-guild competition, layered on top of the existing
+// all-time guild leaderboard (Guild.leaderboard, ranked by permanent member
+// XP): GuildWarPoint accumulates the same bonus-eligible XP as SeasonPoint
+// (mission/achievement/quest claims), scoped to whichever period is ACTIVE
+// and to the earning member's guild. Ending a period distributes CR rewards
+// to the members of the top 3 guilds, then a new period starts the count
+// back at zero — same "reset without touching anything permanent" shape as
+// a season.
+model GuildWarPeriod {
+  id        String         @id @default(uuid())
+  name      String
+  status    GuildWarStatus @default(ACTIVE)
+  startedAt DateTime       @default(now())
+  endedAt   DateTime?
+
+  points GuildWarPoint[]
+}
+
+model GuildWarPoint {
+  id       String         @id @default(uuid())
+  periodId String
+  period   GuildWarPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  guildId  String
+  guild    Guild          @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  points   Int            @default(0)
+
+  @@unique([periodId, guildId])
+  @@index([periodId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -984,6 +1021,7 @@ enum NotificationType {
   QUEST_STEP_COMPLETED
   QUEST_COMPLETED
   WANTED_CARD_LISTED
+  GUILD_WAR_REWARD
   SYSTEM
 }
 

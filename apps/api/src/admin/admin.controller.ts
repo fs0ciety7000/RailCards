@@ -17,6 +17,7 @@ import { QuestsService } from "../quests/quests.service";
 import { AnnouncementsService } from "../announcements/announcements.service";
 import { EventsService } from "../events/events.service";
 import { SeasonsService } from "../seasons/seasons.service";
+import { GuildWarsService } from "../guild-wars/guild-wars.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -45,6 +46,7 @@ import {
   UpdateSeriesDto,
   UpsertAnnouncementDto,
   StartSeasonDto,
+  StartGuildWarDto,
 } from "./dto/admin.dto";
 
 @ApiTags("admin")
@@ -68,6 +70,7 @@ export class AdminController {
     private readonly announcements: AnnouncementsService,
     private readonly events: EventsService,
     private readonly seasons: SeasonsService,
+    private readonly guildWars: GuildWarsService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -306,6 +309,26 @@ export class AdminController {
     const season = await this.seasons.endActiveSeason();
     await this.auditLog.record(admin.id, "season.end", "Season", season.id, {});
     return season;
+  }
+
+  // ── Guild wars (resettable inter-guild competition) ────────────────
+  @Get("guild-wars")
+  async listGuildWars() {
+    return this.guildWars.listAllForAdmin();
+  }
+
+  @Post("guild-wars")
+  async startGuildWar(@CurrentUser() admin: AuthenticatedUser, @Body() dto: StartGuildWarDto) {
+    const period = await this.guildWars.startNewPeriod(dto.name);
+    await this.auditLog.record(admin.id, "guild-war.start", "GuildWarPeriod", period.id, { name: period.name });
+    return period;
+  }
+
+  @Post("guild-wars/end-active")
+  async endActiveGuildWar(@CurrentUser() admin: AuthenticatedUser) {
+    const period = await this.guildWars.endActivePeriod();
+    await this.auditLog.record(admin.id, "guild-war.end", "GuildWarPeriod", period.id, {});
+    return period;
   }
 
   // ── Grades (profile ranks) ────────────────────────────────────────

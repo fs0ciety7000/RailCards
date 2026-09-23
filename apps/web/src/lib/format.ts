@@ -105,6 +105,7 @@ export const NOTIFICATION_LABELS: Record<string, string> = {
   QUEST_STEP_COMPLETED: "Étape de quête terminée",
   QUEST_COMPLETED: "Quête saisonnière terminée",
   WANTED_CARD_LISTED: "Une carte que vous recherchez est en vente",
+  GUILD_WAR_REWARD: "Récompense de guerre de guildes",
   MISSION_COMPLETED: "Mission complétée",
   ACHIEVEMENT_UNLOCKED: "Haut fait débloqué",
   LEVEL_UP: "Niveau supérieur",
@@ -171,6 +172,10 @@ export function notificationMessage(type: string, payload: Record<string, unknow
     case "WANTED_CARD_LISTED":
       return typeof payload.cardName === "string" && typeof payload.priceCr === "number"
         ? `"${payload.cardName}" recherchée vient d'être mise en vente pour ${payload.priceCr} CR`
+        : NOTIFICATION_LABELS[type]!;
+    case "GUILD_WAR_REWARD":
+      return typeof payload.rank === "number" && typeof payload.rewardCr === "number" && typeof payload.guildName === "string"
+        ? `${payload.guildName} termine ${payload.rank === 1 ? "1ère" : `${payload.rank}e`} de la guerre de guildes — +${payload.rewardCr} CR`
         : NOTIFICATION_LABELS[type]!;
     case "SYSTEM":
       return typeof payload.message === "string" ? payload.message : NOTIFICATION_LABELS[type]!;

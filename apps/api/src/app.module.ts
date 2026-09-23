@@ -30,6 +30,7 @@ import { QuestsModule } from "./quests/quests.module";
 import { AnnouncementsModule } from "./announcements/announcements.module";
 import { EventsModule } from "./events/events.module";
 import { SeasonsModule } from "./seasons/seasons.module";
+import { GuildWarsModule } from "./guild-wars/guild-wars.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -61,6 +62,7 @@ import { HealthController } from "./health.controller";
     AnnouncementsModule,
     EventsModule,
     SeasonsModule,
+    GuildWarsModule,
   ],
   controllers: [HealthController],
   providers: [

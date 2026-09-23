@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Megaphone, Plus, Power, Sparkles, Trophy } from "lucide-react";
+import { Megaphone, Plus, Power, Sparkles, Swords, Trophy } from "lucide-react";
 import { Badge, Button, Card, CardBody, FieldGroup, Input, Label, Skeleton, Tabs, Textarea, useToast } from "@railcards/ui";
 import { AdminShell } from "@/components/AdminShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -278,18 +278,83 @@ function SeasonsPanel() {
   );
 }
 
+function GuildWarsPanel() {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const query = useQuery({ queryKey: ["admin", "guild-wars"], queryFn: adminApi.listGuildWars });
+  const [name, setName] = useState("");
+
+  const startMutation = useMutation({
+    mutationFn: () => adminApi.startGuildWar(name),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Nouvelle guerre démarrée", description: "Les récompenses ont été versées au top 3 et le classement a été réinitialisé." });
+      setName("");
+      void queryClient.invalidateQueries({ queryKey: ["admin", "guild-wars"] });
+      void queryClient.invalidateQueries({ queryKey: ["guild-wars"] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  const active = query.data?.find((p) => p.status === "ACTIVE");
+
+  return (
+    <Card>
+      <CardBody>
+        <div className="mb-3 flex items-center gap-2">
+          <Swords className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+          <h2 className="font-semibold text-white">Guerre de guildes</h2>
+        </div>
+        <p className="mb-3 text-xs text-white/50">
+          Classement inter-guildes basé sur l&apos;XP cumulé des membres. Démarrer une nouvelle guerre verse les récompenses CR au top 3 de la
+          guerre en cours, puis remet tous les compteurs à zéro.
+        </p>
+        {active && (
+          <p className="mb-3 text-sm text-white/70">
+            Guerre active : <span className="font-semibold text-white">{active.name}</span> (depuis {formatDateTime(active.startedAt)})
+          </p>
+        )}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (name.trim()) startMutation.mutate();
+          }}
+          className="flex flex-wrap gap-2"
+        >
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom de la nouvelle guerre" className="w-64" />
+          <Button type="submit" loading={startMutation.isPending} disabled={!name.trim()}>
+            {active ? "Réinitialiser (nouvelle guerre)" : "Démarrer une guerre"}
+          </Button>
+        </form>
+        {query.isLoading ? (
+          <Skeleton className="mt-4 h-24 w-full" />
+        ) : (
+          <div className="mt-4 space-y-1.5 text-sm">
+            {query.data?.map((p) => (
+              <div key={p.id} className="flex items-center justify-between text-white/60">
+                <span>{p.name}</span>
+                <Badge tone={p.status === "ACTIVE" ? "success" : "neutral"}>{p.status === "ACTIVE" ? "Active" : "Terminée"}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function AdminLiveOpsPage() {
   const [tab, setTab] = useState("announcement");
 
   return (
     <AdminShell>
-      <PageHeader title="Live Ops" description="Annonce du site, événements XP et classement saisonnier." />
+      <PageHeader title="Live Ops" description="Annonce du site, événements XP, classement saisonnier et guerre de guildes." />
       <div className="mb-4 max-w-md">
         <Tabs
           tabs={[
             { id: "announcement", label: "Annonce" },
             { id: "events", label: "Événements" },
             { id: "seasons", label: "Saisons" },
+            { id: "guild-wars", label: "Guerre de guildes" },
           ]}
           activeId={tab}
           onChange={setTab}
@@ -303,6 +368,7 @@ export default function AdminLiveOpsPage() {
         </div>
       )}
       {tab === "seasons" && <SeasonsPanel />}
+      {tab === "guild-wars" && <GuildWarsPanel />}
     </AdminShell>
   );
 }

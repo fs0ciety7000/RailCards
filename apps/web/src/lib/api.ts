@@ -354,6 +354,13 @@ export const seasonsApi = {
   leaderboard: (limit = 50) => request<T.SeasonLeaderboard>(`/seasons/leaderboard${qs({ limit })}`),
 };
 
+// ── Guild wars (resettable inter-guild competition) ─────────────────────
+
+export const guildWarsApi = {
+  active: () => request<T.GuildWarPeriod | null>("/guild-wars/active"),
+  leaderboard: (limit = 50) => request<T.GuildWarLeaderboard>(`/guild-wars/leaderboard${qs({ limit })}`),
+};
+
 // ── Users ────────────────────────────────────────────────────────────────
 
 export const usersApi = {
@@ -492,6 +499,10 @@ export const adminApi = {
   listSeasons: () => request<T.Season[]>("/admin/seasons"),
   startSeason: (name: string) => request<T.Season>("/admin/seasons", { method: "POST", body: { name } }),
   endActiveSeason: () => request<T.Season>("/admin/seasons/end-active", { method: "POST" }),
+
+  listGuildWars: () => request<T.GuildWarPeriod[]>("/admin/guild-wars"),
+  startGuildWar: (name: string) => request<T.GuildWarPeriod>("/admin/guild-wars", { method: "POST", body: { name } }),
+  endActiveGuildWar: () => request<T.GuildWarPeriod>("/admin/guild-wars/end-active", { method: "POST" }),
 
   listGrades: () => request<T.Grade[]>("/admin/grades"),
   createGrade: (input: unknown) => request<T.Grade>("/admin/grades", { method: "POST", body: input }),

@@ -34,4 +34,9 @@ export const GAME_CONSTANTS = {
   GUILD_TAG_MIN_LENGTH: 2,
   GUILD_TAG_MAX_LENGTH: 5,
   GUILD_MAX_MEMBERS: 30,
+  // Guild wars: CR paid to every member of the top-3 guild when a war
+  // period ends, scaled down by rank.
+  GUILD_WAR_REWARD_CR_RANK_1: 500,
+  GUILD_WAR_REWARD_CR_RANK_2: 250,
+  GUILD_WAR_REWARD_CR_RANK_3: 100,
 } as const;

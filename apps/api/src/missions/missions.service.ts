@@ -7,6 +7,7 @@ import { GradesService } from "../grades/grades.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { EventsService } from "../events/events.service";
 import { SeasonsService } from "../seasons/seasons.service";
+import { GuildWarsService } from "../guild-wars/guild-wars.service";
 
 type Tx = Prisma.TransactionClient;
 
@@ -51,15 +52,17 @@ export class MissionsService {
     private readonly notifications: NotificationsService,
     private readonly events: EventsService,
     private readonly seasons: SeasonsService,
+    private readonly guildWars: GuildWarsService,
   ) {}
 
   /**
    * Grants `baseXp`, scaled by whatever live-ops event's XP multiplier is
    * in effect (10000bps = 1x, e.g. 20000 = "double XP weekend"), and bumps
-   * the same scaled amount onto the player's current-season tally. Shared
-   * by every XP-granting claim (mission, achievement, quest step) so an
-   * event's multiplier and the seasonal leaderboard both "just work"
-   * without each call site re-deriving them.
+   * the same scaled amount onto the player's current-season tally and
+   * their guild's current-war tally. Shared by every XP-granting claim
+   * (mission, achievement, quest step) so an event's multiplier, the
+   * seasonal leaderboard, and guild wars all "just work" without each call
+   * site re-deriving them.
    */
   private async grantBonusXp(tx: Tx, userId: string, baseXp: number): Promise<LevelUpInfo> {
     if (baseXp <= 0) return { leveledUp: false, newLevel: 0, newGrade: "" };
@@ -67,6 +70,7 @@ export class MissionsService {
     const effectiveXp = Math.round((baseXp * multiplierBps) / 10_000);
     const levelUp = await grantXp(tx, userId, effectiveXp, (l) => this.grades.gradeForLevel(l));
     await this.seasons.bumpPoints(tx, userId, effectiveXp);
+    await this.guildWars.bumpPoints(tx, userId, effectiveXp);
     return levelUp;
   }
 

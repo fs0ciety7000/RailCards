@@ -470,6 +470,7 @@ export type NotificationType =
   | "QUEST_STEP_COMPLETED"
   | "QUEST_COMPLETED"
   | "WANTED_CARD_LISTED"
+  | "GUILD_WAR_REWARD"
   | "MISSION_COMPLETED"
   | "ACHIEVEMENT_UNLOCKED"
   | "LEVEL_UP"
@@ -607,6 +608,30 @@ export interface SeasonLeaderboardEntry {
 export interface SeasonLeaderboard {
   season: { id: string; name: string; startedAt: string } | null;
   entries: SeasonLeaderboardEntry[];
+}
+
+export type GuildWarStatus = "ACTIVE" | "ENDED";
+
+export interface GuildWarPeriod {
+  id: string;
+  name: string;
+  status: GuildWarStatus;
+  startedAt: string;
+  endedAt: string | null;
+}
+
+export interface GuildWarEntry {
+  rank: number;
+  guildId: string;
+  name: string;
+  tag: string;
+  memberCount: number;
+  points: number;
+}
+
+export interface GuildWarLeaderboard {
+  period: { id: string; name: string; startedAt: string } | null;
+  entries: GuildWarEntry[];
 }
 
 export interface PriceHistoryPoint {

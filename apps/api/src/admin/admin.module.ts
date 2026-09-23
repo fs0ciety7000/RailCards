@@ -11,6 +11,7 @@ import { QuestsModule } from "../quests/quests.module";
 import { AnnouncementsModule } from "../announcements/announcements.module";
 import { EventsModule } from "../events/events.module";
 import { SeasonsModule } from "../seasons/seasons.module";
+import { GuildWarsModule } from "../guild-wars/guild-wars.module";
 import { AdminController } from "./admin.controller";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
@@ -31,6 +32,7 @@ import { AuditLogService } from "./audit-log.service";
     AnnouncementsModule,
     EventsModule,
     SeasonsModule,
+    GuildWarsModule,
   ],
   controllers: [AdminController],
   providers: [AdminUsersService, InvitationsService, ReportsService, AuditLogService],

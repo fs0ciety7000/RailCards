@@ -223,6 +223,10 @@ export class StartSeasonDto {
   @IsString() @MinLength(2) @MaxLength(80) name!: string;
 }
 
+export class StartGuildWarDto {
+  @IsString() @MinLength(2) @MaxLength(80) name!: string;
+}
+
 export class CreateGradeDto {
   @IsInt() @Min(1) @Max(1000) minLevel!: number;
   @IsString() @MinLength(1) @MaxLength(80) title!: string;
