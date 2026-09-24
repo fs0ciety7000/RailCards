@@ -37,6 +37,7 @@ import { CardVariantsModule } from "./card-variants/card-variants.module";
 import { ProfileBannersModule } from "./profile-banners/profile-banners.module";
 import { ProfileTitlesModule } from "./profile-titles/profile-titles.module";
 import { StatsModule } from "./stats/stats.module";
+import { LoreModule } from "./lore/lore.module";
 import { HealthController } from "./health.controller";
 
 @Module({
@@ -75,6 +76,7 @@ import { HealthController } from "./health.controller";
     ProfileBannersModule,
     ProfileTitlesModule,
     StatsModule,
+    LoreModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -190,6 +190,10 @@ export const collectionApi = {
   detail: (instanceId: string) => request<T.CardInstanceDetail>(`/collection/${instanceId}`),
 };
 
+export const loreApi = {
+  book: (seriesId?: string) => request<T.LoreSeries[]>(`/lore${qs({ seriesId })}`),
+};
+
 // ── Craft ────────────────────────────────────────────────────────────────
 
 export interface CraftableGroup {

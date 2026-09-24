@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   Bell,
+  BookMarked,
   BookOpen,
   ClipboardList,
   Crown,
@@ -53,6 +54,7 @@ const SECONDARY_LINKS = [
   { href: "/leaderboard", label: "Classement", icon: Crown },
   { href: "/season-pass", label: "Pass de saison", icon: Sparkles },
   { href: "/stats", label: "Statistiques", icon: BarChart3 },
+  { href: "/lore", label: "Livre de lore", icon: BookMarked },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/boosters/history", label: "Historique boosters", icon: Repeat },
 ];

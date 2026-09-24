@@ -236,6 +236,26 @@ export interface MissingCardsSeries {
   missingCards: MissingCard[];
 }
 
+export interface LoreEntry {
+  id: string;
+  slug: string;
+  name: string;
+  imageUrl: string;
+  rarity: Rarity;
+  flavorText: string | null;
+  unlocked: boolean;
+}
+
+export interface LoreSeries {
+  seriesId: string;
+  name: string;
+  category: CardCategory;
+  coverImageUrl: string | null;
+  totalEntries: number;
+  unlockedCount: number;
+  entries: LoreEntry[];
+}
+
 export type BoosterCategory = "DISCOVERY" | "CLASSIC" | "THEMED";
 
 export interface BoosterDefinition {
