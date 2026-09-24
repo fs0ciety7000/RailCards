@@ -1,25 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Folder, Gem, ListChecks, Sparkles } from "lucide-react";
+import { BookOpen, Folder, Gem, LayoutGrid, ListChecks, Rows3, Sparkles } from "lucide-react";
 import { Button, EmptyState, ErrorState, Select, SkeletonGrid } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
-import { CardTile } from "@/components/CardTile";
+import { CardTile, CardListRow } from "@/components/CardTile";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { catalogApi, collectionApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 
 const PAGE_SIZE = 24;
+const VIEW_STORAGE_KEY = "railcards.collection.view";
+type ViewMode = "grid" | "list";
 
 function CollectionContent() {
   const [page, setPage] = useState(1);
   const [seriesId, setSeriesId] = useState("");
   const [rarity, setRarity] = useState("");
   const [state, setState] = useState("");
+  const [view, setView] = useState<ViewMode>("grid");
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(VIEW_STORAGE_KEY);
+      if (stored === "grid" || stored === "list") setView(stored);
+    } catch {
+      // ignore (private mode / blocked storage) — default grid view stands
+    }
+  }, []);
+
+  function changeView(v: ViewMode) {
+    setView(v);
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, v);
+    } catch {
+      // per-viewer convenience only — a failed write just means it resets next visit
+    }
+  }
 
   const seriesQuery = useQuery({ queryKey: ["series"], queryFn: catalogApi.series });
   const raritiesQuery = useQuery({ queryKey: ["rarities"], queryFn: catalogApi.rarities });
@@ -120,6 +141,27 @@ function CollectionContent() {
           <option value="RESERVED_MARKET">En vente</option>
           <option value="ARCHIVED">Archivée</option>
         </Select>
+
+        <div className="ml-auto flex items-center gap-1 rounded-lg border border-rc-border bg-rc-night-light p-1" role="group" aria-label="Mode d'affichage">
+          <button
+            type="button"
+            onClick={() => changeView("grid")}
+            aria-pressed={view === "grid"}
+            aria-label="Vue grille"
+            className={`rounded-md p-1.5 transition-colors ${view === "grid" ? "bg-rc-accent text-rc-night" : "text-white/50 hover:text-white"}`}
+          >
+            <LayoutGrid className="h-4 w-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => changeView("list")}
+            aria-pressed={view === "list"}
+            aria-label="Vue liste"
+            className={`rounded-md p-1.5 transition-colors ${view === "list" ? "bg-rc-accent text-rc-night" : "text-white/50 hover:text-white"}`}
+          >
+            <Rows3 className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {collectionQuery.isLoading ? (
@@ -137,13 +179,31 @@ function CollectionContent() {
             </Link>
           }
         />
-      ) : (
+      ) : view === "grid" ? (
         <>
           <Stagger className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
             {collectionQuery.data!.items.map((instance) => (
               <StaggerItem key={instance.id}>
                 <CardTile
                   instanceId={instance.id}
+                  card={instance.cardDefinition}
+                  state={instance.state}
+                  href={`/collection/${instance.id}`}
+                  count={instance.count}
+                  foil={instance.isFoil}
+                  signature={instance.isSignature ? { number: instance.signatureNumber!, edition: instance.signatureEdition! } : null}
+                />
+              </StaggerItem>
+            ))}
+          </Stagger>
+          <Pagination page={page} total={collectionQuery.data!.total} pageSize={PAGE_SIZE} onChange={setPage} />
+        </>
+      ) : (
+        <>
+          <Stagger className="flex flex-col gap-2">
+            {collectionQuery.data!.items.map((instance) => (
+              <StaggerItem key={instance.id}>
+                <CardListRow
                   card={instance.cardDefinition}
                   state={instance.state}
                   href={`/collection/${instance.id}`}

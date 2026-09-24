@@ -10,7 +10,7 @@ import {
   useSpring,
 } from "motion/react";
 import { Gem, Sparkles } from "lucide-react";
-import { cn } from "@railcards/ui";
+import { cn, RarityBadge } from "@railcards/ui";
 import { combatGradeForStats, type CombatGradeInfo } from "@railcards/game-domain";
 import { parseCombatStats } from "@/components/CombatStatsPanel";
 import type { CardDefinition, Rarity } from "@/lib/types";
@@ -424,6 +424,83 @@ export function CardTile({
       className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent"
       aria-label={`${card.name}, ${card.rarity.label}${instanceId ? "" : ""}`}
     >
+      {content}
+    </Link>
+  );
+}
+
+/**
+ * A dense, single-line alternative to CardTile for scanning a large
+ * collection quickly — same instance-level data (foil/signature/count/
+ * state, plus the combat grade), just laid out as a row instead of a full
+ * card face.
+ */
+export function CardListRow({
+  card,
+  state,
+  href,
+  count,
+  foil,
+  signature,
+}: {
+  card: CardDefinition;
+  state?: string;
+  href?: string;
+  count?: number;
+  foil?: boolean;
+  signature?: { number: number; edition: number } | null;
+}) {
+  const hex = card.rarity.colorHex;
+  const stats = card.combatStatsEnabled ? parseCombatStats(card.combatStats) : null;
+  const grade = stats ? combatGradeForStats(stats) : null;
+
+  const content = (
+    <div className="group flex items-center gap-3 rounded-xl border border-rc-border bg-rc-night-light px-3 py-2 transition-colors hover:border-rc-border-strong hover:bg-rc-night-lighter">
+      <div
+        className="relative h-14 w-11 shrink-0 overflow-hidden rounded-md ring-1 ring-white/10"
+        style={grade ? { boxShadow: `0 0 0 1.5px ${grade.colorHex}` } : undefined}
+      >
+        <Image src={card.imageUrl} alt="" fill sizes="44px" className="object-cover" unoptimized />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-white">{card.name}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <RarityBadge label={card.rarity.label} colorHex={hex} size="sm" />
+          {foil && (
+            <span
+              className="rounded-full px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-black"
+              style={{ background: holoConicGradient(hex) }}
+            >
+              Foil
+            </span>
+          )}
+          {signature && (
+            <span className="rounded-full border border-amber-300/50 bg-amber-300/10 px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-amber-300">
+              Nº{signature.number}/{signature.edition}
+            </span>
+          )}
+          {grade && (
+            <span
+              className="rounded-full border px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide"
+              style={{ borderColor: grade.colorHex, color: grade.colorHex }}
+              title={grade.label}
+            >
+              {grade.grade}
+            </span>
+          )}
+          {state && state !== "AVAILABLE" && <span className="text-[10px] text-white/40">{stateLabel(state)}</span>}
+        </div>
+      </div>
+      {count && count > 1 && (
+        <span className="shrink-0 rounded-full border border-white/15 bg-black/40 px-2 py-0.5 text-xs font-bold text-white">×{count}</span>
+      )}
+    </div>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link href={href} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent">
       {content}
     </Link>
   );
