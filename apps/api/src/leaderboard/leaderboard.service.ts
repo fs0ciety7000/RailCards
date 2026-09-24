@@ -35,8 +35,20 @@ export class LeaderboardService {
    * `sortBy` (ties broken by XP). Only players with a public profile and an
    * active account show up here — the same visibility rule as viewing a
    * profile directly.
+   *
+   * `memberIds`, when given, restricts the ranking to that set of user IDs —
+   * the "Amis" scope, backed by the caller's accepted friends plus
+   * themselves, mirroring ActivityService.getFeed's onlyUsernames filter for
+   * the activity feed's own friends scope. An empty (non-undefined) array
+   * means "no one to rank" and short-circuits without a query.
    */
-  async top(limit = 50, sortBy: LeaderboardSort = "xp") {
+  async top(limit = 50, sortBy: LeaderboardSort = "xp", memberIds?: string[]) {
+    if (memberIds && memberIds.length === 0) return [];
+    // The global board only shows public profiles, same rule as viewing one
+    // directly; a friends-scoped board skips that gate, same as the guild
+    // leaderboard — the mutual-consent relationship (accepted friendship,
+    // guild membership) already grants visibility within that group.
+    const visibilityFilter = memberIds ? Prisma.sql`AND u.id IN (${Prisma.join(memberIds)})` : Prisma.sql`AND up."isPublic" = true`;
     const rows = await this.prisma.$queryRaw<LeaderboardRow[]>`
       WITH published_totals AS (
         SELECT "seriesId", COUNT(*)::int AS total
@@ -72,7 +84,7 @@ export class LeaderboardService {
       JOIN "UserProfile" up ON up."userId" = u.id
       LEFT JOIN unique_counts uc ON uc."ownerId" = u.id
       LEFT JOIN complete_series cs ON cs."ownerId" = u.id
-      WHERE u.status = 'ACTIVE' AND up."isPublic" = true
+      WHERE u.status = 'ACTIVE' ${visibilityFilter}
       ORDER BY ${ORDER_BY_SQL[sortBy]}
       LIMIT ${limit}
     `;

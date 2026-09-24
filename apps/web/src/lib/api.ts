@@ -412,8 +412,8 @@ export const profileTitlesApi = {
 // ── Leaderboard ──────────────────────────────────────────────────────────
 
 export const leaderboardApi = {
-  top: (limit = 50, sortBy: T.LeaderboardSort = "xp") =>
-    request<T.LeaderboardEntry[]>(`/leaderboard${qs({ limit, sortBy })}`),
+  top: (limit = 50, sortBy: T.LeaderboardSort = "xp", scope: "all" | "friends" = "all") =>
+    request<T.LeaderboardEntry[]>(`/leaderboard${qs({ limit, sortBy, scope: scope === "friends" ? scope : undefined })}`),
 };
 
 // ── Activity feed ────────────────────────────────────────────────────────

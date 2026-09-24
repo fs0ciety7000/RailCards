@@ -129,13 +129,24 @@ function GuildWarRow({ entry }: { entry: GuildWarEntry }) {
 
 function PermanentLeaderboard() {
   const [sortBy, setSortBy] = useState<LeaderboardSort>("xp");
+  const [scope, setScope] = useState<"all" | "friends">("all");
   const leaderboardQuery = useQuery({
-    queryKey: ["leaderboard", sortBy],
-    queryFn: () => leaderboardApi.top(100, sortBy),
+    queryKey: ["leaderboard", sortBy, scope],
+    queryFn: () => leaderboardApi.top(100, sortBy, scope),
   });
 
   return (
     <div>
+      <div className="mb-3">
+        <Tabs
+          tabs={[
+            { id: "all", label: "Tout le réseau" },
+            { id: "friends", label: "Amis" },
+          ]}
+          activeId={scope}
+          onChange={(id) => setScope(id as "all" | "friends")}
+        />
+      </div>
       <div className="mb-4">
         <Tabs tabs={SORT_TABS} activeId={sortBy} onChange={(id) => setSortBy(id as LeaderboardSort)} />
       </div>
@@ -149,7 +160,11 @@ function PermanentLeaderboard() {
       ) : leaderboardQuery.isError ? (
         <ErrorState title="Classement indisponible" description={getErrorMessage(leaderboardQuery.error)} />
       ) : (leaderboardQuery.data ?? []).length === 0 ? (
-        <EmptyState icon={<Crown />} title="Aucun joueur classé" description="Revenez plus tard." />
+        <EmptyState
+          icon={<Crown />}
+          title="Aucun joueur classé"
+          description={scope === "friends" ? "Ajoutez des amis pour voir leur classement ici." : "Revenez plus tard."}
+        />
       ) : (
         <Stagger className="space-y-2">
           {leaderboardQuery.data!.map((entry) => (

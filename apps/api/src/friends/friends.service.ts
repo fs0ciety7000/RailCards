@@ -34,6 +34,15 @@ export class FriendsService {
     return new Set(rows.map((f) => (f.requesterId === userId ? f.addressee.username : f.requester.username)));
   }
 
+  /** User IDs of `userId`'s accepted friends — what a friends-scoped leaderboard ranks among. */
+  async listFriendIds(userId: string): Promise<string[]> {
+    const rows = await this.prisma.friendship.findMany({
+      where: { status: "ACCEPTED", OR: [{ requesterId: userId }, { addresseeId: userId }] },
+      select: { requesterId: true, addresseeId: true },
+    });
+    return rows.map((f) => (f.requesterId === userId ? f.addresseeId : f.requesterId));
+  }
+
   async listRequests(userId: string, direction: "incoming" | "outgoing") {
     const rows = await this.prisma.friendship.findMany({
       where: direction === "incoming" ? { addresseeId: userId, status: "PENDING" } : { requesterId: userId, status: "PENDING" },

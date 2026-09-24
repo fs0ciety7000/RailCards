@@ -112,4 +112,56 @@ describe("Leaderboard (e2e, real Postgres)", () => {
     const xps = bogus.body.map((e: { xp: number }) => e.xp);
     expect([...xps].sort((a: number, b: number) => b - a)).toEqual(xps);
   });
+
+  it("scopes the board to the viewer's accepted friends (plus themselves) when scope=friends, including a private-profile friend", async () => {
+    const alice = await registerUser(app, adminToken, "lbfriendalice");
+    const bob = await registerUser(app, adminToken, "lbfriendbob");
+    const stranger = await registerUser(app, adminToken, "lbfriendstranger");
+
+    // Bob hides his profile — he should still show up for Alice on the
+    // friends-scoped board, mirroring the guild leaderboard's own
+    // mutual-consent visibility rule, even though he's excluded from the
+    // global board.
+    await request(app.getHttpServer()).patch("/api/v1/me").set("Authorization", `Bearer ${bob.accessToken}`).send({ isPublic: false }).expect(200);
+
+    const sent = await request(app.getHttpServer())
+      .post("/api/v1/friends/requests")
+      .set("Authorization", `Bearer ${alice.accessToken}`)
+      .send({ username: bob.username })
+      .expect(201);
+    const incoming = await request(app.getHttpServer())
+      .get("/api/v1/friends/requests?direction=incoming")
+      .set("Authorization", `Bearer ${bob.accessToken}`)
+      .expect(200);
+    const incomingEntry = incoming.body.find((r: { id: string }) => r.id === sent.body.id);
+    await request(app.getHttpServer())
+      .post(`/api/v1/friends/requests/${incomingEntry.id}/accept`)
+      .set("Authorization", `Bearer ${bob.accessToken}`)
+      .expect(201);
+
+    const friendsBoard = await request(app.getHttpServer())
+      .get("/api/v1/leaderboard?limit=500&scope=friends")
+      .set("Authorization", `Bearer ${alice.accessToken}`)
+      .expect(200);
+    const usernames = friendsBoard.body.map((e: { username: string }) => e.username);
+    expect(usernames).toContain(alice.username);
+    expect(usernames).toContain(bob.username);
+    expect(usernames).not.toContain(stranger.username);
+
+    // The global board still hides Bob (private) — separately covered for
+    // publicness in general above; here it's enough to confirm the friends
+    // scope doesn't leak into the global one.
+    const globalBoard = await request(app.getHttpServer())
+      .get("/api/v1/leaderboard?limit=500")
+      .set("Authorization", `Bearer ${alice.accessToken}`)
+      .expect(200);
+    expect(globalBoard.body.map((e: { username: string }) => e.username)).not.toContain(bob.username);
+
+    // A player with no friends sees just themselves on the friends board.
+    const soloBoard = await request(app.getHttpServer())
+      .get("/api/v1/leaderboard?limit=500&scope=friends")
+      .set("Authorization", `Bearer ${stranger.accessToken}`)
+      .expect(200);
+    expect(soloBoard.body.map((e: { username: string }) => e.username)).toEqual([stranger.username]);
+  });
 });
