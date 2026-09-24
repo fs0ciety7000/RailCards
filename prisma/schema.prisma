@@ -321,6 +321,7 @@ enum AcquisitionSource {
   ACHIEVEMENT_REWARD
   FOUNDER_GRANT
   CRAFT
+  SIGNATURE_EVENT
 }
 
 model CardInstance {
@@ -337,6 +338,15 @@ model CardInstance {
   // foiling a duplicate group (see CardVariantsService); never by a normal
   // booster pull.
   isFoil           Boolean           @default(false)
+  // A one-of-a-kind (or small-run) signature print, hand-minted by an admin
+  // for a special event — distinct from `serialNumber` above, which just
+  // counts every copy of this card ever printed. `signatureNumber` and
+  // `signatureEdition` together read as "N/M" (e.g. 1/1) and are scoped
+  // only to this card's own signature mints, set once per card at the
+  // first mint and never reused elsewhere. Both null on an ordinary card.
+  isSignature      Boolean           @default(false)
+  signatureNumber  Int?
+  signatureEdition Int?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 

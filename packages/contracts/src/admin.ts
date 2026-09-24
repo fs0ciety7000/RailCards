@@ -126,6 +126,12 @@ export const grantCardSchema = z.object({
 });
 export type GrantCardInput = z.infer<typeof grantCardSchema>;
 
+export const mintSignatureCardSchema = z.object({
+  cardDefinitionId: z.string().uuid("Sélectionnez une carte"),
+  editionSize: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type MintSignatureCardInput = z.infer<typeof mintSignatureCardSchema>;
+
 export const missionGoalTypeSchema = z.enum([
   "OPEN_BOOSTER",
   "COLLECT_UNIQUE_CARDS",

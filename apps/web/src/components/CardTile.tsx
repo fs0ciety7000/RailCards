@@ -133,6 +133,8 @@ export interface CardFaceData {
   imageUrl: string;
   /** A card's overall combat-stat grade (S/A/B/C/D), shown as a small badge distinct from the rarity footer — omitted for cards without combat stats. */
   combatGrade?: CombatGradeInfo | null;
+  /** A hand-minted signature instance — "N/M" numbering scoped to this card's own signature mints, shown as a corner ribbon. */
+  signature?: { number: number; edition: number } | null;
 }
 
 function isPlaceholderArt(imageUrl: string): boolean {
@@ -231,6 +233,14 @@ export function CardFrame({
             extends past the card body for a soft glow) to the card's own rounded rect —
             without it, the overlay bleeds across the entire page. */}
         <div className={cn("relative h-full w-full overflow-hidden rounded-2xl", frame.thickness)} style={frame.frameStyle(hex)}>
+          {card.signature && (
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute left-[-34%] top-[13%] z-30 w-[170%] -rotate-45 bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 py-[3px] text-center text-[9.5px] font-extrabold uppercase tracking-wide text-black shadow-[0_2px_6px_rgba(0,0,0,0.5)]"
+            >
+              Signature Nº{card.signature.number}/{card.signature.edition}
+            </div>
+          )}
           {showHoloSpin && (
             <div
               aria-hidden="true"
@@ -346,11 +356,14 @@ export function CardArt({
   className,
   priority,
   foil,
+  signature,
 }: {
   card: CardDefinition;
   className?: string;
   priority?: boolean;
   foil?: boolean;
+  /** Instance-level numbered signature (CardInstance.isSignature/signatureNumber/signatureEdition) — not on the card definition, so passed separately (mirrors `foil`). */
+  signature?: { number: number; edition: number } | null;
 }) {
   const stats = card.combatStatsEnabled ? parseCombatStats(card.combatStats) : null;
   return (
@@ -360,6 +373,7 @@ export function CardArt({
         rarity: card.rarity,
         imageUrl: card.imageUrl,
         combatGrade: stats ? combatGradeForStats(stats) : null,
+        signature,
       }}
       className={className ?? "relative aspect-[3/4] w-full"}
       priority={priority}
@@ -375,6 +389,7 @@ export function CardTile({
   href,
   count,
   foil,
+  signature,
 }: {
   instanceId: string;
   card: CardDefinition;
@@ -383,10 +398,11 @@ export function CardTile({
   /** How many owned copies this tile stacks for (duplicates shown as one tile + a "×N" badge instead of repeating). */
   count?: number;
   foil?: boolean;
+  signature?: { number: number; edition: number } | null;
 }) {
   const content = (
     <div className="group relative">
-      <CardArt card={card} className="relative aspect-[3/4] w-full" foil={foil} />
+      <CardArt card={card} className="relative aspect-[3/4] w-full" foil={foil} signature={signature} />
       {count && count > 1 && (
         <span className="pointer-events-none absolute left-1.5 top-9 z-30 rounded-full border border-white/15 bg-black/75 px-2 py-0.5 text-[10.5px] font-bold text-white backdrop-blur-sm">
           ×{count}

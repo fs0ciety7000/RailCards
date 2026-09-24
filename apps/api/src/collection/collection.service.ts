@@ -16,6 +16,13 @@ export class CollectionService {
    * pagination applies to the resulting groups, not the raw instance rows —
    * otherwise duplicates split across a page boundary would silently stop
    * stacking once a collection outgrew a single page.
+   *
+   * A signature instance never stacks, not even with another signature copy
+   * of the same card — each one carries its own individually meaningful
+   * "N/M" numbering, so folding it into (or behind) a count badge would hide
+   * exactly what makes it worth showing. The CASE-on-id term below is NULL
+   * (so ordinary duplicates keep grouping together) unless isSignature is
+   * true, where it becomes the row's own id and forces a group of one.
    */
   async listInventory(
     userId: string,
@@ -38,7 +45,7 @@ export class CollectionService {
       JOIN "CardDefinition" cd ON cd.id = ci."cardDefinitionId"
       JOIN "Rarity" r ON r.id = cd."rarityId"
       WHERE ci."ownerId" = ${userId} ${seriesFilter} ${rarityFilter} ${stateFilter}
-      GROUP BY ci."cardDefinitionId", ci.state, ci."isFoil"
+      GROUP BY ci."cardDefinitionId", ci.state, ci."isFoil", (CASE WHEN ci."isSignature" THEN ci.id END)
       ORDER BY MAX(ci."acquiredAt") DESC
       LIMIT ${params.pageSize} OFFSET ${offset}
     `;
@@ -51,7 +58,7 @@ export class CollectionService {
           JOIN "CardDefinition" cd ON cd.id = ci."cardDefinitionId"
           JOIN "Rarity" r ON r.id = cd."rarityId"
           WHERE ci."ownerId" = ${userId} ${seriesFilter} ${rarityFilter} ${stateFilter}
-          GROUP BY ci."cardDefinitionId", ci.state, ci."isFoil"
+          GROUP BY ci."cardDefinitionId", ci.state, ci."isFoil", (CASE WHEN ci."isSignature" THEN ci.id END)
         ) t
       `,
       groups.length > 0

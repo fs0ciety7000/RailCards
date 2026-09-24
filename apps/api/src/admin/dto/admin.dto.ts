@@ -122,6 +122,12 @@ export class GrantCardDto {
   @IsOptional() @IsInt() @Min(1) @Max(50) quantity?: number;
 }
 
+export class MintSignatureCardDto {
+  @IsUUID("4") cardDefinitionId!: string;
+  /** Only honored on a card's first-ever signature mint; ignored (and the already-fixed size used instead) on every mint after that. */
+  @IsOptional() @IsInt() @Min(1) @Max(100) editionSize?: number;
+}
+
 const MISSION_GOAL_TYPES = [
   "OPEN_BOOSTER",
   "COLLECT_UNIQUE_CARDS",

@@ -149,6 +149,7 @@ function CollectionContent() {
                   href={`/collection/${instance.id}`}
                   count={instance.count}
                   foil={instance.isFoil}
+                  signature={instance.isSignature ? { number: instance.signatureNumber!, edition: instance.signatureEdition! } : null}
                 />
               </StaggerItem>
             ))}

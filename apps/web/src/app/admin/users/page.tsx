@@ -4,8 +4,15 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldOff, ShieldCheck, Search, Wallet, Gift, RotateCcw, Trash2 } from "lucide-react";
-import { adjustWalletSchema, grantCardSchema, type AdjustWalletInput, type GrantCardInput } from "@railcards/contracts";
+import { ShieldOff, ShieldCheck, Search, Wallet, Gift, Signature, RotateCcw, Trash2 } from "lucide-react";
+import {
+  adjustWalletSchema,
+  grantCardSchema,
+  mintSignatureCardSchema,
+  type AdjustWalletInput,
+  type GrantCardInput,
+  type MintSignatureCardInput,
+} from "@railcards/contracts";
 import {
   Badge,
   Button,
@@ -191,11 +198,101 @@ function GrantCardDialog({ user, onClose }: { user: AdminUserRow | null; onClose
   );
 }
 
+function MintSignatureCardDialog({ user, onClose }: { user: AdminUserRow | null; onClose: () => void }) {
+  const toast = useToast();
+  const cardsQuery = useQuery({
+    queryKey: ["admin", "cards", "all"],
+    queryFn: () => adminApi.listCards({ pageSize: 500 }),
+    enabled: !!user,
+  });
+  const sortedCards = [...(cardsQuery.data?.items ?? [])].sort((a: CardDefinition, b: CardDefinition) => a.name.localeCompare(b.name));
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<MintSignatureCardInput>({
+    resolver: zodResolver(mintSignatureCardSchema),
+    defaultValues: { cardDefinitionId: "", editionSize: 1 },
+  });
+
+  const mutation = useMutation({
+    mutationFn: (values: MintSignatureCardInput) => adminApi.mintSignatureCard(user!.id, values),
+    onSuccess: (result) => {
+      toast.show({
+        tone: "success",
+        title: "Carte signature créée",
+        description: `Exemplaire Nº${result.signatureNumber}/${result.signatureEdition}`,
+      });
+      reset({ cardDefinitionId: "", editionSize: 1 });
+      onClose();
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  function close() {
+    reset({ cardDefinitionId: "", editionSize: 1 });
+    onClose();
+  }
+
+  return (
+    <Dialog
+      open={!!user}
+      onClose={close}
+      title="Créer une carte signature"
+      description={user ? `${user.displayName} (@${user.username}) — numérotée, réservée aux événements spéciaux` : undefined}
+      footer={
+        <>
+          <Button type="button" variant="ghost" onClick={close} disabled={mutation.isPending}>
+            Annuler
+          </Button>
+          <Button type="submit" form="mint-signature-card-form" loading={mutation.isPending}>
+            Créer
+          </Button>
+        </>
+      }
+    >
+      {user && (
+        <form id="mint-signature-card-form" onSubmit={handleSubmit((v) => mutation.mutate(v))} noValidate className="grid gap-3">
+          <FieldGroup>
+            <Label htmlFor="mint-cardDefinitionId">Carte</Label>
+            <Select
+              id="mint-cardDefinitionId"
+              invalid={!!errors.cardDefinitionId}
+              disabled={cardsQuery.isLoading}
+              {...register("cardDefinitionId")}
+            >
+              <option value="">Sélectionnez</option>
+              {sortedCards.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.series.name} ({c.rarity.label})
+                </option>
+              ))}
+            </Select>
+            <FieldError>{errors.cardDefinitionId?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup className="mb-0">
+            <Label htmlFor="editionSize">Taille de l&rsquo;édition</Label>
+            <Input id="editionSize" type="number" min={1} max={100} invalid={!!errors.editionSize} {...register("editionSize")} />
+            <p className="mt-1 text-xs text-white/40">
+              Ignorée si cette carte a déjà un exemplaire signature : la taille du premier exemplaire fait foi. Laisser à 1 pour un
+              1/1.
+            </p>
+            <FieldError>{errors.editionSize?.message}</FieldError>
+          </FieldGroup>
+        </form>
+      )}
+    </Dialog>
+  );
+}
+
 function AdminUsersContent() {
   const [search, setSearch] = useState("");
   const [target, setTarget] = useState<{ id: string; action: "suspend" | "reactivate" } | null>(null);
   const [walletTarget, setWalletTarget] = useState<AdminUserRow | null>(null);
   const [grantCardTarget, setGrantCardTarget] = useState<AdminUserRow | null>(null);
+  const [mintSignatureTarget, setMintSignatureTarget] = useState<AdminUserRow | null>(null);
   const [resetTarget, setResetTarget] = useState<AdminUserRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
   const toast = useToast();
@@ -315,6 +412,14 @@ function AdminUsersContent() {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          icon={<Signature className="h-3.5 w-3.5" aria-hidden="true" />}
+                          onClick={() => setMintSignatureTarget(u)}
+                        >
+                          Signature
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           icon={<RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />}
                           onClick={() => setResetTarget(u)}
@@ -360,6 +465,7 @@ function AdminUsersContent() {
 
       <WalletAdjustmentDialog user={walletTarget} onClose={() => setWalletTarget(null)} />
       <GrantCardDialog user={grantCardTarget} onClose={() => setGrantCardTarget(null)} />
+      <MintSignatureCardDialog user={mintSignatureTarget} onClose={() => setMintSignatureTarget(null)} />
 
       <ConfirmDialog
         open={!!resetTarget}

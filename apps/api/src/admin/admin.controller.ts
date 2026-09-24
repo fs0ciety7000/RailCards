@@ -38,6 +38,7 @@ import {
   CreateQuestDto,
   CreateSeriesDto,
   GrantCardDto,
+  MintSignatureCardDto,
   PublishPoolVersionDto,
   ResolveReportDto,
   UpdateAchievementDto,
@@ -466,6 +467,13 @@ export class AdminController {
   async grantCard(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: GrantCardDto) {
     const result = await this.adminUsers.grantCard(id, dto.cardDefinitionId, dto.quantity ?? 1);
     await this.auditLog.record(admin.id, "user.grant_card", "User", id, result);
+    return result;
+  }
+
+  @Post("users/:id/mint-signature-card")
+  async mintSignatureCard(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: MintSignatureCardDto) {
+    const result = await this.adminUsers.mintSignatureCard(id, dto.cardDefinitionId, dto.editionSize ?? 1);
+    await this.auditLog.record(admin.id, "user.mint_signature_card", "User", id, result);
     return result;
   }
 

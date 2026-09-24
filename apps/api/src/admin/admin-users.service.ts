@@ -175,6 +175,59 @@ export class AdminUsersService {
   }
 
   /**
+   * Hand-mints one numbered signature instance of `cardDefinitionId` for
+   * `targetUserId` — a special-event collectible, distinct from an ordinary
+   * `grantCard`: it carries its own "N/M" numbering (signatureNumber /
+   * signatureEdition), scoped only to this card's own signature mints, set
+   * once at the very first mint and binding for every mint after it.
+   * `editionSize` is only honored on that first mint (e.g. 1 for a true
+   * 1/1); later calls ignore it and use whatever size was already fixed.
+   * Throws once every slot in the edition has been minted.
+   */
+  async mintSignatureCard(targetUserId: string, cardDefinitionId: string, editionSize: number) {
+    const [user, card] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: targetUserId } }),
+      this.prisma.cardDefinition.findUnique({ where: { id: cardDefinitionId } }),
+    ]);
+    if (!user) throw new NotFoundException("User not found");
+    if (!card) throw new NotFoundException("Card not found");
+
+    return this.prisma.$transaction(async (tx) => {
+      const existingSignatures = await tx.cardInstance.findMany({
+        where: { cardDefinitionId, isSignature: true },
+        orderBy: { signatureNumber: "asc" },
+      });
+      const fixedEdition = existingSignatures[0]?.signatureEdition ?? editionSize;
+      if (existingSignatures.length >= fixedEdition) {
+        throw new ConflictException(`Toute l'édition signature de cette carte est déjà distribuée (${fixedEdition}/${fixedEdition}).`);
+      }
+      const signatureNumber = existingSignatures.length + 1;
+
+      const priorCount = await tx.cardInstance.count({ where: { cardDefinitionId } });
+      const instance = await tx.cardInstance.create({
+        data: {
+          cardDefinitionId,
+          ownerId: targetUserId,
+          serialNumber: priorCount + 1,
+          acquiredVia: "SIGNATURE_EVENT",
+          isSignature: true,
+          signatureNumber,
+          signatureEdition: fixedEdition,
+        },
+      });
+
+      await this.missions.checkSeriesCompletion(tx, targetUserId, [cardDefinitionId]);
+      await this.notifications.create(tx, targetUserId, "SYSTEM", {
+        message: `Vous avez reçu une carte signature d'événement : "${card.name}" (Nº${signatureNumber}/${fixedEdition}) !`,
+        cardDefinitionId,
+        signatureNumber,
+        signatureEdition: fixedEdition,
+      });
+      return { instanceId: instance.id, cardDefinitionId, signatureNumber, signatureEdition: fixedEdition };
+    });
+  }
+
+  /**
    * Permanently deletes an account and everything tied to it: collection,
    * trades, market activity, missions/achievements progress, wallet,
    * sessions, notifications. Cascades and SET NULLs declared in the schema

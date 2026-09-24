@@ -588,6 +588,11 @@ export const adminApi = {
     request<{ balance: number }>(`/admin/users/${id}/wallet-adjustment`, { method: "POST", body: input }),
   grantCard: (id: string, input: { cardDefinitionId: string; quantity?: number }) =>
     request<{ granted: number; cardDefinitionId: string }>(`/admin/users/${id}/grant-card`, { method: "POST", body: input }),
+  mintSignatureCard: (id: string, input: { cardDefinitionId: string; editionSize?: number }) =>
+    request<{ instanceId: string; cardDefinitionId: string; signatureNumber: number; signatureEdition: number }>(
+      `/admin/users/${id}/mint-signature-card`,
+      { method: "POST", body: input },
+    ),
   resetUserCards: (id: string) =>
     request<{ instancesRemoved: number }>(`/admin/users/${id}/reset-cards`, { method: "POST" }),
   deleteUser: (id: string) => request<{ deleted: boolean }>(`/admin/users/${id}`, { method: "DELETE" }),

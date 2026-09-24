@@ -169,7 +169,9 @@ export type AcquisitionSource =
   | "ADMIN_GRANT"
   | "MISSION_REWARD"
   | "ACHIEVEMENT_REWARD"
-  | "FOUNDER_GRANT";
+  | "FOUNDER_GRANT"
+  | "CRAFT"
+  | "SIGNATURE_EVENT";
 
 export interface CardInstance {
   id: string;
@@ -182,6 +184,10 @@ export interface CardInstance {
   acquiredAt: string;
   /** Cosmetic-only holo/foil variant — no stat or rarity effect. */
   isFoil: boolean;
+  /** A one-of-a-kind (or small-run) signature print hand-minted by an admin for a special event. */
+  isSignature: boolean;
+  signatureNumber: number | null;
+  signatureEdition: number | null;
   /** Present on grouped listings (e.g. the collection grid): how many owned copies this entry stacks for. */
   count?: number;
 }
