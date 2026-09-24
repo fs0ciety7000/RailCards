@@ -11,6 +11,8 @@ import {
 } from "motion/react";
 import { Gem, Sparkles } from "lucide-react";
 import { cn } from "@railcards/ui";
+import { combatGradeForStats, type CombatGradeInfo } from "@railcards/game-domain";
+import { parseCombatStats } from "@/components/CombatStatsPanel";
 import type { CardDefinition, Rarity } from "@/lib/types";
 
 /**
@@ -129,6 +131,8 @@ export interface CardFaceData {
   name: string;
   rarity: Rarity;
   imageUrl: string;
+  /** A card's overall combat-stat grade (S/A/B/C/D), shown as a small badge distinct from the rarity footer — omitted for cards without combat stats. */
+  combatGrade?: CombatGradeInfo | null;
 }
 
 function isPlaceholderArt(imageUrl: string): boolean {
@@ -202,8 +206,18 @@ export function CardFrame({
 
   return (
     <div
-      className={cn("relative", className)}
-      style={{ perspective: 800 }}
+      className={cn("relative rounded-2xl", className)}
+      style={{
+        perspective: 800,
+        // A combat grade adds its own thin colored ring, drawn outside the
+        // rarity frame's own border — a second, independent border so the
+        // two gradings never get confused with one another. Lives on this
+        // outer wrapper (not the frame div below) because that one clips
+        // its own box-shadow via overflow-hidden.
+        ...(card.combatGrade
+          ? { boxShadow: `0 0 0 2px ${card.combatGrade.colorHex}, 0 6px 16px -10px ${card.combatGrade.colorHex}90` }
+          : {}),
+      }}
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -300,14 +314,25 @@ export function CardFrame({
               <span className="truncate text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: hex }}>
                 {card.rarity.label}
               </span>
-              {foil && (
-                <span
-                  className="ml-auto shrink-0 rounded-full px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-black"
-                  style={{ background: holoConicGradient(hex) }}
-                >
-                  Foil
-                </span>
-              )}
+              <span className="ml-auto flex shrink-0 items-center gap-1">
+                {foil && (
+                  <span
+                    className="rounded-full px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide text-black"
+                    style={{ background: holoConicGradient(hex) }}
+                  >
+                    Foil
+                  </span>
+                )}
+                {card.combatGrade && (
+                  <span
+                    className="rounded-full border px-1.5 py-[1px] text-[9px] font-bold uppercase tracking-wide"
+                    style={{ borderColor: card.combatGrade.colorHex, color: card.combatGrade.colorHex }}
+                    title={card.combatGrade.label}
+                  >
+                    {card.combatGrade.grade}
+                  </span>
+                )}
+              </span>
             </div>
           </div>
         </div>
@@ -327,9 +352,15 @@ export function CardArt({
   priority?: boolean;
   foil?: boolean;
 }) {
+  const stats = card.combatStatsEnabled ? parseCombatStats(card.combatStats) : null;
   return (
     <CardFrame
-      card={{ name: card.name, rarity: card.rarity, imageUrl: card.imageUrl }}
+      card={{
+        name: card.name,
+        rarity: card.rarity,
+        imageUrl: card.imageUrl,
+        combatGrade: stats ? combatGradeForStats(stats) : null,
+      }}
       className={className ?? "relative aspect-[3/4] w-full"}
       priority={priority}
       foil={foil}

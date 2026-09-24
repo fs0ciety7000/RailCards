@@ -341,6 +341,9 @@ importers:
       '@railcards/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@railcards/game-domain':
+        specifier: workspace:*
+        version: link:../../packages/game-domain
       '@railcards/ui':
         specifier: workspace:*
         version: link:../../packages/ui

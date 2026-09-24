@@ -13,6 +13,7 @@
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
     "@railcards/contracts": "workspace:*",
+    "@railcards/game-domain": "workspace:*",
     "@railcards/ui": "workspace:*",
     "@tanstack/react-query": "^5.103.2",
     "clsx": "^2.1.1",
