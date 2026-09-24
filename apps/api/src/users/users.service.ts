@@ -5,6 +5,7 @@ import { GradesService } from "../grades/grades.service";
 import { FavoritesService } from "./favorites.service";
 import { ProfileBannersService } from "../profile-banners/profile-banners.service";
 import { ProfileTitlesService } from "../profile-titles/profile-titles.service";
+import { MissionsService } from "../missions/missions.service";
 import { levelForXp, xpToNextLevel } from "@railcards/game-domain";
 import type { UpdateMeDto } from "./dto/update-me.dto";
 
@@ -17,6 +18,7 @@ export class UsersService {
     private readonly favorites: FavoritesService,
     private readonly profileBanners: ProfileBannersService,
     private readonly profileTitles: ProfileTitlesService,
+    private readonly missions: MissionsService,
   ) {}
 
   async getMe(userId: string) {
@@ -98,6 +100,7 @@ export class UsersService {
     const favoriteCards = await this.favorites.list(user.id);
     const activeBanner = await this.profileBanners.getActiveBanner(user.id);
     const activeTitle = await this.profileTitles.getActiveTitle(user.id);
+    const achievements = await this.missions.listClaimedAchievements(user.id);
     return {
       username: user.username,
       displayName: user.displayName,
@@ -113,6 +116,7 @@ export class UsersService {
       favoriteCards,
       activeBanner,
       activeTitle,
+      achievements,
     };
   }
 

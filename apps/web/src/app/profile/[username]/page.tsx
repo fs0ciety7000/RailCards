@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Flame, Camera, Crown, Flag, Lock, Tag, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
+import { Mail, Wallet, Sparkles, Award, Flame, Camera, Crown, Flag, Lock, Tag, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
 import { changePasswordSchema, type ChangePasswordInput } from "@railcards/contracts";
 import { Badge, Button, Card, CardBody, Dialog, EmptyState, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -19,7 +19,7 @@ import { ApiError, authApi, collectionApi, profileBannersApi, profileTitlesApi, 
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
 import { useAuthStore } from "@/lib/auth-store";
-import type { CardDefinition, ProfileBanner, ProfileTitle } from "@/lib/types";
+import type { CardDefinition, ProfileAchievementBadge, ProfileBanner, ProfileTitle } from "@/lib/types";
 
 const MAX_FAVORITES = 5;
 
@@ -320,6 +320,47 @@ function FavoritesSection({
   );
 }
 
+function AchievementBadgesSection({ achievements, isOwn }: { achievements: ProfileAchievementBadge[]; isOwn: boolean }) {
+  if (achievements.length === 0) {
+    if (!isOwn) return null;
+    return (
+      <Card className="mt-4">
+        <CardBody>
+          <h2 className="mb-1 flex items-center gap-1.5 font-semibold text-white">
+            <Award className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+            Hauts faits
+          </h2>
+          <p className="text-sm text-white/40 italic">Aucun haut fait réclamé pour l&apos;instant.</p>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mt-4">
+      <CardBody>
+        <h2 className="mb-3 flex items-center gap-1.5 font-semibold text-white">
+          <Award className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+          Hauts faits ({achievements.length})
+        </h2>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {achievements.map((a) => (
+            <div key={a.id} className="flex items-start gap-2.5 rounded-lg border border-rc-border bg-white/[0.02] px-3 py-2.5" title={a.description}>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rc-accent/15 text-rc-accent">
+                <Award className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-white">{a.title}</p>
+                <p className="text-xs text-white/40">{formatDate(a.claimedAt)}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
 function BannerSwatch({ banner, selected, onClick, loading }: { banner: ProfileBanner; selected: boolean; onClick: () => void; loading: boolean }) {
   return (
     <button
@@ -559,6 +600,7 @@ function ProfileContent() {
       </Card>
 
       <FavoritesSection favoriteCards={profile.favoriteCards} isOwn={isOwn} />
+      <AchievementBadgesSection achievements={profile.achievements} isOwn={isOwn} />
       <BannersSection isOwn={isOwn} />
       <TitlesSection isOwn={isOwn} />
 

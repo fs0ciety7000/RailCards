@@ -1,5 +1,6 @@
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
+import { randomUUID } from "node:crypto";
 import { createTestApp } from "./utils/test-app";
 import { loginAdmin, registerUser } from "./utils/fixtures";
 
@@ -76,6 +77,42 @@ describe("Users: self-service profile (e2e, real Postgres)", () => {
       .get(`/api/v1/users/${owner.username}`)
       .set("Authorization", `Bearer ${adminToken}`)
       .expect(200);
+  });
+
+  it("shows claimed achievements as badges on the public profile, but not completed-yet-unclaimed ones", async () => {
+    const player = await registerUser(app, adminToken, "badgeplayer");
+    const viewer = await registerUser(app, adminToken, "badgeviewer");
+
+    const code = `badge-achievement-${randomUUID().slice(0, 8)}`;
+    const achievement = await request(app.getHttpServer())
+      .post("/api/v1/admin/achievements")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ code, title: "Badge de test", description: "…", goalType: "LOGIN", goalCount: 1, rewardCr: 0, rewardXp: 5 })
+      .expect(201);
+
+    // The achievement didn't exist yet at registration time, so its LOGIN
+    // progress needs a fresh login to record.
+    await request(app.getHttpServer()).post("/api/v1/auth/login").send({ email: player.email, password: "Abcdef1234" }).expect(201);
+
+    const beforeClaim = await request(app.getHttpServer())
+      .get(`/api/v1/users/${player.username}`)
+      .set("Authorization", `Bearer ${viewer.accessToken}`)
+      .expect(200);
+    expect(beforeClaim.body.achievements.some((a: { code: string }) => a.code === code)).toBe(false);
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/achievements/${achievement.body.id}/claim`)
+      .set("Authorization", `Bearer ${player.accessToken}`)
+      .expect(201);
+
+    const afterClaim = await request(app.getHttpServer())
+      .get(`/api/v1/users/${player.username}`)
+      .set("Authorization", `Bearer ${viewer.accessToken}`)
+      .expect(200);
+    const badge = afterClaim.body.achievements.find((a: { code: string }) => a.code === code);
+    expect(badge).toBeTruthy();
+    expect(badge.title).toBe("Badge de test");
+    expect(badge.claimedAt).toBeTruthy();
   });
 
   describe("GET /users/search", () => {

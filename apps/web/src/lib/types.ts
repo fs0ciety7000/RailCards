@@ -50,6 +50,15 @@ export interface PublicProfile {
   favoriteCards: CardDefinition[];
   activeBanner: ProfileBanner | null;
   activeTitle: ProfileTitle | null;
+  achievements: ProfileAchievementBadge[];
+}
+
+export interface ProfileAchievementBadge {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  claimedAt: string;
 }
 
 export interface ProfileBanner {

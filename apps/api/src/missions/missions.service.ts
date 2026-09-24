@@ -268,6 +268,27 @@ export class MissionsService {
     });
   }
 
+  /**
+   * Claimed achievements for `userId`, oldest first — what a public profile
+   * shows as a badge grid, beyond the plain progress list in
+   * listAchievements. Only claimed ones (not merely completed) count as a
+   * badge: the player has actually collected the reward.
+   */
+  async listClaimedAchievements(userId: string) {
+    const rows = await this.prisma.userAchievement.findMany({
+      where: { userId, claimedAt: { not: null } },
+      include: { achievement: true },
+      orderBy: { claimedAt: "asc" },
+    });
+    return rows.map((ua) => ({
+      id: ua.achievement.id,
+      code: ua.achievement.code,
+      title: ua.achievement.title,
+      description: ua.achievement.description,
+      claimedAt: ua.claimedAt,
+    }));
+  }
+
   async claimMission(userId: string, userMissionId: string) {
     return this.prisma.$transaction(async (tx) => {
       const um = await tx.userMission.findUnique({ where: { id: userMissionId }, include: { mission: true } });
