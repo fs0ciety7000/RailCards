@@ -1,10 +1,13 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Lock } from "lucide-react";
-import { Button, ErrorState, Skeleton } from "@railcards/ui";
+import { ArrowLeft, Download, FileText, Lock } from "lucide-react";
+import { toPng } from "html-to-image";
+import { jsPDF } from "jspdf";
+import { Button, ErrorState, Skeleton, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
@@ -13,6 +16,24 @@ import { Stagger, StaggerItem } from "@/components/Stagger";
 import { collectionApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import type { AlbumSeriesCard } from "@/lib/types";
+
+/**
+ * `cacheBust` + an explicit `backgroundColor` keep external card art
+ * readable in the exported PNG instead of coming out transparent or stale
+ * (html-to-image otherwise reuses whatever it last fetched for a given URL).
+ */
+async function captureAlbumPng(node: HTMLElement): Promise<string> {
+  return toPng(node, { backgroundColor: "#060a14", pixelRatio: 2, cacheBust: true });
+}
+
+function slugForFile(name: string) {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
 
 /** An un-owned slot: a silhouette that hints at rarity without spoiling the art or name. */
 function MysterySlot({ card }: { card: AlbumSeriesCard }) {
@@ -32,10 +53,51 @@ function MysterySlot({ card }: { card: AlbumSeriesCard }) {
 
 function AlbumSeriesContent() {
   const params = useParams<{ seriesId: string }>();
+  const toast = useToast();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState<"png" | "pdf" | null>(null);
   const query = useQuery({
     queryKey: ["collection", "album", params.seriesId],
     queryFn: () => collectionApi.albumSeries(params.seriesId),
   });
+
+  async function exportPng() {
+    if (!gridRef.current || exporting) return;
+    setExporting("png");
+    try {
+      const dataUrl = await captureAlbumPng(gridRef.current);
+      const link = document.createElement("a");
+      link.download = `album-${slugForFile(query.data!.name)}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      toast.show({ tone: "error", title: "Export impossible", description: getErrorMessage(err) });
+    } finally {
+      setExporting(null);
+    }
+  }
+
+  async function exportPdf() {
+    if (!gridRef.current || exporting) return;
+    setExporting("pdf");
+    try {
+      const dataUrl = await captureAlbumPng(gridRef.current);
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("L'image générée n'a pas pu être chargée"));
+        img.src = dataUrl;
+      });
+      const orientation = img.width >= img.height ? "landscape" : "portrait";
+      const pdf = new jsPDF({ orientation, unit: "px", format: [img.width, img.height] });
+      pdf.addImage(dataUrl, "PNG", 0, 0, img.width, img.height);
+      pdf.save(`album-${slugForFile(query.data!.name)}.pdf`);
+    } catch (err) {
+      toast.show({ tone: "error", title: "Export impossible", description: getErrorMessage(err) });
+    } finally {
+      setExporting(null);
+    }
+  }
 
   if (query.isLoading) {
     return (
@@ -60,27 +122,51 @@ function AlbumSeriesContent() {
         title={data.name}
         description={`${ownedCount}/${data.cards.length} carte(s) obtenue(s)`}
         actions={
-          <Link href="/collection/album">
-            <Button variant="outline" size="sm" icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}>
-              Retour
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Download className="h-4 w-4" aria-hidden="true" />}
+              onClick={exportPng}
+              loading={exporting === "png"}
+              disabled={exporting !== null}
+            >
+              Image
             </Button>
-          </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<FileText className="h-4 w-4" aria-hidden="true" />}
+              onClick={exportPdf}
+              loading={exporting === "pdf"}
+              disabled={exporting !== null}
+            >
+              PDF
+            </Button>
+            <Link href="/collection/album">
+              <Button variant="outline" size="sm" icon={<ArrowLeft className="h-4 w-4" aria-hidden="true" />}>
+                Retour
+              </Button>
+            </Link>
+          </div>
         }
       />
-      <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {data.cards.map((c) => (
-          <StaggerItem key={c.id}>
-            {c.owned ? (
-              <CardFrame
-                card={{ name: c.name!, rarity: c.rarity, imageUrl: c.imageUrl! }}
-                className="relative aspect-[3/4] w-full"
-              />
-            ) : (
-              <MysterySlot card={c} />
-            )}
-          </StaggerItem>
-        ))}
-      </Stagger>
+      <div ref={gridRef} className="h-fit self-start rounded-2xl p-1">
+        <Stagger className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {data.cards.map((c) => (
+            <StaggerItem key={c.id}>
+              {c.owned ? (
+                <CardFrame
+                  card={{ name: c.name!, rarity: c.rarity, imageUrl: c.imageUrl! }}
+                  className="relative aspect-[3/4] w-full"
+                />
+              ) : (
+                <MysterySlot card={c} />
+              )}
+            </StaggerItem>
+          ))}
+        </Stagger>
+      </div>
     </div>
   );
 }
