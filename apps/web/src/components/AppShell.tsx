@@ -19,6 +19,7 @@ import {
   Menu,
   Radio,
   Repeat,
+  Search,
   Shield,
   Sparkles,
   Swords,
@@ -34,6 +35,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { usersApi, notificationsApi, authApi } from "@/lib/api";
 import { useNotificationsSocket } from "@/lib/use-notifications-socket";
 import { LiveBanners } from "@/components/LiveBanners";
+import { CommandPalette } from "@/components/CommandPalette";
 
 const PRIMARY_TABS = [
   { href: "/home", label: "Accueil", icon: Home },
@@ -113,6 +115,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <CrAmount value={meQuery.data.walletBalance} className="text-rc-accent" />
               </div>
             )}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("railcards:open-command-palette"))}
+              className="hidden items-center gap-1.5 rounded-full border border-rc-border bg-white/[0.04] px-3 py-1.5 text-sm text-white/50 hover:bg-white/[0.08] hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent sm:flex"
+              aria-label="Recherche globale"
+            >
+              <Search className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden lg:inline">Rechercher…</span>
+              <kbd className="hidden rounded border border-rc-border px-1 text-[10px] font-semibold lg:inline">⌘K</kbd>
+            </button>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("railcards:open-command-palette"))}
+              className="rounded-full p-2 text-white/70 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent sm:hidden"
+              aria-label="Recherche globale"
+            >
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </button>
             <Link
               href="/notifications"
               className="relative rounded-full p-2 text-white/70 hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent"
@@ -290,6 +310,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </aside>
+
+      <CommandPalette />
     </div>
   );
 }

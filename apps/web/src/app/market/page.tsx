@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftRight, Gavel } from "lucide-react";
 import { Badge, Button, Card, CardBody, CrAmount, EmptyState, ErrorState, Input, RarityBadge, Select, SkeletonGrid } from "@railcards/ui";
@@ -18,8 +19,12 @@ import type { MarketListingType } from "@/lib/types";
 const PAGE_SIZE = 20;
 
 function MarketContent() {
+  const searchParams = useSearchParams();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  // Seeds from ?search= (e.g. the global command palette jumping to a
+  // specific card) — read once on mount, then purely local state, same as
+  // every other filter on this page.
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [rarity, setRarity] = useState("");
   const [listingType, setListingType] = useState<MarketListingType | "">("");
   const [sort, setSort] = useState<"price_asc" | "price_desc" | "recent">("recent");
@@ -187,7 +192,9 @@ export default function MarketPage() {
   return (
     <RequireAuth>
       <AppShell>
-        <MarketContent />
+        <Suspense fallback={null}>
+          <MarketContent />
+        </Suspense>
       </AppShell>
     </RequireAuth>
   );
