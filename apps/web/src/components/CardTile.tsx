@@ -351,12 +351,79 @@ export function CardFrame({
   );
 }
 
+export interface CardSleeveData {
+  colorFrom: string;
+  colorTo: string;
+  pattern: string;
+}
+
+/** Tileable low-opacity texture per sleeve pattern key — drawn in white so it reads on any sleeve color pair. */
+function sleevePatternStyle(pattern: string): React.CSSProperties {
+  switch (pattern) {
+    case "dots":
+      return { backgroundImage: "radial-gradient(#fff 1.1px, transparent 1.1px)", backgroundSize: "9px 9px" };
+    case "diagonal":
+      return { backgroundImage: "repeating-linear-gradient(45deg, #fff 0 2px, transparent 2px 10px)" };
+    case "grid":
+      return {
+        backgroundImage:
+          "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
+        backgroundSize: "10px 10px",
+      };
+    case "waves":
+      return {
+        backgroundImage: "repeating-radial-gradient(circle at 0 0, transparent 0, #fff 8px, transparent 9px)",
+        backgroundSize: "16px 16px",
+      };
+    case "chevron":
+      return {
+        backgroundImage:
+          "repeating-linear-gradient(120deg, #fff 0 2px, transparent 2px 11px), repeating-linear-gradient(60deg, #fff 0 2px, transparent 2px 11px)",
+      };
+    default:
+      return {};
+  }
+}
+
+/**
+ * An account-wide cosmetic wrapped around the OUTSIDE of a full card face —
+ * a gradient "mat" border plus a faint tileable pattern — never touching the
+ * card's own rarity frame/combat-grade ring underneath. `className` carries
+ * the sizing (aspect ratio etc.) that would otherwise go straight on
+ * CardFrame, since the sleeve now owns the outer box.
+ */
+export function SleeveFrame({
+  sleeve,
+  className,
+  children,
+}: {
+  sleeve?: CardSleeveData | null;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  if (!sleeve) return <div className={className}>{children}</div>;
+  return (
+    <div
+      className={cn("relative rounded-[20px] p-[5px]", className)}
+      style={{ background: `linear-gradient(135deg, ${sleeve.colorFrom}, ${sleeve.colorTo})` }}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[5px] rounded-2xl opacity-[0.12]"
+        style={sleevePatternStyle(sleeve.pattern)}
+      />
+      <div className="relative h-full w-full">{children}</div>
+    </div>
+  );
+}
+
 export function CardArt({
   card,
   className,
   priority,
   foil,
   signature,
+  sleeve,
 }: {
   card: CardDefinition;
   className?: string;
@@ -364,21 +431,25 @@ export function CardArt({
   foil?: boolean;
   /** Instance-level numbered signature (CardInstance.isSignature/signatureNumber/signatureEdition) — not on the card definition, so passed separately (mirrors `foil`). */
   signature?: { number: number; edition: number } | null;
+  /** The viewer's own equipped card sleeve (account-wide cosmetic) — not tied to this card at all, so it's on the caller to only pass it in the viewer's own collection views. */
+  sleeve?: CardSleeveData | null;
 }) {
   const stats = card.combatStatsEnabled ? parseCombatStats(card.combatStats) : null;
   return (
-    <CardFrame
-      card={{
-        name: card.name,
-        rarity: card.rarity,
-        imageUrl: card.imageUrl,
-        combatGrade: stats ? combatGradeForStats(stats) : null,
-        signature,
-      }}
-      className={className ?? "relative aspect-[3/4] w-full"}
-      priority={priority}
-      foil={foil}
-    />
+    <SleeveFrame sleeve={sleeve} className={className ?? "relative aspect-[3/4] w-full"}>
+      <CardFrame
+        card={{
+          name: card.name,
+          rarity: card.rarity,
+          imageUrl: card.imageUrl,
+          combatGrade: stats ? combatGradeForStats(stats) : null,
+          signature,
+        }}
+        className="relative h-full w-full"
+        priority={priority}
+        foil={foil}
+      />
+    </SleeveFrame>
   );
 }
 
@@ -390,6 +461,7 @@ export function CardTile({
   count,
   foil,
   signature,
+  sleeve,
 }: {
   instanceId: string;
   card: CardDefinition;
@@ -399,10 +471,11 @@ export function CardTile({
   count?: number;
   foil?: boolean;
   signature?: { number: number; edition: number } | null;
+  sleeve?: CardSleeveData | null;
 }) {
   const content = (
     <div className="group relative">
-      <CardArt card={card} className="relative aspect-[3/4] w-full" foil={foil} signature={signature} />
+      <CardArt card={card} className="relative aspect-[3/4] w-full" foil={foil} signature={signature} sleeve={sleeve} />
       {count && count > 1 && (
         <span className="pointer-events-none absolute left-1.5 top-9 z-30 rounded-full border border-white/15 bg-black/75 px-2 py-0.5 text-[10.5px] font-bold text-white backdrop-blur-sm">
           ×{count}
@@ -442,6 +515,7 @@ export function CardListRow({
   count,
   foil,
   signature,
+  sleeve,
 }: {
   card: CardDefinition;
   state?: string;
@@ -449,13 +523,21 @@ export function CardListRow({
   count?: number;
   foil?: boolean;
   signature?: { number: number; edition: number } | null;
+  sleeve?: CardSleeveData | null;
 }) {
   const hex = card.rarity.colorHex;
   const stats = card.combatStatsEnabled ? parseCombatStats(card.combatStats) : null;
   const grade = stats ? combatGradeForStats(stats) : null;
 
   const content = (
-    <div className="group flex items-center gap-3 rounded-xl border border-rc-border bg-rc-night-light px-3 py-2 transition-colors hover:border-rc-border-strong hover:bg-rc-night-lighter">
+    <div className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-rc-border bg-rc-night-light py-2 pl-3 pr-3 transition-colors hover:border-rc-border-strong hover:bg-rc-night-lighter">
+      {sleeve && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 w-[3px]"
+          style={{ background: `linear-gradient(180deg, ${sleeve.colorFrom}, ${sleeve.colorTo})` }}
+        />
+      )}
       <div
         className="relative h-14 w-11 shrink-0 overflow-hidden rounded-md ring-1 ring-white/10"
         style={grade ? { boxShadow: `0 0 0 1.5px ${grade.colorHex}` } : undefined}

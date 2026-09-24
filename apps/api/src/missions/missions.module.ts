@@ -8,6 +8,7 @@ import { GuildWarsModule } from "../guild-wars/guild-wars.module";
 import { GuildsModule } from "../guilds/guilds.module";
 import { ProfileBannersModule } from "../profile-banners/profile-banners.module";
 import { ProfileTitlesModule } from "../profile-titles/profile-titles.module";
+import { CardSleevesModule } from "../card-sleeves/card-sleeves.module";
 import { MissionsService } from "./missions.service";
 import { MissionsController } from "./missions.controller";
 
@@ -22,6 +23,7 @@ import { MissionsController } from "./missions.controller";
     GuildsModule,
     ProfileBannersModule,
     ProfileTitlesModule,
+    CardSleevesModule,
   ],
   controllers: [MissionsController],
   providers: [MissionsService],

@@ -10,7 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { CardTile, CardListRow } from "@/components/CardTile";
 import { Stagger, StaggerItem } from "@/components/Stagger";
-import { catalogApi, collectionApi } from "@/lib/api";
+import { catalogApi, collectionApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 
 const PAGE_SIZE = 24;
@@ -44,6 +44,8 @@ function CollectionContent() {
 
   const seriesQuery = useQuery({ queryKey: ["series"], queryFn: catalogApi.series });
   const raritiesQuery = useQuery({ queryKey: ["rarities"], queryFn: catalogApi.rarities });
+  const meQuery = useQuery({ queryKey: ["me"], queryFn: usersApi.me });
+  const sleeve = meQuery.data?.activeSleeve ?? null;
   const collectionQuery = useQuery({
     queryKey: ["collection", { page, seriesId, rarity, state }],
     queryFn: () =>
@@ -192,6 +194,7 @@ function CollectionContent() {
                   count={instance.count}
                   foil={instance.isFoil}
                   signature={instance.isSignature ? { number: instance.signatureNumber!, edition: instance.signatureEdition! } : null}
+                  sleeve={sleeve}
                 />
               </StaggerItem>
             ))}
@@ -210,6 +213,7 @@ function CollectionContent() {
                   count={instance.count}
                   foil={instance.isFoil}
                   signature={instance.isSignature ? { number: instance.signatureNumber!, edition: instance.signatureEdition! } : null}
+                  sleeve={sleeve}
                 />
               </StaggerItem>
             ))}

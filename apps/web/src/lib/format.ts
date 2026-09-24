@@ -138,6 +138,7 @@ export function notificationMessage(type: string, payload: Record<string, unknow
       const extras: string[] = [];
       if (typeof payload.rewardBannerName === "string" && payload.rewardBannerName) extras.push(`bannière « ${payload.rewardBannerName} »`);
       if (typeof payload.rewardTitleLabel === "string" && payload.rewardTitleLabel) extras.push(`titre « ${payload.rewardTitleLabel} »`);
+      if (typeof payload.rewardSleeveName === "string" && payload.rewardSleeveName) extras.push(`pochette « ${payload.rewardSleeveName} »`);
       return `Haut fait débloqué : ${payload.title}${extras.length > 0 ? ` — ${extras.join(" et ")} débloqué${extras.length > 1 ? "s" : ""}` : ""}`;
     }
     case "LEVEL_UP":

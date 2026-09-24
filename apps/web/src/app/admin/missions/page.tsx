@@ -6,13 +6,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, Power } from "lucide-react";
 import {
+  cardSleevePatternSchema,
   createAchievementSchema,
+  createCardSleeveSchema,
   createMissionSchema,
   createProfileBannerSchema,
   createProfileTitleSchema,
   updateAchievementSchema,
   updateMissionSchema,
   type CreateAchievementInput,
+  type CreateCardSleeveInput,
   type CreateMissionInput,
   type CreateProfileBannerInput,
   type CreateProfileTitleInput,
@@ -25,7 +28,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { adminApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { MISSION_GOAL_TYPE_LABELS } from "@/lib/format";
-import type { Achievement, Mission, ProfileBanner, ProfileTitle } from "@/lib/types";
+import type { Achievement, CardSleeve, Mission, ProfileBanner, ProfileTitle } from "@/lib/types";
+
+const CARD_SLEEVE_PATTERNS = cardSleevePatternSchema.options;
 
 const GOAL_TYPES = Object.keys(MISSION_GOAL_TYPE_LABELS);
 
@@ -80,6 +85,23 @@ function RewardTitleField<T extends FieldValues>({ id, register }: { id: string;
         {titlesQuery.data?.map((t) => (
           <option key={t.id} value={t.id}>
             {t.label}
+          </option>
+        ))}
+      </Select>
+    </FieldGroup>
+  );
+}
+
+function RewardSleeveField<T extends FieldValues>({ id, register }: { id: string; register: UseFormRegister<T> }) {
+  const sleevesQuery = useQuery({ queryKey: ["admin", "card-sleeves"], queryFn: adminApi.listCardSleeves });
+  return (
+    <FieldGroup>
+      <Label htmlFor={id}>Pochette débloquée (optionnel)</Label>
+      <Select id={id} {...register("rewardSleeveId" as Path<T>)}>
+        <option value="">Aucune</option>
+        {sleevesQuery.data?.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
           </option>
         ))}
       </Select>
@@ -343,7 +365,12 @@ function CreateAchievementForm() {
 
   const createMutation = useMutation({
     mutationFn: (values: CreateAchievementInput) =>
-      adminApi.createAchievement({ ...values, rewardBannerId: values.rewardBannerId || undefined, rewardTitleId: values.rewardTitleId || undefined }),
+      adminApi.createAchievement({
+        ...values,
+        rewardBannerId: values.rewardBannerId || undefined,
+        rewardTitleId: values.rewardTitleId || undefined,
+        rewardSleeveId: values.rewardSleeveId || undefined,
+      }),
     onSuccess: () => {
       toast.show({ tone: "success", title: "Haut fait créé" });
       reset();
@@ -388,6 +415,7 @@ function CreateAchievementForm() {
           </FieldGroup>
           <RewardBannerField id="a-rewardBannerId" register={register} />
           <RewardTitleField id="a-rewardTitleId" register={register} />
+          <RewardSleeveField id="a-rewardSleeveId" register={register} />
           <div className="sm:col-span-2">
             <Button type="submit" icon={<Plus className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
               Créer le haut fait
@@ -420,6 +448,7 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
       rewardXp: achievement.rewardXp,
       rewardBannerId: achievement.rewardBannerId ?? "",
       rewardTitleId: achievement.rewardTitleId ?? "",
+      rewardSleeveId: achievement.rewardSleeveId ?? "",
       isActive: achievement.isActive,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -431,6 +460,7 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
         ...values,
         rewardBannerId: values.rewardBannerId || undefined,
         rewardTitleId: values.rewardTitleId || undefined,
+        rewardSleeveId: values.rewardSleeveId || undefined,
       }),
     onSuccess: () => {
       toast.show({ tone: "success", title: "Haut fait mis à jour" });
@@ -490,6 +520,7 @@ function EditAchievementDialog({ achievement, onClose }: { achievement: Achievem
           </FieldGroup>
           <RewardBannerField id="ea-rewardBannerId" register={register} />
           <RewardTitleField id="ea-rewardTitleId" register={register} />
+          <RewardSleeveField id="ea-rewardSleeveId" register={register} />
           <FieldGroup className="sm:col-span-2 mb-0">
             <label className="flex items-center gap-2 text-sm text-white/80">
               <input type="checkbox" className="h-4 w-4 rounded border-white/30 accent-[var(--color-rc-accent)]" {...register("isActive")} />
@@ -744,6 +775,110 @@ function ProfileTitlesList() {
   );
 }
 
+function CreateCardSleeveForm() {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<CreateCardSleeveInput>({ resolver: zodResolver(createCardSleeveSchema), defaultValues: { pattern: "dots" } });
+
+  const createMutation = useMutation({
+    mutationFn: (values: CreateCardSleeveInput) => adminApi.createCardSleeve(values),
+    onSuccess: () => {
+      toast.show({ tone: "success", title: "Pochette créée" });
+      reset({ pattern: "dots" });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "card-sleeves"] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Création impossible", description: getErrorMessage(err) }),
+  });
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-3 font-semibold text-white">Créer une pochette</h2>
+        <p className="mb-3 text-sm text-white/50">
+          Débloquée en l&apos;attachant à un haut fait (champ « Pochette débloquée » dans l&apos;onglet Hauts faits). Une fois
+          équipée, elle habille toutes les cartes de la collection du joueur.
+        </p>
+        <form onSubmit={handleSubmit((v) => createMutation.mutate(v))} noValidate className="grid gap-3 sm:grid-cols-2">
+          <FieldGroup>
+            <Label htmlFor="s-slug">Slug</Label>
+            <Input id="s-slug" invalid={!!errors.slug} {...register("slug")} placeholder="rail-doree" />
+            <FieldError>{errors.slug?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="s-name">Nom</Label>
+            <Input id="s-name" invalid={!!errors.name} {...register("name")} placeholder="Rail Dorée" />
+            <FieldError>{errors.name?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="s-colorFrom">Couleur de départ (dégradé)</Label>
+            <Input id="s-colorFrom" invalid={!!errors.colorFrom} {...register("colorFrom")} placeholder="#ffc72c" />
+            <FieldError>{errors.colorFrom?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup>
+            <Label htmlFor="s-colorTo">Couleur de fin (dégradé)</Label>
+            <Input id="s-colorTo" invalid={!!errors.colorTo} {...register("colorTo")} placeholder="#e0a800" />
+            <FieldError>{errors.colorTo?.message}</FieldError>
+          </FieldGroup>
+          <FieldGroup className="sm:col-span-2">
+            <Label htmlFor="s-pattern">Motif</Label>
+            <Select id="s-pattern" invalid={!!errors.pattern} {...register("pattern")}>
+              {CARD_SLEEVE_PATTERNS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </Select>
+            <FieldError>{errors.pattern?.message}</FieldError>
+          </FieldGroup>
+          <div className="sm:col-span-2">
+            <Button type="submit" icon={<Plus className="h-4 w-4" aria-hidden="true" />} loading={isSubmitting || createMutation.isPending}>
+              Créer la pochette
+            </Button>
+          </div>
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+function CardSleevesList() {
+  const sleevesQuery = useQuery({ queryKey: ["admin", "card-sleeves"], queryFn: adminApi.listCardSleeves });
+
+  if (sleevesQuery.isLoading) return <Skeleton className="h-32 w-full" />;
+
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-3 font-semibold text-white">Toutes les pochettes</h2>
+        {!sleevesQuery.data?.length ? (
+          <p className="text-sm text-white/50">Aucune pochette créée pour l&apos;instant.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {sleevesQuery.data.map((s: CardSleeve) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between rounded-lg border border-rc-border px-3 py-2"
+                style={{ background: `linear-gradient(135deg, ${s.colorFrom}22, ${s.colorTo}22)` }}
+              >
+                <div>
+                  <p className="font-medium text-white">{s.name}</p>
+                  <p className="text-xs text-white/50">{s.slug}</p>
+                </div>
+                <Badge>{s.pattern}</Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 export default function AdminMissionsPage() {
   const [tab, setTab] = useState("missions");
 
@@ -757,6 +892,7 @@ export default function AdminMissionsPage() {
             { id: "achievements", label: "Hauts faits" },
             { id: "banners", label: "Bannières" },
             { id: "titles", label: "Titres" },
+            { id: "sleeves", label: "Pochettes" },
           ]}
           activeId={tab}
           onChange={setTab}
@@ -777,10 +913,15 @@ export default function AdminMissionsPage() {
           <CreateProfileBannerForm />
           <ProfileBannersList />
         </div>
-      ) : (
+      ) : tab === "titles" ? (
         <div className="space-y-4">
           <CreateProfileTitleForm />
           <ProfileTitlesList />
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <CreateCardSleeveForm />
+          <CardSleevesList />
         </div>
       )}
     </AdminShell>

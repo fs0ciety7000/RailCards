@@ -78,6 +78,7 @@ model User {
   seasonPassClaims     SeasonPassClaim[]
   unlockedBanners      UserProfileBanner[]
   unlockedTitles       UserProfileTitle[]
+  unlockedSleeves      UserCardSleeve[]
 
   @@index([status])
 }
@@ -97,6 +98,8 @@ model UserProfile {
   activeBanner      ProfileBanner? @relation(fields: [activeBannerId], references: [id], onDelete: SetNull)
   activeTitleId     String?
   activeTitle       ProfileTitle?  @relation(fields: [activeTitleId], references: [id], onDelete: SetNull)
+  activeSleeveId    String?
+  activeSleeve      CardSleeve?    @relation(fields: [activeSleeveId], references: [id], onDelete: SetNull)
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
 }
@@ -157,6 +160,39 @@ model UserProfileTitle {
   unlockedAt DateTime     @default(now())
 
   @@unique([userId, titleId])
+}
+
+/**
+ * Cosmetic card-sleeve catalog — a border/pattern treatment drawn over every
+ * card in a player's OWN collection view once equipped (unlike a foil or
+ * signature print, which lives on the CardInstance itself, a sleeve is an
+ * account-wide cosmetic layered on top, same unlock model as ProfileBanner/
+ * ProfileTitle: granted via an achievement's optional rewardSleeveId, kept
+ * forever once unlocked).
+ */
+model CardSleeve {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  colorFrom String
+  colorTo   String
+  pattern   String
+  createdAt DateTime @default(now())
+
+  unlockedBy       UserCardSleeve[]
+  activeForProfile UserProfile[]
+  rewardedBy       Achievement[]
+}
+
+model UserCardSleeve {
+  id         String     @id @default(uuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sleeveId   String
+  sleeve     CardSleeve @relation(fields: [sleeveId], references: [id], onDelete: Cascade)
+  unlockedAt DateTime   @default(now())
+
+  @@unique([userId, sleeveId])
 }
 
 model Session {
@@ -804,6 +840,8 @@ model Achievement {
   rewardBanner   ProfileBanner?  @relation(fields: [rewardBannerId], references: [id], onDelete: SetNull)
   rewardTitleId  String?
   rewardTitle    ProfileTitle?   @relation(fields: [rewardTitleId], references: [id], onDelete: SetNull)
+  rewardSleeveId String?
+  rewardSleeve   CardSleeve?     @relation(fields: [rewardSleeveId], references: [id], onDelete: SetNull)
   isActive       Boolean         @default(true)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

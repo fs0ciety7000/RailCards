@@ -15,6 +15,7 @@ import { GuildWarsModule } from "../guild-wars/guild-wars.module";
 import { SeasonPassModule } from "../season-pass/season-pass.module";
 import { ProfileBannersModule } from "../profile-banners/profile-banners.module";
 import { ProfileTitlesModule } from "../profile-titles/profile-titles.module";
+import { CardSleevesModule } from "../card-sleeves/card-sleeves.module";
 import { AdminController } from "./admin.controller";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
@@ -39,6 +40,7 @@ import { AuditLogService } from "./audit-log.service";
     SeasonPassModule,
     ProfileBannersModule,
     ProfileTitlesModule,
+    CardSleevesModule,
   ],
   controllers: [AdminController],
   providers: [AdminUsersService, InvitationsService, ReportsService, AuditLogService],

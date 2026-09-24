@@ -8,7 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { Badge, Button, Card, CardBody, ErrorState, RarityBadge, Skeleton } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
-import { collectionApi } from "@/lib/api";
+import { collectionApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { ACQUISITION_LABELS, formatDateTime } from "@/lib/format";
 import { CardArt, stateLabel } from "@/components/CardTile";
@@ -23,6 +23,7 @@ function CardDetailContent() {
     queryKey: ["collection", "detail", instanceId],
     queryFn: () => collectionApi.detail(instanceId),
   });
+  const meQuery = useQuery({ queryKey: ["me"], queryFn: usersApi.me });
 
   if (detailQuery.isLoading) {
     return (
@@ -73,6 +74,7 @@ function CardDetailContent() {
         card={card}
         className="relative aspect-[3/4] w-full max-w-sm mx-auto"
         priority
+        sleeve={instance.isOwnedByRequester ? (meQuery.data?.activeSleeve ?? null) : null}
         foil={instance.isFoil}
         signature={instance.isSignature ? { number: instance.signatureNumber!, edition: instance.signatureEdition! } : null}
       />

@@ -5,6 +5,7 @@ import { GradesService } from "../grades/grades.service";
 import { FavoritesService } from "./favorites.service";
 import { ProfileBannersService } from "../profile-banners/profile-banners.service";
 import { ProfileTitlesService } from "../profile-titles/profile-titles.service";
+import { CardSleevesService } from "../card-sleeves/card-sleeves.service";
 import { MissionsService } from "../missions/missions.service";
 import { DuelsService } from "../duels/duels.service";
 import { levelForXp, xpToNextLevel } from "@railcards/game-domain";
@@ -19,6 +20,7 @@ export class UsersService {
     private readonly favorites: FavoritesService,
     private readonly profileBanners: ProfileBannersService,
     private readonly profileTitles: ProfileTitlesService,
+    private readonly cardSleeves: CardSleevesService,
     private readonly missions: MissionsService,
     private readonly duels: DuelsService,
   ) {}
@@ -102,6 +104,7 @@ export class UsersService {
     const favoriteCards = await this.favorites.list(user.id);
     const activeBanner = await this.profileBanners.getActiveBanner(user.id);
     const activeTitle = await this.profileTitles.getActiveTitle(user.id);
+    const activeSleeve = await this.cardSleeves.getActiveSleeve(user.id);
     const achievements = await this.missions.listClaimedAchievements(user.id);
     const duelRecord = await this.duels.getRecord(user.id);
     return {
@@ -119,6 +122,7 @@ export class UsersService {
       favoriteCards,
       activeBanner,
       activeTitle,
+      activeSleeve,
       achievements,
       duelRecord,
     };
@@ -154,6 +158,7 @@ export class UsersService {
     const favoriteCards = await this.favorites.list(user.id);
     const banners = await this.profileBanners.mine(user.id);
     const titles = await this.profileTitles.mine(user.id);
+    const sleeves = await this.cardSleeves.mine(user.id);
     return {
       id: user.id,
       email: user.email,
@@ -174,6 +179,8 @@ export class UsersService {
       unlockedBanners: banners.unlocked,
       activeTitle: titles.active,
       unlockedTitles: titles.unlocked,
+      activeSleeve: sleeves.active,
+      unlockedSleeves: sleeves.unlocked,
     };
   }
 }

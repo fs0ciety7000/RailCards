@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Award, Flame, Camera, Crown, Flag, Lock, Swords, Tag, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
+import { Mail, Wallet, Sparkles, Award, Flame, Camera, Crown, Flag, Layers, Lock, Swords, Tag, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
 import { changePasswordSchema, type ChangePasswordInput } from "@railcards/contracts";
 import { Badge, Button, Card, CardBody, Dialog, EmptyState, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -15,11 +15,11 @@ import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/Avatar";
 import { CardArt } from "@/components/CardTile";
-import { ApiError, authApi, collectionApi, profileBannersApi, profileTitlesApi, usersApi } from "@/lib/api";
+import { ApiError, authApi, cardSleevesApi, collectionApi, profileBannersApi, profileTitlesApi, usersApi } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
 import { useAuthStore } from "@/lib/auth-store";
-import type { CardDefinition, DuelRecord, ProfileAchievementBadge, ProfileBanner, ProfileTitle } from "@/lib/types";
+import type { CardDefinition, CardSleeve, DuelRecord, ProfileAchievementBadge, ProfileBanner, ProfileTitle } from "@/lib/types";
 
 const MAX_FAVORITES = 5;
 
@@ -546,6 +546,78 @@ function TitlesSection({ isOwn }: { isOwn: boolean }) {
   );
 }
 
+function SleeveSwatch({ sleeve, selected, onClick, loading }: { sleeve: CardSleeve; selected: boolean; onClick: () => void; loading: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        selected ? "border-rc-accent bg-rc-accent/10" : "border-rc-border hover:border-white/30"
+      }`}
+    >
+      <span
+        className="h-8 w-6 shrink-0 rounded-md"
+        style={{ background: `linear-gradient(135deg, ${sleeve.colorFrom}, ${sleeve.colorTo})` }}
+        aria-hidden="true"
+      />
+      <span className="min-w-0 truncate font-medium text-white">{sleeve.name}</span>
+    </button>
+  );
+}
+
+function SleevesSection({ isOwn }: { isOwn: boolean }) {
+  const toast = useToast();
+  const queryClient = useQueryClient();
+  const params = useParams<{ username: string }>();
+  const minePreQuery = useQuery({ queryKey: ["card-sleeves", "mine"], queryFn: cardSleevesApi.mine, enabled: isOwn });
+
+  const setActiveMutation = useMutation({
+    mutationFn: (sleeveId: string | null) => cardSleevesApi.setActive(sleeveId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["card-sleeves", "mine"] });
+      void queryClient.invalidateQueries({ queryKey: ["me"] });
+      void queryClient.invalidateQueries({ queryKey: ["users", "profile", params.username] });
+    },
+    onError: (err) => toast.show({ tone: "error", title: "Échec", description: getErrorMessage(err) }),
+  });
+
+  if (!isOwn) return null;
+  if (minePreQuery.isLoading) return <Skeleton className="mt-4 h-24 w-full" />;
+  const unlocked = minePreQuery.data?.unlocked ?? [];
+  if (unlocked.length === 0) return null;
+
+  const activeId = minePreQuery.data?.active?.id ?? null;
+
+  return (
+    <Card className="mt-4">
+      <CardBody>
+        <h2 className="mb-3 flex items-center gap-1.5 font-semibold text-white">
+          <Layers className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+          Pochettes débloquées
+        </h2>
+        <p className="mb-3 text-xs text-white/40">Habille toutes les cartes de votre collection une fois équipée.</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {unlocked.map((sleeve) => (
+            <SleeveSwatch
+              key={sleeve.id}
+              sleeve={sleeve}
+              selected={sleeve.id === activeId}
+              loading={setActiveMutation.isPending}
+              onClick={() => setActiveMutation.mutate(sleeve.id)}
+            />
+          ))}
+        </div>
+        {activeId && (
+          <Button size="sm" variant="ghost" className="mt-3" disabled={setActiveMutation.isPending} onClick={() => setActiveMutation.mutate(null)}>
+            Retirer la pochette active
+          </Button>
+        )}
+      </CardBody>
+    </Card>
+  );
+}
+
 function ProfileContent() {
   const params = useParams<{ username: string }>();
   const toast = useToast();
@@ -652,6 +724,7 @@ function ProfileContent() {
       <AchievementBadgesSection achievements={profile.achievements} isOwn={isOwn} />
       <BannersSection isOwn={isOwn} />
       <TitlesSection isOwn={isOwn} />
+      <SleevesSection isOwn={isOwn} />
 
       {isOwn && meQuery.data && (
         <Card className="mt-4">

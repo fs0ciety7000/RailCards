@@ -21,6 +21,7 @@ import { GuildWarsService } from "../guild-wars/guild-wars.service";
 import { SeasonPassService } from "../season-pass/season-pass.service";
 import { ProfileBannersService } from "../profile-banners/profile-banners.service";
 import { ProfileTitlesService } from "../profile-titles/profile-titles.service";
+import { CardSleevesService } from "../card-sleeves/card-sleeves.service";
 import { AdminUsersService } from "./admin-users.service";
 import { InvitationsService } from "./invitations.service";
 import { ReportsService } from "./reports.service";
@@ -56,6 +57,7 @@ import {
 } from "./dto/admin.dto";
 import { CreateProfileBannerDto } from "../profile-banners/dto/profile-banner.dto";
 import { CreateProfileTitleDto } from "../profile-titles/dto/profile-title.dto";
+import { CreateCardSleeveDto } from "../card-sleeves/dto/card-sleeve.dto";
 
 @ApiTags("admin")
 @ApiBearerAuth()
@@ -82,6 +84,7 @@ export class AdminController {
     private readonly seasonPass: SeasonPassService,
     private readonly profileBanners: ProfileBannersService,
     private readonly profileTitles: ProfileTitlesService,
+    private readonly cardSleeves: CardSleevesService,
   ) {}
 
   // ── Uploads ──────────────────────────────────────────────────────
@@ -238,6 +241,7 @@ export class AdminController {
   async createAchievement(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateAchievementDto) {
     if (dto.rewardBannerId) await this.profileBanners.requireExists(dto.rewardBannerId);
     if (dto.rewardTitleId) await this.profileTitles.requireExists(dto.rewardTitleId);
+    if (dto.rewardSleeveId) await this.cardSleeves.requireExists(dto.rewardSleeveId);
     const achievement = await this.missions.createAchievement(dto);
     await this.auditLog.record(admin.id, "achievement.create", "Achievement", achievement.id, { code: achievement.code });
     return achievement;
@@ -247,6 +251,7 @@ export class AdminController {
   async updateAchievement(@CurrentUser() admin: AuthenticatedUser, @Param("id") id: string, @Body() dto: UpdateAchievementDto) {
     if (dto.rewardBannerId) await this.profileBanners.requireExists(dto.rewardBannerId);
     if (dto.rewardTitleId) await this.profileTitles.requireExists(dto.rewardTitleId);
+    if (dto.rewardSleeveId) await this.cardSleeves.requireExists(dto.rewardSleeveId);
     const achievement = await this.missions.updateAchievement(id, dto);
     await this.auditLog.record(admin.id, "achievement.update", "Achievement", id, dto);
     return achievement;
@@ -276,6 +281,19 @@ export class AdminController {
     const title = await this.profileTitles.createForAdmin(dto);
     await this.auditLog.record(admin.id, "profile-title.create", "ProfileTitle", title.id, { slug: title.slug });
     return title;
+  }
+
+  // ── Card sleeves (cosmetic catalog) ─────────────────────────────────
+  @Get("card-sleeves")
+  async listCardSleeves() {
+    return this.cardSleeves.listCatalog();
+  }
+
+  @Post("card-sleeves")
+  async createCardSleeve(@CurrentUser() admin: AuthenticatedUser, @Body() dto: CreateCardSleeveDto) {
+    const sleeve = await this.cardSleeves.createForAdmin(dto);
+    await this.auditLog.record(admin.id, "card-sleeve.create", "CardSleeve", sleeve.id, { slug: sleeve.slug });
+    return sleeve;
   }
 
   // ── Seasonal quests ────────────────────────────────────────────────

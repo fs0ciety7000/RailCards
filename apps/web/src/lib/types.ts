@@ -33,6 +33,8 @@ export interface Me {
   unlockedBanners: ProfileBanner[];
   activeTitle: ProfileTitle | null;
   unlockedTitles: ProfileTitle[];
+  activeSleeve: CardSleeve | null;
+  unlockedSleeves: CardSleeve[];
 }
 
 export interface PublicProfile {
@@ -50,6 +52,7 @@ export interface PublicProfile {
   favoriteCards: CardDefinition[];
   activeBanner: ProfileBanner | null;
   activeTitle: ProfileTitle | null;
+  activeSleeve: CardSleeve | null;
   achievements: ProfileAchievementBadge[];
   duelRecord: DuelRecord;
 }
@@ -98,6 +101,15 @@ export interface ProfileTitle {
   id: string;
   slug: string;
   label: string;
+}
+
+export interface CardSleeve {
+  id: string;
+  slug: string;
+  name: string;
+  colorFrom: string;
+  colorTo: string;
+  pattern: string;
 }
 
 export type LeaderboardSort = "xp" | "cards" | "albums";
@@ -609,6 +621,7 @@ export interface Achievement {
   rewardXp: number;
   rewardBannerId: string | null;
   rewardTitleId: string | null;
+  rewardSleeveId: string | null;
   isActive: boolean;
 }
 

@@ -175,6 +175,7 @@ export const createAchievementSchema = z.object({
   ...missionBaseFields,
   rewardBannerId: z.string().uuid().optional().or(z.literal("")),
   rewardTitleId: z.string().uuid().optional().or(z.literal("")),
+  rewardSleeveId: z.string().uuid().optional().or(z.literal("")),
 });
 export type CreateAchievementInput = z.infer<typeof createAchievementSchema>;
 
@@ -186,6 +187,7 @@ export const updateAchievementSchema = z.object({
   goalCount: missionBaseFields.goalCount.optional(),
   rewardBannerId: z.string().uuid().optional().or(z.literal("")),
   rewardTitleId: z.string().uuid().optional().or(z.literal("")),
+  rewardSleeveId: z.string().uuid().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
 });
 export type UpdateAchievementInput = z.infer<typeof updateAchievementSchema>;
@@ -204,6 +206,18 @@ export const createProfileTitleSchema = z.object({
   label: z.string().min(2).max(80),
 });
 export type CreateProfileTitleInput = z.infer<typeof createProfileTitleSchema>;
+
+export const cardSleevePatternSchema = z.enum(["dots", "diagonal", "grid", "waves", "chevron"]);
+export type CardSleevePattern = z.infer<typeof cardSleevePatternSchema>;
+
+export const createCardSleeveSchema = z.object({
+  slug: z.string().min(2).max(60),
+  name: z.string().min(2).max(60),
+  colorFrom: z.string().min(3).max(20),
+  colorTo: z.string().min(3).max(20),
+  pattern: cardSleevePatternSchema,
+});
+export type CreateCardSleeveInput = z.infer<typeof createCardSleeveSchema>;
 
 export const questStepSchema = z.object({
   order: z.coerce.number().int().min(1),

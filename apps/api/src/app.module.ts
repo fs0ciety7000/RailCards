@@ -36,6 +36,7 @@ import { SeasonPassModule } from "./season-pass/season-pass.module";
 import { CardVariantsModule } from "./card-variants/card-variants.module";
 import { ProfileBannersModule } from "./profile-banners/profile-banners.module";
 import { ProfileTitlesModule } from "./profile-titles/profile-titles.module";
+import { CardSleevesModule } from "./card-sleeves/card-sleeves.module";
 import { StatsModule } from "./stats/stats.module";
 import { LoreModule } from "./lore/lore.module";
 import { HealthController } from "./health.controller";
@@ -75,6 +76,7 @@ import { HealthController } from "./health.controller";
     CardVariantsModule,
     ProfileBannersModule,
     ProfileTitlesModule,
+    CardSleevesModule,
     StatsModule,
     LoreModule,
   ],

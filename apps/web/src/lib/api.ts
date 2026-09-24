@@ -415,6 +415,13 @@ export const profileTitlesApi = {
     request<{ unlocked: T.ProfileTitle[]; active: T.ProfileTitle | null }>("/profile-titles/active", { method: "POST", body: { titleId } }),
 };
 
+export const cardSleevesApi = {
+  catalog: () => request<T.CardSleeve[]>("/card-sleeves"),
+  mine: () => request<{ unlocked: T.CardSleeve[]; active: T.CardSleeve | null }>("/card-sleeves/mine"),
+  setActive: (sleeveId: string | null) =>
+    request<{ unlocked: T.CardSleeve[]; active: T.CardSleeve | null }>("/card-sleeves/active", { method: "POST", body: { sleeveId } }),
+};
+
 // ── Personal stats ───────────────────────────────────────────────────────
 
 export const statsApi = {
@@ -545,6 +552,10 @@ export const adminApi = {
   listProfileTitles: () => request<T.ProfileTitle[]>("/admin/profile-titles"),
   createProfileTitle: (input: { slug: string; label: string }) =>
     request<T.ProfileTitle>("/admin/profile-titles", { method: "POST", body: input }),
+
+  listCardSleeves: () => request<T.CardSleeve[]>("/admin/card-sleeves"),
+  createCardSleeve: (input: { slug: string; name: string; colorFrom: string; colorTo: string; pattern: string }) =>
+    request<T.CardSleeve>("/admin/card-sleeves", { method: "POST", body: input }),
 
   listQuests: () => request<T.AdminQuest[]>("/admin/quests"),
   createQuest: (input: unknown) => request<T.AdminQuest>("/admin/quests", { method: "POST", body: input }),
