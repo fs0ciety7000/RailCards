@@ -4,18 +4,29 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, Gift, Sparkles } from "lucide-react";
+import { ArrowLeft, Clock, Gift, Sparkles } from "lucide-react";
 import { Button, Card, CardBody, CrAmount, EmptyState, ErrorState, Skeleton, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
 import { PageHeader } from "@/components/PageHeader";
 import { BoosterReveal } from "@/components/BoosterReveal";
+import { BoosterPackArt, type PackPhase } from "@/components/BoosterPackArt";
 import { Stagger, StaggerItem } from "@/components/Stagger";
 import { boostersApi } from "@/lib/api";
 import { ApiError } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
 import { usePrefersReducedMotion } from "@/lib/motion-prefs";
-import type { BoosterDefinition, BoosterOpening } from "@/lib/types";
+import type { BoosterCategory, BoosterDefinition, BoosterOpening } from "@/lib/types";
+
+const CATEGORY_LABEL: Record<BoosterCategory, string> = {
+  DISCOVERY: "Découverte",
+  CLASSIC: "Classique",
+  THEMED: "Thématique",
+};
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -115,6 +126,8 @@ function BoostersContent() {
   const [reduceMotion, setReduceMotion] = usePrefersReducedMotion();
   const [opening, setOpening] = useState<BoosterOpening | null>(null);
   const [openedBooster, setOpenedBooster] = useState<{ name: string } | null>(null);
+  const [selectedBooster, setSelectedBooster] = useState<BoosterDefinition | null>(null);
+  const [packPhase, setPackPhase] = useState<PackPhase>("idle");
   const idempotencyKeyRef = useRef<string | null>(null);
 
   const boostersQuery = useQuery({ queryKey: ["boosters"], queryFn: boostersApi.list });
@@ -124,11 +137,7 @@ function BoostersContent() {
       if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
       return openWithRetry(booster.slug, idempotencyKeyRef.current);
     },
-    onSuccess: (result, booster) => {
-      // The /boosters/open response does not echo the booster definition
-      // (only its pulls) — we already have it from the list we opened from.
-      setOpening(result);
-      setOpenedBooster(booster);
+    onSuccess: () => {
       idempotencyKeyRef.current = null;
       void queryClient.invalidateQueries({ queryKey: ["wallet"] });
       void queryClient.invalidateQueries({ queryKey: ["me"] });
@@ -141,6 +150,46 @@ function BoostersContent() {
       toast.show({ tone: "error", title: "Ouverture impossible", description: getErrorMessage(err) });
     },
   });
+
+  /**
+   * The pack-tear sequence: shake for a fixed beat while the real request is
+   * in flight (whichever takes longer wins, so a fast response never skips
+   * the wind-up), then a burst flash, and only THEN hand off to the reveal
+   * grid — never before, or the burst would be cut short by the reveal
+   * mounting underneath it mid-animation.
+   */
+  async function handleConfirmOpen() {
+    if (!selectedBooster || openMutation.isPending) return;
+    const booster = selectedBooster;
+    if (reduceMotion) {
+      try {
+        const result = await openMutation.mutateAsync(booster);
+        setOpening(result);
+        setOpenedBooster(booster);
+        setSelectedBooster(null);
+      } catch {
+        // error toast already shown by onError
+      }
+      return;
+    }
+    setPackPhase("shaking");
+    try {
+      const [result] = await Promise.all([openMutation.mutateAsync(booster), wait(550)]);
+      setPackPhase("burst");
+      await wait(520);
+      setOpening(result);
+      setOpenedBooster(booster);
+      setSelectedBooster(null);
+      setPackPhase("idle");
+    } catch {
+      setPackPhase("idle");
+    }
+  }
+
+  function handleCancelPack() {
+    if (openMutation.isPending || packPhase !== "idle") return;
+    setSelectedBooster(null);
+  }
 
   if (opening) {
     return (
@@ -162,6 +211,40 @@ function BoostersContent() {
               </Button>
             </Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedBooster) {
+    const isBusy = openMutation.isPending || packPhase !== "idle";
+    return (
+      <div className="relative">
+        <div className="bg-aurora" />
+        <div className="relative z-10 mx-auto max-w-md text-center">
+          <button
+            type="button"
+            onClick={handleCancelPack}
+            disabled={isBusy}
+            className="mb-4 flex items-center gap-1.5 text-sm font-medium text-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rc-accent disabled:opacity-40"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Retour
+          </button>
+
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/40">{CATEGORY_LABEL[selectedBooster.category]}</p>
+          <h1 className="font-display mt-1 text-2xl font-bold tracking-tight text-white">{selectedBooster.name}</h1>
+          <p className="mt-2 text-sm text-white/60">{selectedBooster.description}</p>
+
+          <div className="my-8">
+            <BoosterPackArt category={selectedBooster.category} phase={packPhase} />
+          </div>
+
+          <p className="text-sm text-white/50">{selectedBooster.cardCount} carte(s) par booster</p>
+
+          <Button size="lg" className="mt-5 min-w-[220px]" onClick={handleConfirmOpen} loading={isBusy} disabled={isBusy}>
+            Ouvrir — <CrAmount value={selectedBooster.priceCr} />
+          </Button>
         </div>
       </div>
     );
@@ -202,11 +285,7 @@ function BoostersContent() {
                   <p className="mt-1.5 text-xs text-white/40">{b.cardCount} carte(s) par booster</p>
                   <div className="mt-3.5 flex items-center justify-between">
                     <CrAmount value={b.priceCr} className="text-rc-accent" />
-                    <Button
-                      onClick={() => openMutation.mutate(b)}
-                      loading={openMutation.isPending && openMutation.variables?.id === b.id}
-                      disabled={openMutation.isPending}
-                    >
+                    <Button onClick={() => setSelectedBooster(b)}>
                       Ouvrir
                     </Button>
                   </div>
