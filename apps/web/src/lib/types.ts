@@ -303,6 +303,22 @@ export interface FreeBoosterStatus {
   nextAvailableAt: string | null;
 }
 
+export interface BoosterOddsRarity {
+  rarityId: string;
+  rarityCode: string;
+  rarityLabel: string;
+  colorHex: string;
+  order: number;
+  /** Chance for one card slot in this booster to come out at this rarity — all entries sum to 1. */
+  probability: number;
+  eligibleCardCount: number;
+}
+
+export interface BoosterOdds {
+  cardCount: number;
+  rarities: BoosterOddsRarity[];
+}
+
 export type MarketListingStatus = "ACTIVE" | "SOLD" | "CANCELLED";
 
 export type MarketListingType = "FIXED" | "AUCTION";

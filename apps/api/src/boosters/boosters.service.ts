@@ -25,6 +25,50 @@ export class BoostersService {
     });
   }
 
+  /**
+   * Per-rarity chase odds for one card slot in this booster, shown to the
+   * player before they open it. Mirrors `pickWeightedRarity`'s own
+   * eligibility filter (weight > 0 AND at least one published card) so the
+   * displayed percentages always sum to 100 and never promise a rarity the
+   * draw itself would skip.
+   */
+  async odds(boosterSlug: string) {
+    const boosterDef = await this.prisma.boosterDefinition.findUnique({ where: { slug: boosterSlug } });
+    if (!boosterDef || !boosterDef.isActive) throw new NotFoundException("Booster not found");
+
+    const pool = await this.prisma.boosterPool.findFirst({
+      where: { boosterDefinitionId: boosterDef.id, isActive: true },
+      orderBy: { rulesVersion: "desc" },
+    });
+    if (!pool) throw new NotFoundException("No active pool configured for this booster");
+
+    const resolvedPool = await resolveBoosterPool(this.prisma, pool.id);
+    const eligible = resolvedPool.rarityWeights.filter(
+      (w) => w.weight > 0 && (resolvedPool.cardsByRarityId[w.rarityId]?.length ?? 0) > 0,
+    );
+    const totalWeight = eligible.reduce((sum, w) => sum + w.weight, 0);
+
+    const rarities = await this.prisma.rarity.findMany({ where: { id: { in: eligible.map((w) => w.rarityId) } } });
+    const rarityById = new Map(rarities.map((r) => [r.id, r]));
+
+    const breakdown = eligible
+      .map((w) => {
+        const rarity = rarityById.get(w.rarityId);
+        return {
+          rarityId: w.rarityId,
+          rarityCode: w.rarityCode,
+          rarityLabel: rarity?.label ?? w.rarityCode,
+          colorHex: rarity?.colorHex ?? "#8892a6",
+          order: rarity?.order ?? 0,
+          probability: totalWeight > 0 ? w.weight / totalWeight : 0,
+          eligibleCardCount: resolvedPool.cardsByRarityId[w.rarityId]?.length ?? 0,
+        };
+      })
+      .sort((a, b) => b.order - a.order);
+
+    return { cardCount: boosterDef.cardCount, rarities: breakdown };
+  }
+
   // ── Admin write operations ──────────────────────────────────────────
 
   async listAllDefinitionsForAdmin() {

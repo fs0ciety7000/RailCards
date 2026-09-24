@@ -228,6 +228,7 @@ export const boostersApi = {
     }),
   freeStatus: () => request<T.FreeBoosterStatus>("/boosters/free/status"),
   claimFree: () => request<T.BoosterOpening>("/boosters/free/claim", { method: "POST" }),
+  odds: (boosterSlug: string) => request<T.BoosterOdds>(`/boosters/${boosterSlug}/odds`),
 };
 
 // ── Market ───────────────────────────────────────────────────────────────

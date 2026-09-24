@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Clock, Gift, Sparkles } from "lucide-react";
+import { ArrowLeft, Clock, Gift, Percent, Sparkles } from "lucide-react";
 import { Button, Card, CardBody, CrAmount, EmptyState, ErrorState, Skeleton, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -128,9 +128,15 @@ function BoostersContent() {
   const [openedBooster, setOpenedBooster] = useState<{ name: string } | null>(null);
   const [selectedBooster, setSelectedBooster] = useState<BoosterDefinition | null>(null);
   const [packPhase, setPackPhase] = useState<PackPhase>("idle");
+  const [showOdds, setShowOdds] = useState(false);
   const idempotencyKeyRef = useRef<string | null>(null);
 
   const boostersQuery = useQuery({ queryKey: ["boosters"], queryFn: boostersApi.list });
+  const oddsQuery = useQuery({
+    queryKey: ["boosters", "odds", selectedBooster?.slug],
+    queryFn: () => boostersApi.odds(selectedBooster!.slug),
+    enabled: !!selectedBooster && showOdds,
+  });
 
   const openMutation = useMutation({
     mutationFn: (booster: BoosterDefinition) => {
@@ -189,6 +195,7 @@ function BoostersContent() {
   function handleCancelPack() {
     if (openMutation.isPending || packPhase !== "idle") return;
     setSelectedBooster(null);
+    setShowOdds(false);
   }
 
   if (opening) {
@@ -245,6 +252,46 @@ function BoostersContent() {
           <Button size="lg" className="mt-5 min-w-[220px]" onClick={handleConfirmOpen} loading={isBusy} disabled={isBusy}>
             Ouvrir — <CrAmount value={selectedBooster.priceCr} />
           </Button>
+
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setShowOdds((v) => !v)}
+              className="mx-auto flex items-center gap-1.5 text-xs font-medium text-white/45 hover:text-white/75"
+            >
+              <Percent className="h-3.5 w-3.5" aria-hidden="true" />
+              {showOdds ? "Masquer les probabilités" : "Voir les probabilités"}
+            </button>
+            {showOdds && (
+              <div className="mt-3 rounded-xl border border-rc-border bg-rc-night-light p-3.5 text-left">
+                {oddsQuery.isLoading ? (
+                  <p className="text-xs text-white/40">Chargement…</p>
+                ) : oddsQuery.isError ? (
+                  <p className="text-xs text-white/40">Probabilités indisponibles.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {oddsQuery.data!.rarities.map((r) => (
+                      <div key={r.rarityId} className="flex items-center gap-2.5">
+                        <span className="w-24 shrink-0 truncate text-xs font-semibold" style={{ color: r.colorHex }}>
+                          {r.rarityLabel}
+                        </span>
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+                          <span
+                            className="block h-full rounded-full"
+                            style={{ width: `${Math.max(2, r.probability * 100)}%`, background: r.colorHex }}
+                          />
+                        </span>
+                        <span className="w-12 shrink-0 text-right text-xs tabular-nums text-white/60">
+                          {(r.probability * 100).toFixed(r.probability < 0.01 ? 1 : 0)}%
+                        </span>
+                      </div>
+                    ))}
+                    <p className="mt-1 text-[10.5px] text-white/35">Chance par carte tirée dans ce booster.</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );

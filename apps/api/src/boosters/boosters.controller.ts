@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Post, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { IsString, MinLength } from "class-validator";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -20,6 +20,11 @@ export class BoostersController {
   @Get()
   async list() {
     return this.boosters.listDefinitions();
+  }
+
+  @Get(":slug/odds")
+  async odds(@Param("slug") slug: string) {
+    return this.boosters.odds(slug);
   }
 
   @Get("history")
