@@ -61,6 +61,21 @@ export interface ProfileAchievementBadge {
   claimedAt: string;
 }
 
+export interface PersonalStats {
+  creditsEarned: number;
+  creditsSpent: number;
+  activeDays: number;
+  totalCardsPulled: number;
+  totalBoostersOpened: number;
+  topPulledCards: {
+    cardDefinitionId: string;
+    name: string;
+    imageUrl: string;
+    rarity: { code: string; label: string; colorHex: string };
+    pullCount: number;
+  }[];
+}
+
 export interface ProfileBanner {
   id: string;
   slug: string;

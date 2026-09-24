@@ -409,6 +409,12 @@ export const profileTitlesApi = {
     request<{ unlocked: T.ProfileTitle[]; active: T.ProfileTitle | null }>("/profile-titles/active", { method: "POST", body: { titleId } }),
 };
 
+// ── Personal stats ───────────────────────────────────────────────────────
+
+export const statsApi = {
+  mine: () => request<T.PersonalStats>("/stats/me"),
+};
+
 // ── Leaderboard ──────────────────────────────────────────────────────────
 
 export const leaderboardApi = {
