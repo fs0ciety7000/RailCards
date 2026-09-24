@@ -186,6 +186,7 @@ export const collectionApi = {
     request<T.Paginated<T.CardInstance>>(`/collection${qs(params)}`),
   album: () => request<T.AlbumSeriesEntry[]>("/collection/album"),
   albumSeries: (seriesId: string) => request<T.AlbumSeriesDetail>(`/collection/album/${seriesId}`),
+  missing: (seriesId?: string) => request<T.MissingCardsSeries[]>(`/collection/missing${qs({ seriesId })}`),
   detail: (instanceId: string) => request<T.CardInstanceDetail>(`/collection/${instanceId}`),
 };
 

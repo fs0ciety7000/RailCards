@@ -218,6 +218,24 @@ export interface AlbumSeriesDetail {
   cards: AlbumSeriesCard[];
 }
 
+export interface MissingCard {
+  id: string;
+  slug: string;
+  name: string;
+  imageUrl: string;
+  rarity: Rarity;
+}
+
+export interface MissingCardsSeries {
+  seriesId: string;
+  name: string;
+  category: CardCategory;
+  coverImageUrl: string | null;
+  totalCards: number;
+  missingCount: number;
+  missingCards: MissingCard[];
+}
+
 export type BoosterCategory = "DISCOVERY" | "CLASSIC" | "THEMED";
 
 export interface BoosterDefinition {

@@ -154,4 +154,43 @@ export class CollectionService {
       }),
     };
   }
+
+  /**
+   * Every published card `userId` doesn't yet own, across every active
+   * series — a practical hunting checklist, deliberately showing full card
+   * details (name, art, rarity) rather than the album's spoiler-safe
+   * silhouettes, since the whole point here is knowing exactly what to look
+   * for. `seriesId`, when given, narrows to a single series.
+   */
+  async getMissingCards(userId: string, seriesId?: string) {
+    const series = await this.prisma.cardSeries.findMany({
+      where: { isActive: true, ...(seriesId ? { id: seriesId } : {}) },
+      include: { cards: { where: { status: "PUBLISHED" }, include: { rarity: true }, orderBy: [{ rarity: { order: "asc" } }, { name: "asc" }] } },
+      orderBy: { name: "asc" },
+    });
+
+    const owned = await this.prisma.cardInstance.findMany({
+      where: { ownerId: userId, ...(seriesId ? { cardDefinition: { seriesId } } : {}) },
+      distinct: ["cardDefinitionId"],
+      select: { cardDefinitionId: true },
+    });
+    const ownedSet = new Set(owned.map((o) => o.cardDefinitionId));
+
+    return series
+      .map((s) => {
+        const missingCards = s.cards
+          .filter((c) => !ownedSet.has(c.id))
+          .map((c) => ({ id: c.id, slug: c.slug, name: c.name, imageUrl: c.imageUrl, rarity: c.rarity }));
+        return {
+          seriesId: s.id,
+          name: s.name,
+          category: s.category,
+          coverImageUrl: s.coverImageUrl,
+          totalCards: s.cards.length,
+          missingCount: missingCards.length,
+          missingCards,
+        };
+      })
+      .filter((s) => s.totalCards > 0);
+  }
 }

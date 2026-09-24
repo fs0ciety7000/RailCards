@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Folder, Gem, Sparkles } from "lucide-react";
+import { BookOpen, Folder, Gem, ListChecks, Sparkles } from "lucide-react";
 import { Button, EmptyState, ErrorState, Select, SkeletonGrid } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
 import { AppShell } from "@/components/AppShell";
@@ -61,6 +61,11 @@ function CollectionContent() {
             <Link href="/collection/album">
               <Button variant="outline" size="sm" icon={<BookOpen className="h-4 w-4" aria-hidden="true" />}>
                 Vue album
+              </Button>
+            </Link>
+            <Link href="/collection/missing">
+              <Button variant="outline" size="sm" icon={<ListChecks className="h-4 w-4" aria-hidden="true" />}>
+                Cartes manquantes
               </Button>
             </Link>
           </div>

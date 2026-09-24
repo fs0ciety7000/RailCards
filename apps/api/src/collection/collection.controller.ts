@@ -42,6 +42,11 @@ export class CollectionController {
     return this.collection.getAlbumSeries(user.id, seriesId);
   }
 
+  @Get("missing")
+  async missing(@CurrentUser() user: AuthenticatedUser, @Query("seriesId") seriesId?: string) {
+    return this.collection.getMissingCards(user.id, seriesId);
+  }
+
   @Get(":instanceId")
   async instanceDetail(@CurrentUser() user: AuthenticatedUser, @Param("instanceId") instanceId: string) {
     return this.collection.getInstanceDetail(user.id, instanceId);
