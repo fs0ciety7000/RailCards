@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "motion/react";
-import { Mail, Wallet, Sparkles, Award, Flame, Camera, Crown, Flag, Lock, Tag, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
+import { Mail, Wallet, Sparkles, Award, Flame, Camera, Crown, Flag, Lock, Swords, Tag, Unlock, Pencil, ShieldCheck, Star, X } from "lucide-react";
 import { changePasswordSchema, type ChangePasswordInput } from "@railcards/contracts";
 import { Badge, Button, Card, CardBody, Dialog, EmptyState, ErrorState, FieldError, FieldGroup, Input, Label, ProgressBar, Skeleton, Textarea, useToast } from "@railcards/ui";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -19,7 +19,7 @@ import { ApiError, authApi, collectionApi, profileBannersApi, profileTitlesApi, 
 import { getErrorMessage } from "@/lib/error";
 import { formatDate } from "@/lib/format";
 import { useAuthStore } from "@/lib/auth-store";
-import type { CardDefinition, ProfileAchievementBadge, ProfileBanner, ProfileTitle } from "@/lib/types";
+import type { CardDefinition, DuelRecord, ProfileAchievementBadge, ProfileBanner, ProfileTitle } from "@/lib/types";
 
 const MAX_FAVORITES = 5;
 
@@ -320,6 +320,54 @@ function FavoritesSection({
   );
 }
 
+function DuelRecordSection({ record, isOwn }: { record: DuelRecord; isOwn: boolean }) {
+  if (record.total === 0) {
+    if (!isOwn) return null;
+    return (
+      <Card className="mt-4">
+        <CardBody>
+          <h2 className="mb-1 flex items-center gap-1.5 font-semibold text-white">
+            <Swords className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+            Historique de forme
+          </h2>
+          <p className="text-sm text-white/40 italic">Relevez un défi de duel pour voir votre taux de victoire ici.</p>
+        </CardBody>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="mt-4">
+      <CardBody>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-1.5 font-semibold text-white">
+            <Swords className="h-4 w-4 text-rc-accent" aria-hidden="true" />
+            Historique de forme
+          </h2>
+          <span className="text-lg font-bold text-rc-accent">{record.winRate}% de victoires</span>
+        </div>
+        <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.06]">
+          <div className="bg-emerald-400" style={{ width: `${(record.wins / record.total) * 100}%` }} />
+          <div className="bg-white/25" style={{ width: `${(record.draws / record.total) * 100}%` }} />
+          <div className="bg-rose-400" style={{ width: `${(record.losses / record.total) * 100}%` }} />
+        </div>
+        <div className="mt-2 flex items-center gap-4 text-xs text-white/60">
+          <span>
+            <span className="font-semibold text-emerald-400">{record.wins}</span> victoire{record.wins !== 1 ? "s" : ""}
+          </span>
+          <span>
+            <span className="font-semibold text-white/70">{record.draws}</span> nul{record.draws !== 1 ? "s" : ""}
+          </span>
+          <span>
+            <span className="font-semibold text-rose-400">{record.losses}</span> défaite{record.losses !== 1 ? "s" : ""}
+          </span>
+          <span className="ml-auto">{record.total} duel(s) au total</span>
+        </div>
+      </CardBody>
+    </Card>
+  );
+}
+
 function AchievementBadgesSection({ achievements, isOwn }: { achievements: ProfileAchievementBadge[]; isOwn: boolean }) {
   if (achievements.length === 0) {
     if (!isOwn) return null;
@@ -600,6 +648,7 @@ function ProfileContent() {
       </Card>
 
       <FavoritesSection favoriteCards={profile.favoriteCards} isOwn={isOwn} />
+      <DuelRecordSection record={profile.duelRecord} isOwn={isOwn} />
       <AchievementBadgesSection achievements={profile.achievements} isOwn={isOwn} />
       <BannersSection isOwn={isOwn} />
       <TitlesSection isOwn={isOwn} />

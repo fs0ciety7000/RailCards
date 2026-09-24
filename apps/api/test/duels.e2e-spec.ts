@@ -304,4 +304,52 @@ describe("Duels: wager a card's combat stat against another player (e2e, real Po
       .set("Authorization", `Bearer ${adminToken}`)
       .expect(200);
   });
+
+  it("tallies a player's win/loss/draw record and win rate across their resolved duels, shown on their public profile", async () => {
+    const strongCardId = await createCard({ power: 90, reliability: 90, charm: 90 });
+    const weakCardId = await createCard({ power: 10, reliability: 10, charm: 10 });
+    const evenCardIdA = await createCard({ power: 40, reliability: 40, charm: 40 });
+    const evenCardIdB = await createCard({ power: 40, reliability: 40, charm: 40 });
+
+    const player = await registerUser(app, adminToken, "duelrecordplayer");
+    const rival = await registerUser(app, adminToken, "duelrecordrival");
+
+    async function playDuel(playerCardId: string, rivalCardId: string) {
+      const playerInstance = await grant(player.user.id, playerCardId);
+      const rivalInstance = await grant(rival.user.id, rivalCardId);
+      const created = await request(app.getHttpServer())
+        .post("/api/v1/duels")
+        .set("Authorization", `Bearer ${player.accessToken}`)
+        .send({ opponentUsername: rival.username, cardInstanceId: playerInstance, wagerCr: 1 })
+        .expect(201);
+      await request(app.getHttpServer())
+        .post(`/api/v1/duels/${created.body.id}/accept`)
+        .set("Authorization", `Bearer ${rival.accessToken}`)
+        .send({ cardInstanceId: rivalInstance })
+        .expect(201);
+    }
+
+    // A guaranteed win: every combat stat beats the rival's, so whichever
+    // stat gets randomly picked, the player wins.
+    await playDuel(strongCardId, weakCardId);
+    // A guaranteed loss: the reverse.
+    await playDuel(weakCardId, strongCardId);
+    // A guaranteed draw: identical stats on both sides.
+    await playDuel(evenCardIdA, evenCardIdB);
+
+    const profile = await request(app.getHttpServer())
+      .get(`/api/v1/users/${player.username}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+    expect(profile.body.duelRecord).toEqual({ wins: 1, losses: 1, draws: 1, total: 3, winRate: 33.3 });
+  });
+
+  it("reports a null win rate (never a 0%) for a player who has never duelled", async () => {
+    const player = await registerUser(app, adminToken, "duelrecordnever");
+    const profile = await request(app.getHttpServer())
+      .get(`/api/v1/users/${player.username}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+    expect(profile.body.duelRecord).toEqual({ wins: 0, losses: 0, draws: 0, total: 0, winRate: null });
+  });
 });

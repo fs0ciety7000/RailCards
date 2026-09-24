@@ -292,4 +292,27 @@ export class DuelsService {
       return { cancelled: true };
     });
   }
+
+  /**
+   * Win/loss/draw tally over every resolved duel `userId` has taken part in
+   * — what a profile's "taux de victoire" is computed from. Only ACCEPTED
+   * duels count (a duel resolves the moment it's accepted); a null
+   * winnerId on one of those means a tie, per DuelsService.accept.
+   */
+  async getRecord(userId: string) {
+    const duels = await this.prisma.duel.findMany({
+      where: { status: "ACCEPTED", OR: [{ challengerId: userId }, { opponentId: userId }] },
+      select: { winnerId: true },
+    });
+    let wins = 0;
+    let losses = 0;
+    let draws = 0;
+    for (const duel of duels) {
+      if (duel.winnerId === null) draws++;
+      else if (duel.winnerId === userId) wins++;
+      else losses++;
+    }
+    const total = wins + losses + draws;
+    return { wins, losses, draws, total, winRate: total > 0 ? Math.round((wins / total) * 1000) / 10 : null };
+  }
 }

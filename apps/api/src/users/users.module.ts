@@ -5,12 +5,13 @@ import { GradesModule } from "../grades/grades.module";
 import { ProfileBannersModule } from "../profile-banners/profile-banners.module";
 import { ProfileTitlesModule } from "../profile-titles/profile-titles.module";
 import { MissionsModule } from "../missions/missions.module";
+import { DuelsModule } from "../duels/duels.module";
 import { UsersService } from "./users.service";
 import { UsersController } from "./users.controller";
 import { FavoritesService } from "./favorites.service";
 
 @Module({
-  imports: [CollectionModule, StorageModule, GradesModule, ProfileBannersModule, ProfileTitlesModule, MissionsModule],
+  imports: [CollectionModule, StorageModule, GradesModule, ProfileBannersModule, ProfileTitlesModule, MissionsModule, DuelsModule],
   controllers: [UsersController],
   providers: [UsersService, FavoritesService],
   exports: [UsersService],

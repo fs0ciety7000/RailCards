@@ -51,6 +51,15 @@ export interface PublicProfile {
   activeBanner: ProfileBanner | null;
   activeTitle: ProfileTitle | null;
   achievements: ProfileAchievementBadge[];
+  duelRecord: DuelRecord;
+}
+
+export interface DuelRecord {
+  wins: number;
+  losses: number;
+  draws: number;
+  total: number;
+  winRate: number | null;
 }
 
 export interface ProfileAchievementBadge {
