@@ -19,7 +19,7 @@ Référence complète : [`.env.example`](../../.env.example) (à la racine, sans
 | `TRADE_CR_ENABLED` | api (frontend, à terme) | Autorise ou non l'ajout de CR dans une proposition d'échange |
 | `MARKET_FEE_BPS` | api | Commission du marché en points de base (500 = 5 %), figée sur chaque annonce à sa création |
 | `S3_*` | api (stockage objet, non branché dans le MVP) | Voir [known-limitations.md](../product/known-limitations.md) |
-| `SMTP_*`, `EMAIL_FROM` | api (email, non branché dans le MVP) | Idem |
+| `SMTP_*`, `EMAIL_FROM` | api (e-mail de réinitialisation du mot de passe ; `SMTP_HOST` vide = lien journalisé ; port 465 = TLS implicite, sinon STARTTLS) | Idem |
 | `SENTRY_DSN`, `OTEL_EXPORTER_OTLP_ENDPOINT` | api (observabilité, préparé mais non activé) | Voir [security.md](security.md) |
 | `NEXT_PUBLIC_API_BASE_URL` | web | URL de base de l'API côté client (doit inclure `/api/v1`) |
 

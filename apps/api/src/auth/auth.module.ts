@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { EconomyModule } from "../economy/economy.module";
+import { MailModule } from "../mail/mail.module";
 import { MissionsModule } from "../missions/missions.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { AuthService } from "./auth.service";
@@ -9,7 +10,7 @@ import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
 @Module({
-  imports: [PassportModule, JwtModule.register({}), EconomyModule, MissionsModule, NotificationsModule],
+  imports: [PassportModule, JwtModule.register({}), EconomyModule, MailModule, MissionsModule, NotificationsModule],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
   exports: [AuthService],

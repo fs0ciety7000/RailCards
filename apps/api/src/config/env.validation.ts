@@ -23,6 +23,13 @@ export const envSchema = z.object({
   MARKET_FEE_BPS: z.coerce.number().int().min(0).max(10000).default(500),
   LOCAL_STORAGE_DIR: z.string().default("storage/uploads"),
   UPLOAD_MAX_SIZE_MB: z.coerce.number().int().min(1).max(25).default(5),
+  // Transactional mail. Empty SMTP_HOST = mail disabled (links are logged).
+  // Port 465 = implicit TLS, any other port = STARTTLS (required).
+  SMTP_HOST: z.string().default(""),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+  SMTP_USER: z.string().default(""),
+  SMTP_PASSWORD: z.string().default(""),
+  EMAIL_FROM: z.string().default("RailCards <noreply@fs0ciety.org>"),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

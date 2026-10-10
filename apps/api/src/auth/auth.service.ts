@@ -15,6 +15,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { WalletService } from "../economy/wallet.service";
 import { MissionsService } from "../missions/missions.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { MailService } from "../mail/mail.service";
 import { generateOpaqueToken, hashOpaqueToken } from "../common/utils/tokens";
 import { parseDurationToMs } from "../common/utils/duration";
 import type { RegisterDto } from "./dto/register.dto";
@@ -48,6 +49,7 @@ export class AuthService {
     private readonly wallet: WalletService,
     private readonly missions: MissionsService,
     private readonly notifications: NotificationsService,
+    private readonly mail: MailService,
   ) {}
 
   private toAuthenticatedUser(user: {
@@ -293,8 +295,8 @@ export class AuthService {
   /**
    * Always succeeds from the caller's point of view, whether or not the
    * email is registered, so this can't be used to enumerate accounts. The
-   * actual reset link is logged rather than emailed — no SMTP provider is
-   * configured by default (see .env.example / docs/product/known-limitations.md).
+   * reset link is emailed over SMTP when SMTP_HOST is set (MailService);
+   * otherwise (development) it is logged instead.
    */
   async requestPasswordReset(email: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
@@ -311,7 +313,32 @@ export class AuthService {
 
     const webBaseUrl = (this.config.get<string>("WEB_BASE_URL") ?? "http://localhost:3000").replace(/\/+$/, "");
     const resetUrl = `${webBaseUrl}/reset-password?token=${rawToken}`;
-    this.logger.log(`Password reset requested for ${user.email} — link (no SMTP configured, logging instead): ${resetUrl}`);
+    if (!this.mail.enabled) {
+      this.logger.log(`Password reset requested for ${user.email} — link (no SMTP configured, logging instead): ${resetUrl}`);
+      return;
+    }
+    // Not awaited: the response time must not reveal whether the account exists.
+    void this.mail
+      .send({
+        to: user.email,
+        subject: "RailCards — réinitialisation du mot de passe",
+        text: [
+          `Bonjour ${user.username},`,
+          "",
+          "Une réinitialisation du mot de passe de votre compte RailCards a été demandée.",
+          "Pour choisir un nouveau mot de passe, ouvrez ce lien (valable 1 heure) :",
+          "",
+          resetUrl,
+          "",
+          "Si vous n'êtes pas à l'origine de cette demande, ignorez simplement cet e-mail.",
+          "",
+          "— RailCards · contact@fs0ciety.org",
+        ].join("\n"),
+      })
+      .catch((err: Error) => {
+        // Never log the link itself.
+        this.logger.error(`Password reset email could not be sent: ${err.message}`);
+      });
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {

@@ -83,7 +83,22 @@ function makeMissionsService(tx: unknown) {
   const notifications = { create: jest.fn().mockResolvedValue({}) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const prisma = { $transaction: (fn: (tx: unknown) => unknown) => fn(tx) } as any;
-  const service = new MissionsService(prisma, wallet as never, grades as never, notifications as never);
+  const events = { getActiveXpMultiplierBps: jest.fn().mockResolvedValue(10_000) };
+  const bump = { bumpPoints: jest.fn().mockResolvedValue(undefined), bumpXp: jest.fn().mockResolvedValue(undefined) };
+  const unlocker = { unlock: jest.fn().mockResolvedValue(undefined) };
+  const service = new MissionsService(
+    prisma,
+    wallet as never,
+    grades as never,
+    notifications as never,
+    events as never,
+    bump as never,
+    bump as never,
+    bump as never,
+    unlocker as never,
+    unlocker as never,
+    unlocker as never,
+  );
   return { service, notifications, wallet };
 }
 

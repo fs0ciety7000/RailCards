@@ -57,7 +57,7 @@ services:
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      EMAIL_FROM: ${EMAIL_FROM:-RailCards <no-reply@railcards.example>}
+      EMAIL_FROM: ${EMAIL_FROM:-RailCards <noreply@fs0ciety.org>}
       SENTRY_DSN: ${SENTRY_DSN:-}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
     volumes:

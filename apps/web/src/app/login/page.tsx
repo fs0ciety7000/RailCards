@@ -107,6 +107,12 @@ export default function LoginPage() {
             Inscrivez-vous
           </Link>
         </p>
+        <p className="mt-2 text-center text-xs text-white/40">
+          Contact :{" "}
+          <a href="mailto:contact@fs0ciety.org" className="text-white/60 hover:underline">
+            contact@fs0ciety.org
+          </a>
+        </p>
       </motion.div>
     </div>
   );

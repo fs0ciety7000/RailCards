@@ -105,7 +105,12 @@ export default function RegisterPage() {
                 <Label htmlFor="invitationCode">Code d&apos;invitation</Label>
                 <Input id="invitationCode" invalid={!!errors.invitationCode} {...register("invitationCode")} />
                 <FieldError>{errors.invitationCode?.message}</FieldError>
-                <p className="mt-1 text-xs text-white/40">RailCards est actuellement sur invitation uniquement.</p>
+                <p className="mt-1 text-xs text-white/40">
+                  RailCards est actuellement sur invitation uniquement. Pour en demander une :{" "}
+                  <a href="mailto:contact@fs0ciety.org" className="text-white/60 hover:underline">
+                    contact@fs0ciety.org
+                  </a>
+                </p>
               </FieldGroup>
               <Button type="submit" fullWidth loading={isSubmitting}>
                 Créer mon compte
